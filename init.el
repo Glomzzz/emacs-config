@@ -1,0 +1,32 @@
+;;; init.el --- Module loader for Glom's Emacs configuration -*- lexical-binding: t; -*-
+
+(setq custom-file (expand-file-name "theme.el" user-emacs-directory))
+
+(defconst my/modules-dir
+  (expand-file-name "modules/" user-emacs-directory))
+
+(defconst my/module-load-order
+  '("bootstrap"
+    "core"
+    "ui"
+    "appearance"
+    "completion"
+    "lsp"
+    "terminal"
+    "lang/scheme"
+    "lang/racket"
+    "lang/rust"
+    "lang/java"
+    "lang/typst"
+    "lang/markdown"
+    "lang/nix"))
+
+(defun my/load-module (relative-path)
+  "Load RELATIVE-PATH from `my/modules-dir' in documented order."
+  (load (expand-file-name relative-path my/modules-dir) nil 'nomessage))
+
+;; Load order matters: shared helpers are defined before dependent modules.
+(dolist (module my/module-load-order)
+  (my/load-module module))
+
+;;; init.el ends here
