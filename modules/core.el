@@ -10,9 +10,16 @@
       tab-width 4
       compilation-scroll-output t
       read-process-output-max (* 1024 1024)
-      eldoc-echo-area-use-multiline-p nil
-      explicit-shell-file-name "/home/glom/.nix-profile/bin/nu"
-      shell-file-name "/home/glom/.nix-profile/bin/nu")
+      eldoc-echo-area-use-multiline-p nil)
+
+(let ((my/posix-shell (or (executable-find "bash")
+                          (executable-find "sh")))
+      (my/nu-shell (executable-find "nu")))
+  (when my/posix-shell
+    (setq shell-file-name my/posix-shell
+          explicit-shell-file-name my/posix-shell))
+  (when my/nu-shell
+    (setenv "SHELL" my/nu-shell)))
 
 (setq-default indent-tabs-mode nil
               display-line-numbers-type 'relative)
@@ -30,6 +37,7 @@
       (setenv "PATH" (concat dir path-separator (getenv "PATH"))))))
 
 (my/prepend-to-path (expand-file-name "~/.cargo/bin"))
+(my/prepend-to-path (expand-file-name "~/.local/bin"))
 
 (use-package envrc
   :hook (after-init . envrc-global-mode))
