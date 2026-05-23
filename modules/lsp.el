@@ -1,5 +1,33 @@
 ;;; lsp.el --- Shared LSP, diagnostics, and Eldoc behavior -*- lexical-binding: t; -*-
 
+(defun my/treesit-install-dir (out-dir)
+  "Normalize tree-sitter grammar install OUT-DIR into the cache directory."
+  (let ((default-dir
+         (file-name-as-directory
+          (expand-file-name "tree-sitter/" user-emacs-directory))))
+    (if (or (null out-dir)
+            (string-equal (file-name-as-directory (expand-file-name out-dir))
+                          default-dir))
+        my/emacs-tree-sitter-dir
+      out-dir)))
+
+(defun my/treesit-install-language-grammar-to-cache (orig lang &optional out-dir)
+  "Install LANG grammar with ORIG into the cache-backed OUT-DIR."
+  (funcall orig lang (my/treesit-install-dir out-dir)))
+
+(defun my/enable-treesit-cache-installs ()
+  "Keep tree-sitter grammar installs under `.cache/tree-sitter/'."
+  (unless (advice-member-p #'my/treesit-install-language-grammar-to-cache
+                           #'treesit-install-language-grammar)
+    (advice-add #'treesit-install-language-grammar
+                :around
+                #'my/treesit-install-language-grammar-to-cache)))
+
+(if (fboundp 'treesit-install-language-grammar)
+    (my/enable-treesit-cache-installs)
+  (with-eval-after-load 'treesit
+    (my/enable-treesit-cache-installs)))
+
 (defun my/flymake-setup ()
   "Use jump commands instead of inline end-of-line diagnostics."
   (setq-local flymake-show-diagnostics-at-end-of-line nil))
