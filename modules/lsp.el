@@ -69,7 +69,7 @@
         '((java "https://github.com/tree-sitter/tree-sitter-java")
           (typst "https://github.com/uben0/tree-sitter-typst")))
   :config
-  (treesit-auto-add-to-auto-mode-alist 'all))
+  (treesit-auto-add-to-auto-mode-alist))
 
 (use-package eldoc
   :ensure nil
