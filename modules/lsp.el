@@ -55,6 +55,10 @@
   :hook (eglot-managed-mode . my/eglot-managed-mode-setup)
   :custom
   (eglot-autoshutdown t)
+  (eglot-workspace-configuration
+   '(:rust-analyzer
+     (:inlayHints
+      (:typeHints (:enable :json-false)))))
   :config
   (add-to-list 'eglot-server-programs '(scheme-mode . ("scheme-langserver")))
   (add-to-list 'eglot-server-programs '(java-ts-mode . ("jdtls")))
@@ -67,6 +71,7 @@
   :init
   (setq treesit-language-source-alist
         '((java "https://github.com/tree-sitter/tree-sitter-java")
+          (rust "https://github.com/tree-sitter/tree-sitter-rust")
           (typst "https://github.com/uben0/tree-sitter-typst")))
   :config
   (treesit-auto-add-to-auto-mode-alist))

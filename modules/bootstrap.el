@@ -19,7 +19,8 @@
 
 (defconst my/required-packages
   '(corfu eldoc-box envrc gruber-darker-theme markdown-mode
-    nix-ts-mode racket-mode treesit-auto typst-ts-mode vterm))
+    nix-ts-mode racket-mode rust-mode treesit-auto typst-ts-mode
+    vterm))
 
 (defvar my/refresh-package-quickstart-after-startup nil)
 
