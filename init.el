@@ -17,6 +17,7 @@
     "lang/racket"
     "lang/rust"
     "lang/java"
+    "lang/python"
     "lang/typst"
     "lang/markdown"
     "lang/nix"))
