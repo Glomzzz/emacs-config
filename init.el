@@ -20,6 +20,7 @@
     "lang/python"
     "lang/typst"
     "lang/markdown"
+    "lang/leetcode"
     "lang/nix"))
 
 (defun my/load-module (relative-path)
