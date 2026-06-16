@@ -35,6 +35,7 @@
 (defun my/lsp-buffer-setup ()
   "Set shared local bindings and diagnostics behavior for LSP buffers."
   (my/flymake-setup)
+  (local-set-key (kbd "C-c a") #'eglot-code-actions)
   (local-set-key (kbd "C-c d") #'eldoc-doc-buffer)
   (local-set-key (kbd "M-n") #'flymake-goto-next-error)
   (local-set-key (kbd "M-p") #'flymake-goto-prev-error))
