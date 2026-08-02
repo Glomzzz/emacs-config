@@ -10,3 +10,11 @@
   (add-to-list 'vterm-keymap-exceptions "M-w")
   (when-let ((nu-shell (executable-find "nu")))
     (setq vterm-shell nu-shell)))
+
+
+(defun my/switch-to-vterm ()
+  (interactive)
+  (if-let ((buf (get-buffer "*vterm*")))
+      (switch-to-buffer buf)
+    (vterm)))
+(global-set-key (kbd "C-c t") #'my/switch-to-vterm)
