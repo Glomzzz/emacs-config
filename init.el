@@ -21,7 +21,8 @@
     "lang/typst"
     "lang/markdown"
     "lang/leetcode"
-    "lang/nix"))
+    "lang/nix"
+    "lang/koka"))
 
 (defun my/load-module (relative-path)
   "Load RELATIVE-PATH from `my/modules-dir' in documented order."
