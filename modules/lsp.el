@@ -45,21 +45,29 @@
   (my/lsp-buffer-setup))
 
 (defun my/enable-eldoc-box ()
-  "Enable childframe docs only in graphical sessions."
-  (when (display-graphic-p)
-    (eldoc-box-hover-at-point-mode 1)))
+  "Show ElDoc in an at-point childframe when the display supports it."
+  (eldoc-box-hover-at-point-mode
+   (if (and eldoc-mode (display-graphic-p)) 1 -1)))
 
 (use-package eglot
   :ensure nil
   :commands (eglot eglot-ensure eglot-rename)
   :bind ("C-c r" . eglot-rename)
   :hook (eglot-managed-mode . my/eglot-managed-mode-setup)
-  :custom
-  (eglot-autoshutdown t)
-  (eglot-workspace-configuration
+  :init
+  (setq-default
+   eglot-workspace-configuration
    '(:rust-analyzer
      (:inlayHints
-      (:typeHints (:enable :json-false)))))
+      (:typeHints (:enable :json-false)))
+     :koka
+     (:languageServer
+      (:inlayHints
+       (:showImplicitArguments t
+        :showInferredTypes t
+        :showFullQualifiers :json-false)))))
+  :custom
+  (eglot-autoshutdown t)
   :config
   (add-to-list 'eglot-server-programs '(scheme-mode . ("scheme-langserver")))
   (add-to-list 'eglot-server-programs '(java-ts-mode . ("jdtls")))
@@ -82,11 +90,12 @@
   :ensure nil
   :hook (prog-mode . eldoc-mode)
   :custom
-  (eldoc-idle-delay 0.3)
+  ;; At-point eldoc-box suppresses popups for 0.5 seconds after point moves.
+  (eldoc-idle-delay 0.6)
   (eldoc-echo-area-use-multiline-p nil))
 
 (use-package eldoc-box
-  :hook (eglot-managed-mode . my/enable-eldoc-box)
+  :hook (eldoc-mode . my/enable-eldoc-box)
   :custom
   (eldoc-box-clear-with-C-g t)
   (eldoc-box-max-pixel-width 800)
