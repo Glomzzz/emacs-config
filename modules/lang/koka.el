@@ -8,6 +8,8 @@
 ;;; Code:
 
 (require 'rx)
+(require 'project)
+(require 'fileloop)
 
 (defgroup koka nil
   "Editing support for the Koka programming language."
@@ -28,9 +30,10 @@
       (modify-syntax-entry (car pair) (cdr pair) table))
     (dolist (char '(?$ ?% ?& ?+ ?~ ?! ?^ ?# ?= ?. ?: ?- ?? ?< ?> ?| ?@))
       (modify-syntax-entry char "." table))
-    ;; Hyphens and apostrophes are valid inside Koka identifiers.
+    ;; Hyphens, apostrophes, and at signs are valid inside Koka identifiers.
     (modify-syntax-entry ?- "_" table)
     (modify-syntax-entry ?' "_" table)
+    (modify-syntax-entry ?@ "_" table)
     (modify-syntax-entry ?_ "_" table)
     (modify-syntax-entry ?\" "\"" table)
     (modify-syntax-entry ?\\ "\\" table)
@@ -208,7 +211,68 @@
   (when (my/koka-eglot-command)
     (eglot-ensure)))
 
-(add-to-list 'auto-mode-alist '("\\.kk[ic]?\\'" . koka-mode))
+(defconst koka--renameable-identifier-re
+  (rx string-start
+      (? "@") (or alpha "_") (* (any alnum "_@-")) (* "'")
+      string-end)
+  "Regexp matching a Koka identifier supported by project rename.")
+
+(defvar koka-rename-history nil
+  "Minibuffer history for Koka rename targets.")
+
+(defun my/koka-symbol-at-point ()
+  "Return the renameable Koka symbol at point, without text properties."
+  (when-let ((symbol (thing-at-point 'symbol t)))
+    (and (string-match-p koka--renameable-identifier-re symbol)
+         symbol)))
+
+(defun my/koka-project-files (project)
+  "Return Koka source files belonging to PROJECT."
+  (let (files)
+    (dolist (file (project-files project) (nreverse files))
+      (when (member (file-name-extension file) '("kk"))
+        (push file files)))))
+
+(defun my/koka-project-rename (old-name new-name)
+  "Query-replace OLD-NAME with NEW-NAME across the Koka project."
+  (interactive
+   (let ((old-name (my/koka-symbol-at-point)))
+     (unless old-name
+       (user-error "No renameable Koka identifier at point"))
+     (list old-name
+           (read-string (format "Rename `%s' to: " old-name)
+                        old-name 'koka-rename-history old-name))))
+  (unless (and (stringp old-name)
+               (string-match-p koka--renameable-identifier-re old-name))
+    (user-error "Invalid Koka identifier: %s" old-name))
+  (unless (and (stringp new-name)
+               (string-match-p koka--renameable-identifier-re new-name))
+    (user-error "Invalid Koka identifier: %s" new-name))
+  (when (string-equal old-name new-name)
+    (user-error "The new name is unchanged"))
+  (let ((project (project-current t)))
+    (unless project
+      (user-error "No Koka project found"))
+    (let ((files (my/koka-project-files project)))
+      (unless files
+        (user-error "No Koka files found in project %s"
+                    (project-root project)))
+      (fileloop-initialize-replace
+       (concat "\\_<" (regexp-quote old-name) "\\_>")
+       new-name files nil)
+      (fileloop-continue))))
+
+(defun my/koka-rename ()
+  "Rename at point with Eglot, falling back when Koka lacks LSP rename."
+  (interactive)
+  (if (and (bound-and-true-p eglot-managed-mode)
+           (eglot-server-capable :renameProvider))
+      (call-interactively #'eglot-rename)
+    (call-interactively #'my/koka-project-rename)))
+
+(define-key koka-mode-map [remap eglot-rename] #'my/koka-rename)
+
+(add-to-list 'auto-mode-alist '("\\.kk\\'" . koka-mode))
 (add-hook 'project-find-functions #'my/koka-project)
 (add-hook 'koka-mode-hook #'my/koka-maybe-eglot-ensure)
 
