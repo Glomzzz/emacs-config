@@ -20,6 +20,8 @@
     "lang/java"
     "lang/kotlin"
     "lang/scala"
+    "lang/flix-mode"
+    "lang/flix"
     "lang/python"
     "lang/typst"
     "lang/markdown"

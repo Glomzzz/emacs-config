@@ -79,7 +79,8 @@
   (treesit-auto-install 'prompt)
   :init
   (setq treesit-language-source-alist
-        '((java "https://github.com/tree-sitter/tree-sitter-java")
+        '((flix "https://github.com/wstein/tree-sitter-flix" "v0.1.1")
+          (java "https://github.com/tree-sitter/tree-sitter-java")
           (kotlin "https://github.com/fwcd/tree-sitter-kotlin")
           (python "https://github.com/tree-sitter/tree-sitter-python")
           (rust "https://github.com/tree-sitter/tree-sitter-rust")
