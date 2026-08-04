@@ -24,6 +24,11 @@
 
 (defvar my/refresh-package-quickstart-after-startup nil)
 
+(defun my/register-required-packages ()
+  "Protect required packages from `package-autoremove'."
+  (setq package-selected-packages
+        (cl-union my/required-packages package-selected-packages)))
+
 (defun my/call-with-quiet-compilation (fn &rest args)
   "Call FN with ARGS while suppressing byte-compilation noise."
   (let ((byte-compile-verbose nil)
@@ -69,6 +74,7 @@
 (my/bootstrap-packages)
 (unless package-activated-list
   (package-activate-all))
+(add-hook 'after-init-hook #'my/register-required-packages)
 (add-hook 'emacs-startup-hook #'my/refresh-package-quickstart-on-startup)
 
 (require 'use-package)

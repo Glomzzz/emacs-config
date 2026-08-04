@@ -16,6 +16,7 @@
     "lang/scheme"
     "lang/racket"
     "lang/rust"
+    "lang/jvm"
     "lang/java"
     "lang/python"
     "lang/typst"
