@@ -19,9 +19,9 @@
       use-package-expand-minimally t)
 
 (defconst my/required-packages
-  '(corfu eldoc-box envrc gruber-darker-theme jarchive kotlin-mode
+  '(corfu dune eldoc-box envrc gruber-darker-theme jarchive kotlin-mode
     kotlin-ts-mode leetcode markdown-mode nix-ts-mode racket-mode rust-mode
-    scala-mode treesit-auto typst-ts-mode vterm yasnippet))
+    scala-mode treesit-auto tuareg typst-ts-mode utop vterm yasnippet))
 
 (defvar my/refresh-package-quickstart-after-startup nil)
 
@@ -73,7 +73,8 @@
     (my/call-with-quiet-compilation #'package-quickstart-refresh)))
 
 (my/bootstrap-packages)
-(unless package-activated-list
+(when (or my/refresh-package-quickstart-after-startup
+          (null package-activated-list))
   (package-activate-all))
 (add-hook 'after-init-hook #'my/register-required-packages)
 (add-hook 'emacs-startup-hook #'my/refresh-package-quickstart-on-startup)

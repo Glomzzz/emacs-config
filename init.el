@@ -20,6 +20,7 @@
     "lang/java"
     "lang/kotlin"
     "lang/scala"
+    "lang/ocaml"
     "lang/flix-mode"
     "lang/flix"
     "lang/python"
