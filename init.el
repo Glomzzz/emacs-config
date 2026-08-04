@@ -19,6 +19,7 @@
     "lang/jvm"
     "lang/java"
     "lang/kotlin"
+    "lang/scala"
     "lang/python"
     "lang/typst"
     "lang/markdown"
