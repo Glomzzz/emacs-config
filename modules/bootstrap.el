@@ -18,9 +18,9 @@
       use-package-expand-minimally t)
 
 (defconst my/required-packages
-  '(corfu eldoc-box envrc gruber-darker-theme markdown-mode
-    leetcode nix-ts-mode racket-mode rust-mode treesit-auto typst-ts-mode
-    vterm yasnippet))
+  '(corfu eldoc-box envrc gruber-darker-theme kotlin-mode
+    kotlin-ts-mode leetcode markdown-mode nix-ts-mode racket-mode rust-mode
+    treesit-auto typst-ts-mode vterm yasnippet))
 
 (defvar my/refresh-package-quickstart-after-startup nil)
 

@@ -18,6 +18,7 @@
     "lang/rust"
     "lang/jvm"
     "lang/java"
+    "lang/kotlin"
     "lang/python"
     "lang/typst"
     "lang/markdown"

@@ -80,6 +80,7 @@
   :init
   (setq treesit-language-source-alist
         '((java "https://github.com/tree-sitter/tree-sitter-java")
+          (kotlin "https://github.com/fwcd/tree-sitter-kotlin")
           (python "https://github.com/tree-sitter/tree-sitter-python")
           (rust "https://github.com/tree-sitter/tree-sitter-rust")
           (typst "https://github.com/uben0/tree-sitter-typst")))
