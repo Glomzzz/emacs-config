@@ -35,6 +35,7 @@
 (defun my/lsp-buffer-setup ()
   "Set shared local bindings and diagnostics behavior for LSP buffers."
   (my/flymake-setup)
+  (local-set-key (kbd "C-c =") #'eglot-format-buffer)
   (local-set-key (kbd "C-c a") #'eglot-code-actions)
   (local-set-key (kbd "C-c d") #'eldoc-doc-buffer)
   (local-set-key (kbd "M-n") #'flymake-goto-next-error)
@@ -70,7 +71,6 @@
   (eglot-autoshutdown t)
   :config
   (add-to-list 'eglot-server-programs '(scheme-mode . ("scheme-langserver")))
-  (add-to-list 'eglot-server-programs '(java-ts-mode . ("jdtls")))
   (add-to-list 'eglot-server-programs '(nix-ts-mode . ("nixd"))))
 
 (use-package treesit-auto
