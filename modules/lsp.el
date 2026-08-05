@@ -81,9 +81,16 @@
   (setq treesit-language-source-alist
         '((flix "https://github.com/wstein/tree-sitter-flix" "v0.1.1")
           (java "https://github.com/tree-sitter/tree-sitter-java")
+          (javascript "https://github.com/tree-sitter/tree-sitter-javascript"
+                      nil "src")
+          (json "https://github.com/tree-sitter/tree-sitter-json")
           (kotlin "https://github.com/fwcd/tree-sitter-kotlin")
           (python "https://github.com/tree-sitter/tree-sitter-python")
           (rust "https://github.com/tree-sitter/tree-sitter-rust")
+          (tsx "https://github.com/tree-sitter/tree-sitter-typescript"
+               nil "tsx/src")
+          (typescript "https://github.com/tree-sitter/tree-sitter-typescript"
+                      nil "typescript/src")
           (typst "https://github.com/uben0/tree-sitter-typst")))
   :config
   (treesit-auto-add-to-auto-mode-alist))

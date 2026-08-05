@@ -24,6 +24,7 @@
     "lang/flix-mode"
     "lang/flix"
     "lang/python"
+    "lang/javascript"
     "lang/typst"
     "lang/markdown"
     "lang/leetcode"
