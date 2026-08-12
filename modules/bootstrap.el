@@ -20,9 +20,9 @@
 
 (defconst my/required-packages
   '(corfu dirvish dune eldoc-box envrc gruber-darker-theme jarchive kotlin-mode
-    kotlin-ts-mode leetcode markdown-mode nerd-icons nix-ts-mode nov racket-mode
-    rust-mode scala-mode treesit-auto tuareg typst-ts-mode utop vterm
-    yasnippet))
+    kotlin-ts-mode leetcode magit markdown-mode nerd-icons nix-ts-mode nov
+    racket-mode rust-mode scala-mode treesit-auto tuareg typst-ts-mode utop
+    vterm yasnippet))
 
 (defvar my/refresh-package-quickstart-after-startup nil)
 

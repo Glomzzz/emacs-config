@@ -11,6 +11,7 @@
     "ui"
     "appearance"
     "file-manager"
+    "version-control"
     "completion"
     "lsp"
     "terminal"
