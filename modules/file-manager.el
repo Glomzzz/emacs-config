@@ -7,11 +7,10 @@
 (defconst my/android-mount-directory
   (expand-file-name "~/mnt/android/"))
 
-(defconst my/mac-mini-mount-directory "/mnt/mac-mini/")
+(defconst my/mac-mini-mount-directory
+  (expand-file-name "~/mnt/mac-mini/"))
 
-(defconst my/mac-mini-probe-timeout-seconds 12)
-
-(defvar my/mac-mini-probe-process nil)
+(defvar my/mac-mini-connect-process nil)
 
 (defun my/run-android-phone (action)
   "Run the android-phone helper with ACTION and report a useful error."
@@ -25,8 +24,8 @@
         (unless (eq status 0)
           (user-error "%s" (string-trim (buffer-string))))))))
 
-(defun my/dirvish-mac-mini-probe-sentinel (process _event)
-  "Open mac-mini when PROCESS confirms that its SMB share is responsive."
+(defun my/dirvish-mac-mini-connect-sentinel (process _event)
+  "Open mac-mini when its persistent connector PROCESS succeeds."
   (when (memq (process-status process) '(exit signal))
     (let* ((status (process-exit-status process))
            (output-buffer (process-buffer process))
@@ -37,8 +36,8 @@
            (target-window (process-get process 'target-window))
            (source-buffer (process-get process 'source-buffer)))
       (unwind-protect
-          (when (eq process my/mac-mini-probe-process)
-            (setq my/mac-mini-probe-process nil)
+          (when (eq process my/mac-mini-connect-process)
+            (setq my/mac-mini-connect-process nil)
             (cond
              ((zerop status)
               (if (and (window-live-p target-window)
@@ -50,11 +49,10 @@
                      (message "Could not open mac-mini: %s"
                               (error-message-string error-data))))
                 (message "mac-mini is ready; use quick access again")))
-             ((memq status '(124 137))
-              (message "mac-mini did not respond within %d seconds"
-                       my/mac-mini-probe-timeout-seconds))
+             ((process-get process 'cancelled)
+              (message "Stopped connecting to mac-mini"))
              (t
-              (message "Could not reach mac-mini%s"
+              (message "mac-mini connector stopped%s"
                        (if (string-empty-p details)
                            ""
                          (format ": %s" details))))))
@@ -62,43 +60,51 @@
           (kill-buffer output-buffer))))))
 
 (defun my/dirvish-open-mac-mini ()
-  "Probe the mac-mini SMB share asynchronously, then open it in Dirvish."
+  "Keep connecting to mac-mini asynchronously, then open it in Dirvish."
   (interactive)
-  (if (process-live-p my/mac-mini-probe-process)
+  (if (process-live-p my/mac-mini-connect-process)
       (message "Already connecting to mac-mini")
-    (let ((timeout-program (executable-find "timeout"))
-          (find-program (executable-find "find"))
-          (output-buffer (generate-new-buffer " *mac-mini SMB probe*"))
+    (let ((program (executable-find "mac-mini-connect"))
+          (output-buffer (generate-new-buffer " *mac-mini connector*"))
           (target-window (selected-window))
           (source-buffer (current-buffer))
           (default-directory (expand-file-name "~/")))
-      (unless (and timeout-program find-program)
+      (unless program
         (kill-buffer output-buffer)
-        (user-error "timeout and find are required to open mac-mini safely"))
+        (user-error "mac-mini-connect is not installed; rebuild NixOS"))
       (let ((process
              (condition-case error-data
                  (make-process
-                  :name "mac-mini SMB probe"
+                  :name "mac-mini connector"
                   :buffer output-buffer
-                  :command
-                  (list timeout-program
-                        "--kill-after=1s"
-                        (format "%ds" my/mac-mini-probe-timeout-seconds)
-                        find-program my/mac-mini-mount-directory
-                        "-mindepth" "1" "-maxdepth" "1" "-quit")
+                  :command (list program)
                   :connection-type 'pipe
                   :noquery t
                   :sentinel #'ignore)
                (error
                 (kill-buffer output-buffer)
                 (signal (car error-data) (cdr error-data))))))
-        (setq my/mac-mini-probe-process process)
+        (setq my/mac-mini-connect-process process)
         (process-put process 'target-window target-window)
         (process-put process 'source-buffer source-buffer)
-        (message "Connecting to mac-mini...")
-        (set-process-sentinel process #'my/dirvish-mac-mini-probe-sentinel)
+        (message "Connecting to mac-mini... use C-c C-k to cancel")
+        (set-process-sentinel process #'my/dirvish-mac-mini-connect-sentinel)
         (unless (process-live-p process)
-          (my/dirvish-mac-mini-probe-sentinel process "finished\n"))))))
+          (my/dirvish-mac-mini-connect-sentinel process "finished\n"))))))
+
+(defun my/dirvish-cancel-mac-mini-connect ()
+  "Cancel the current background mac-mini connection attempt."
+  (interactive)
+  (if (process-live-p my/mac-mini-connect-process)
+      (let ((process my/mac-mini-connect-process))
+        (setq my/mac-mini-connect-process nil)
+        (process-put process 'cancelled t)
+        (delete-process process)
+        (when-let* ((output-buffer (process-buffer process))
+                    ((buffer-live-p output-buffer)))
+          (kill-buffer output-buffer))
+        (message "Stopped connecting to mac-mini"))
+    (message "No mac-mini connection attempt is running")))
 
 (defun my/dirvish-visit-place (path)
   "Open PATH in Dirvish, preparing removable or network storage first."
@@ -211,6 +217,7 @@
    ("M-f" . dirvish-history-go-forward)
    ("M-b" . dirvish-history-go-backward)
    ("C-c C-a" . my/dirvish-mount-android)
+   ("C-c C-k" . my/dirvish-cancel-mac-mini-connect)
    ("C-c C-u" . my/dirvish-unmount-android)
    ("C-c C-d" . my/dirvish-drag-files)
    ("C-c C-t" . my/dirvish-open-in-thunar)))
