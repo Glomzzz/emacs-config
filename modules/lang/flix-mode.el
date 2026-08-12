@@ -212,7 +212,7 @@ Return non-nil if such a line exists."
   (let ((end (line-end-position)))
     (save-excursion
       (goto-char end)
-      (when-let ((start (nth 8 (syntax-ppss))))
+      (when-let* ((start (nth 8 (syntax-ppss))))
         (when (nth 4 (syntax-ppss))
           (setq end start)))
       (goto-char end)
@@ -502,7 +502,7 @@ OVERRIDE, START, and END have the meaning documented by
 
   (defun flix-ts-mode--defun-name (node)
     "Return the declared name of Flix syntax NODE, or nil."
-    (when-let ((name (treesit-node-child-by-field-name node "name")))
+    (when-let* ((name (treesit-node-child-by-field-name node "name")))
       (treesit-node-text name t)))
 
   (declare-function flix-ts-mode--defun-name "flix-mode" (node))

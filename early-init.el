@@ -1,5 +1,12 @@
 ;;; early-init.el --- Startup optimizations -*- lexical-binding: t; -*-
 
+(require 'warnings)
+
+;; Anonymous buffers have no source file where Emacs can add a dialect cookie.
+;; Keep the Emacs 31 warning enabled for every named Lisp file.
+(add-to-list 'warning-suppress-log-types
+             '(files missing-lexbind-cookie eval-buffer))
+
 (defconst my/emacs-cache-dir
   (expand-file-name ".cache/" user-emacs-directory))
 

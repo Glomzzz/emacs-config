@@ -203,7 +203,7 @@
 
 (defun my/koka-eglot-command (&optional _interactive _project)
   "Return the installed Koka language-server command for Eglot."
-  (when-let ((binary (executable-find "koka")))
+  (when-let* ((binary (executable-find "koka")))
     (list binary "--language-server" "--lsstdio")))
 
 (defun my/koka-maybe-eglot-ensure ()
@@ -222,7 +222,7 @@
 
 (defun my/koka-symbol-at-point ()
   "Return the renameable Koka symbol at point, without text properties."
-  (when-let ((symbol (thing-at-point 'symbol t)))
+  (when-let* ((symbol (thing-at-point 'symbol t)))
     (and (string-match-p koka--renameable-identifier-re symbol)
          symbol)))
 

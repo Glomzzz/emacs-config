@@ -1,6 +1,7 @@
 ;;; leetcode.el --- LeetCode preferences -*- lexical-binding: t; -*-
 
 (use-package leetcode
+  :commands (leetcode leetcode-daily)
   :preface
   (require 'aio)
   (require 'cl-lib)
@@ -60,7 +61,7 @@
 
   (defun my/leetcode-cn--call-process-string (program &rest args)
     "Run PROGRAM with ARGS and return its trimmed stdout."
-    (when-let ((executable (executable-find program)))
+    (when-let* ((executable (executable-find program)))
       (with-temp-buffer
         (when (eq 0 (apply #'call-process executable nil (current-buffer) nil args))
           (string-trim-right (buffer-string))))))
@@ -157,10 +158,10 @@ Each row is `(NAME VALUE EXPIRES DOMAIN PATH SECURE)`."
             (let ((db (sqlite-open temp-db)))
               (unwind-protect
                   (let* ((db-version
-                          (if-let ((row (car (sqlite-select
-                                              db
-                                              "select value from meta where key = ?"
-                                              ["version"]))))
+                          (if-let* ((row (car (sqlite-select
+                                               db
+                                               "select value from meta where key = ?"
+                                               ["version"]))))
                               (string-to-number (car row))
                             0))
                          (wallet-secret (my/leetcode-cn--wallet-secret))

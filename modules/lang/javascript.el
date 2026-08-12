@@ -171,8 +171,8 @@
 
 (defun my/javascript-local-bin-dir (&optional dir)
   "Find the nearest node_modules/.bin directory above DIR."
-  (when-let ((root (locate-dominating-file
-                    (or dir default-directory) "node_modules/.bin")))
+  (when-let* ((root (locate-dominating-file
+                     (or dir default-directory) "node_modules/.bin")))
     (expand-file-name "node_modules/.bin" root)))
 
 (defun my/javascript-local-executable (program &optional dir)
@@ -189,7 +189,7 @@
 
 (defun my/javascript-add-node-modules-path ()
   "Expose the nearest node_modules/.bin to this buffer's subprocesses."
-  (when-let ((bin-dir (my/javascript-local-bin-dir)))
+  (when-let* ((bin-dir (my/javascript-local-bin-dir)))
     (setq-local exec-path
                 (cons bin-dir (delete bin-dir (copy-sequence exec-path))))
     (setq-local process-environment (copy-sequence process-environment))
@@ -247,8 +247,8 @@
    ((and (my/javascript-deno-project-p root)
          (executable-find "deno"))
     "deno test")
-   ((when-let ((script (my/javascript-package-script root))
-               (manager (my/javascript-package-manager root)))
+   ((when-let* ((script (my/javascript-package-script root))
+                (manager (my/javascript-package-manager root)))
       (format "%s run %s" manager script)))
    ((and (or (file-exists-p (expand-file-name "tsconfig.json" root))
              (file-exists-p (expand-file-name "jsconfig.json" root)))
@@ -325,7 +325,7 @@
   (cond
    ((and (fboundp 'eglot-managed-p) (eglot-managed-p))
     (eglot-format-buffer))
-   ((when-let ((formatter (my/javascript-formatter)))
+   ((when-let* ((formatter (my/javascript-formatter)))
       (unless (require 'apheleia nil t)
         (user-error "Apheleia is unavailable"))
       (apheleia-format-buffer formatter)
@@ -377,8 +377,8 @@
                 (my/javascript-project-root default-directory))))
     (seq-some
      (lambda (program)
-       (when-let ((executable
-                   (my/javascript-find-executable program root)))
+       (when-let* ((executable
+                    (my/javascript-find-executable program root)))
          (list executable "--stdio")))
      '("vscode-json-language-server"
        "vscode-json-languageserver"

@@ -11,7 +11,7 @@
 
 (defun my/typst-local-project (dir)
   "Treat any directory containing a .typst-root file as a project root."
-  (when-let ((root (locate-dominating-file dir ".typst-root")))
+  (when-let* ((root (locate-dominating-file dir ".typst-root")))
     (cons 'transient root)))
 
 (defun my/typst-eglot-command ()

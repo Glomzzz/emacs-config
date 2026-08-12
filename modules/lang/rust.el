@@ -3,7 +3,7 @@
 (defun my/rust-project (dir)
   "Treat the nearest directory containing Cargo.toml as a Rust project root."
   (when (derived-mode-p 'rust-mode 'rust-ts-mode)
-    (when-let ((root (locate-dominating-file dir "Cargo.toml")))
+    (when-let* ((root (locate-dominating-file dir "Cargo.toml")))
       (cons 'transient
             (file-name-as-directory (expand-file-name root))))))
 
@@ -23,19 +23,19 @@
 
 (defun my/rust-rustup-stable-analyzer ()
   "Return the stable-toolchain `rust-analyzer' binary when available."
-  (when-let ((rustup (executable-find "rustup"))
-             (binary (car-safe
-                      (ignore-errors
-                        (process-lines rustup
-                                       "which"
-                                       "--toolchain"
-                                       "stable"
-                                       "rust-analyzer")))))
+  (when-let* ((rustup (executable-find "rustup"))
+              (binary (car-safe
+                       (ignore-errors
+                         (process-lines rustup
+                                        "which"
+                                        "--toolchain"
+                                        "stable"
+                                        "rust-analyzer")))))
     (and (file-executable-p binary) binary)))
 
 (defun my/rust-analyzer-proxy-p (path)
   "Return non-nil when PATH resolves to a rustup proxy."
-  (when-let ((truename (ignore-errors (file-truename path))))
+  (when-let* ((truename (ignore-errors (file-truename path))))
     (string-match-p "/rustup[^/]*/bin/rust-analyzer\\'" truename)))
 
 (defun my/rust-direct-analyzer ()
@@ -50,9 +50,9 @@
   "Return a working `rust-analyzer' command for Eglot."
   ;; Prefer a real analyzer binary over the rustup proxy so project-local
   ;; toolchain overrides (such as `channel = \"esp\"`) do not recurse forever.
-  (when-let ((binary (or (my/rust-rustup-stable-analyzer)
-                         (my/rust-direct-analyzer)
-                         (executable-find "rust-analyzer"))))
+  (when-let* ((binary (or (my/rust-rustup-stable-analyzer)
+                          (my/rust-direct-analyzer)
+                          (executable-find "rust-analyzer"))))
     (list binary)))
 
 (defun my/rust-lsp-server-available-p ()

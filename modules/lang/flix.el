@@ -43,8 +43,8 @@
 
 (defun my/flix-local-jar (&optional dir)
   "Return the nearest project-local flix.jar above DIR."
-  (when-let ((root (locate-dominating-file
-                    (or dir default-directory) "flix.jar")))
+  (when-let* ((root (locate-dominating-file
+                     (or dir default-directory) "flix.jar")))
     (expand-file-name "flix.jar" root)))
 
 (defun my/flix-command-prefix (&optional dir)
@@ -76,7 +76,7 @@
   (setq-local indent-tabs-mode nil)
   (when (boundp 'flix-indent-offset)
     (setq-local flix-indent-offset 4))
-  (when-let ((prefix (my/flix-command-prefix)))
+  (when-let* ((prefix (my/flix-command-prefix)))
     (let* ((root (my/flix-project-root default-directory))
            (project-p (file-exists-p (expand-file-name "flix.toml" root)))
            (arguments (append prefix
