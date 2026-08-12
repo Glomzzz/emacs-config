@@ -19,9 +19,10 @@
       use-package-expand-minimally t)
 
 (defconst my/required-packages
-  '(corfu dune eldoc-box envrc gruber-darker-theme jarchive kotlin-mode
-    kotlin-ts-mode leetcode markdown-mode nix-ts-mode racket-mode rust-mode
-    scala-mode treesit-auto tuareg typst-ts-mode utop vterm yasnippet))
+  '(corfu dirvish dune eldoc-box envrc gruber-darker-theme jarchive kotlin-mode
+    kotlin-ts-mode leetcode markdown-mode nerd-icons nix-ts-mode nov racket-mode
+    rust-mode scala-mode treesit-auto tuareg typst-ts-mode utop vterm
+    yasnippet))
 
 (defvar my/refresh-package-quickstart-after-startup nil)
 
@@ -32,6 +33,7 @@
 
 (defun my/call-with-quiet-compilation (fn &rest args)
   "Call FN with ARGS while suppressing byte-compilation noise."
+  (require 'bytecomp)
   (let ((byte-compile-verbose nil)
         (byte-compile-warnings nil)
         (inhibit-message t)

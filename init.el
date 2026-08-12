@@ -10,6 +10,7 @@
     "core"
     "ui"
     "appearance"
+    "file-manager"
     "completion"
     "lsp"
     "terminal"
