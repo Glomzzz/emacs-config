@@ -74,11 +74,43 @@
     (setq my/refresh-package-quickstart-after-startup nil)
     (my/call-with-quiet-compilation #'package-quickstart-refresh)))
 
-(my/bootstrap-packages)
+(defun my/update-packages-async ()
+  "Refresh package metadata and upgrade packages in a child Emacs."
+  (interactive)
+  (require 'async)
+  (message "Updating Emacs packages in the background...")
+  (async-start
+   `(lambda ()
+      (require 'package)
+      (setq package-user-dir ,my/emacs-package-dir
+            package-archives ',package-archives
+            package-archive-priorities ',package-archive-priorities
+            package-pinned-packages ',package-pinned-packages
+            package-install-upgrade-built-in t
+            package-quickstart t
+            package-quickstart-file ,my/emacs-package-quickstart-file)
+      (condition-case error-data
+          (progn
+            (package-initialize)
+            (package-refresh-contents)
+            (when (fboundp 'package-upgrade-all)
+              (package-upgrade-all))
+            (package-quickstart-refresh)
+            '(t))
+        (error (list nil (error-message-string error-data)))))
+   (lambda (result)
+     (if (car result)
+         (message "Emacs packages updated; restart Emacs to load them")
+       (message "Emacs package update failed: %s" (cadr result))))))
+
+(unless noninteractive
+  (my/bootstrap-packages))
 (when (or my/refresh-package-quickstart-after-startup
           (null package-activated-list))
   (package-activate-all))
 (add-hook 'after-init-hook #'my/register-required-packages)
 (add-hook 'emacs-startup-hook #'my/refresh-package-quickstart-on-startup)
+
+(global-set-key (kbd "C-c U") #'my/update-packages-async)
 
 (require 'use-package)
