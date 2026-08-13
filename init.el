@@ -8,6 +8,7 @@
 (defconst my/module-load-order
   '("bootstrap"
     "core"
+    "async-tasks"
     "ui"
     "appearance"
     "file-manager"

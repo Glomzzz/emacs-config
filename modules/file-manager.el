@@ -25,6 +25,7 @@
                           (string-trim (buffer-string)))
                       ""))
            (action (process-get process 'action))
+           (task (my/async-task-for-process process))
            (target-window (process-get process 'target-window))
            (source-buffer (process-get process 'source-buffer)))
       (when (eq process my/android-phone-process)
@@ -32,8 +33,10 @@
       (unwind-protect
           (cond
            ((process-get process 'cancelled)
+            (my/async-task-cancelled task)
             (message "Stopped Android phone operation"))
            ((zerop status)
+            (my/async-task-complete task)
             (if (string-equal action "mount")
                 (if (and (window-live-p target-window)
                          (eq (window-buffer target-window) source-buffer))
@@ -42,6 +45,7 @@
                   (message "Android phone is mounted; use quick access again"))
               (message "Android phone unmounted")))
            (t
+            (my/async-task-fail task details)
             (message "android-phone %s failed%s"
                      action
                      (if (string-empty-p details)
@@ -76,6 +80,13 @@
         (process-put process 'action action)
         (process-put process 'target-window (selected-window))
         (process-put process 'source-buffer (current-buffer))
+        (my/async-task-register
+         (format "%s Android phone"
+                 (if (string-equal action "mount") "Mount" "Unmount"))
+         'mount
+         :detail my/android-mount-directory
+         :process process
+         :buffer output-buffer)
         (message "%s Android phone... use C-c C-k to cancel"
                  (if (string-equal action "mount") "Mounting" "Unmounting"))
         (set-process-sentinel process #'my/android-phone-process-sentinel)
@@ -91,6 +102,7 @@
                         (with-current-buffer output-buffer
                           (string-trim (buffer-string)))
                       ""))
+           (task (my/async-task-for-process process))
            (target-window (process-get process 'target-window))
            (source-buffer (process-get process 'source-buffer)))
       (unwind-protect
@@ -98,6 +110,7 @@
             (setq my/mac-mini-connect-process nil)
             (cond
              ((zerop status)
+              (my/async-task-complete task)
               (if (and (window-live-p target-window)
                        (eq (window-buffer target-window) source-buffer))
                   (condition-case error-data
@@ -108,8 +121,10 @@
                               (error-message-string error-data))))
                 (message "mac-mini is ready; use quick access again")))
              ((process-get process 'cancelled)
+              (my/async-task-cancelled task)
               (message "Stopped connecting to mac-mini"))
              (t
+              (my/async-task-fail task details)
               (message "mac-mini connector stopped%s"
                        (if (string-empty-p details)
                            ""
@@ -145,6 +160,11 @@
         (setq my/mac-mini-connect-process process)
         (process-put process 'target-window target-window)
         (process-put process 'source-buffer source-buffer)
+        (my/async-task-register
+         "Connect to mac-mini" 'mount
+         :detail my/mac-mini-mount-directory
+         :process process
+         :buffer output-buffer)
         (message "Connecting to mac-mini... use C-c C-k to cancel")
         (set-process-sentinel process #'my/dirvish-mac-mini-connect-sentinel)
         (unless (process-live-p process)
@@ -268,6 +288,59 @@
   "Report a Dired async message without pausing the Emacs event loop."
   (apply #'message format-string arguments))
 
+(defun my/dired-async-track-process (process operation total)
+  "Track Dired async PROCESS performing OPERATION on TOTAL files."
+  (my/async-task-register
+   (format "%s %d file%s"
+           operation total (if (= total 1) "" "s"))
+   'dired
+   :detail (abbreviate-file-name default-directory)
+   :process process
+   :buffer (process-buffer process)
+   :cancel-function #'my/dired-async-cancel-task))
+
+(defun my/dired-async-cancel-task (task)
+  "Cancel the Dired async process belonging to TASK."
+  (when-let* ((process (my/async-task-process task))
+              ((process-live-p process)))
+    (process-put process 'cancelled t)
+    (delete-process process)
+    (unless (dired-async-processes)
+      (dired-async--modeline-mode -1))))
+
+(defun my/dired-async-track-finish (orig total operation failures skipped)
+  "Update the dashboard after Dired async callback ORIG finishes."
+  (prog1
+      (funcall orig total operation failures skipped)
+    (when-let* (((boundp 'async-current-process))
+                (process async-current-process)
+                (task (my/async-task-for-process process)))
+      (when (and failures (boundp 'dired-log-buffer))
+        (setf (my/async-task-buffer task) (get-buffer dired-log-buffer)))
+      (cond
+       (failures
+        (my/async-task-fail
+         task (format "%d of %d failed" (length failures) total)))
+       (skipped
+        (my/async-task-complete
+         task (format "%d of %d skipped" (length skipped) total)))
+       (operation
+        (my/async-task-complete task))))))
+
+(defun my/dired-async-track-start (orig file-creator operation files
+                                        name-constructor &rest arguments)
+  "Track the process created by Dired async function ORIG."
+  (let ((before (process-list)))
+    (prog1
+        (apply orig file-creator operation files name-constructor arguments)
+      (when-let* ((process
+                   (seq-find
+                    (lambda (candidate)
+                      (and (not (memq candidate before))
+                           (process-get candidate 'dired-async-process)))
+                    (process-list))))
+        (my/dired-async-track-process process operation (length files))))))
+
 (use-package dired-async
   :demand t
   :custom
@@ -278,6 +351,10 @@
   (dired-async-skip-fast nil)
   (dired-async-small-file-max (* 4 1024 1024))
   :config
+  (advice-add #'dired-async-create-files
+              :around #'my/dired-async-track-start)
+  (advice-add #'dired-async-after-file-create
+              :around #'my/dired-async-track-finish)
   (dired-async-mode 1))
 
 (use-package dirvish

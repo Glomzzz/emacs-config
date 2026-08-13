@@ -26,25 +26,36 @@
   (let* ((destination
           (my/treesit-install-dir
            (unless (eq out-dir 'interactive) out-dir)))
-         (recipe (assq lang treesit-language-source-alist)))
+         (recipe (assq lang treesit-language-source-alist))
+         task process)
     (unless recipe
       (user-error "No tree-sitter recipe for %s" lang))
     (message "Installing the %s grammar in the background..." lang)
-    (async-start
-     `(lambda ()
-        (require 'treesit)
-        (setq treesit-language-source-alist ',treesit-language-source-alist)
-        (condition-case error-data
-            (progn
-              (treesit-install-language-grammar ',lang ,destination)
-              (list t ',lang))
-          (error (list nil ',lang (error-message-string error-data)))))
-     (lambda (result)
-       (pcase result
-         (`(t ,language)
-          (message "Installed the %s grammar; reopen its buffers" language))
-         (`(nil ,language ,details)
-          (message "Could not install the %s grammar: %s" language details)))))))
+    (setq process
+          (async-start
+           `(lambda ()
+              (require 'treesit)
+              (setq treesit-language-source-alist ',treesit-language-source-alist)
+              (condition-case error-data
+                  (progn
+                    (treesit-install-language-grammar ',lang ,destination)
+                    (list t ',lang))
+                (error (list nil ',lang (error-message-string error-data)))))
+           (lambda (result)
+             (pcase result
+               (`(t ,language)
+                (my/async-task-complete task "reopen affected buffers")
+                (message "Installed the %s grammar; reopen its buffers" language))
+               (`(nil ,language ,details)
+                (my/async-task-fail task details)
+                (message "Could not install the %s grammar: %s"
+                         language details))))))
+    (setq task
+          (my/async-task-register
+           (format "Install %s grammar" lang) 'tree-sitter
+           :detail (abbreviate-file-name destination)
+           :process process
+           :buffer (process-buffer process)))))
 
 (defun my/enable-treesit-cache-installs ()
   "Keep tree-sitter grammar installs under `.cache/tree-sitter/'."

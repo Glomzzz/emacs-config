@@ -78,30 +78,41 @@
   "Refresh package metadata and upgrade packages in a child Emacs."
   (interactive)
   (require 'async)
-  (message "Updating Emacs packages in the background...")
-  (async-start
-   `(lambda ()
-      (require 'package)
-      (setq package-user-dir ,my/emacs-package-dir
-            package-archives ',package-archives
-            package-archive-priorities ',package-archive-priorities
-            package-pinned-packages ',package-pinned-packages
-            package-install-upgrade-built-in t
-            package-quickstart t
-            package-quickstart-file ,my/emacs-package-quickstart-file)
-      (condition-case error-data
-          (progn
-            (package-initialize)
-            (package-refresh-contents)
-            (when (fboundp 'package-upgrade-all)
-              (package-upgrade-all))
-            (package-quickstart-refresh)
-            '(t))
-        (error (list nil (error-message-string error-data)))))
-   (lambda (result)
-     (if (car result)
-         (message "Emacs packages updated; restart Emacs to load them")
-       (message "Emacs package update failed: %s" (cadr result))))))
+  (let (task process)
+    (message "Updating Emacs packages in the background...")
+    (setq process
+          (async-start
+           `(lambda ()
+              (require 'package)
+              (setq package-user-dir ,my/emacs-package-dir
+                    package-archives ',package-archives
+                    package-archive-priorities ',package-archive-priorities
+                    package-pinned-packages ',package-pinned-packages
+                    package-install-upgrade-built-in t
+                    package-quickstart t
+                    package-quickstart-file ,my/emacs-package-quickstart-file)
+              (condition-case error-data
+                  (progn
+                    (package-initialize)
+                    (package-refresh-contents)
+                    (when (fboundp 'package-upgrade-all)
+                      (package-upgrade-all))
+                    (package-quickstart-refresh)
+                    '(t))
+                (error (list nil (error-message-string error-data)))))
+           (lambda (result)
+             (if (car result)
+                 (progn
+                   (my/async-task-complete task "restart Emacs to load updates")
+                   (message "Emacs packages updated; restart Emacs to load them"))
+               (my/async-task-fail task (cadr result))
+               (message "Emacs package update failed: %s" (cadr result))))))
+    (setq task
+          (my/async-task-register
+           "Update Emacs packages" 'package
+           :detail "refresh metadata and upgrade packages"
+           :process process
+           :buffer (process-buffer process)))))
 
 (unless noninteractive
   (my/bootstrap-packages))
