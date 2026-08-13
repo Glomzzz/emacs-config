@@ -10,6 +10,14 @@
       tab-width 4
       compilation-scroll-output t
       read-process-output-max (* 1024 1024)
+      process-adaptive-read-buffering nil
+      fast-but-imprecise-scrolling t
+      redisplay-skip-fontification-on-input t
+      auto-window-vscroll nil
+      bidi-paragraph-direction 'left-to-right
+      bidi-inhibit-bpa t
+      ffap-machine-p-known 'reject
+      vc-handled-backends '(Git)
       eldoc-echo-area-use-multiline-p nil)
 
 (let ((my/posix-shell (or (executable-find "bash")

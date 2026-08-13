@@ -28,6 +28,7 @@
 (defconst my/emacs-url-dir
   (expand-file-name "url/" my/emacs-cache-dir))
 
+<<<<<<< HEAD
 (dolist (dir (list my/emacs-cache-dir
                    my/emacs-package-dir
                    my/emacs-auto-save-dir
@@ -35,8 +36,14 @@
                    my/emacs-tree-sitter-dir
                    my/emacs-url-dir))
   (make-directory dir t))
+=======
+(defconst my/emacs-desktop-dir
+  (expand-file-name "desktop/" my/emacs-cache-dir))
+>>>>>>> f1bf166 (perf(emacs): defer startup work and tune redisplay)
 
 (setq frame-inhibit-implied-resize t
+      inhibit-redisplay t
+      inhibit-message t
       load-prefer-newer t
       gc-cons-threshold most-positive-fixnum
       gc-cons-percentage 0.6
@@ -68,8 +75,11 @@
  (lambda ()
    (setq gc-cons-threshold (* 64 1024 1024)
          gc-cons-percentage 0.1
+         inhibit-redisplay nil
+         inhibit-message nil
          file-name-handler-alist
          (append my/default-file-name-handler-alist
-                 file-name-handler-alist))))
+                 file-name-handler-alist))
+   (redisplay)))
 
 ;;; early-init.el ends here
