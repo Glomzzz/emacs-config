@@ -11,18 +11,76 @@
   (expand-file-name "~/mnt/mac-mini/"))
 
 (defvar my/mac-mini-connect-process nil)
+(defvar my/android-phone-process nil)
 
-(defun my/run-android-phone (action)
-  "Run the android-phone helper with ACTION and report a useful error."
-  (let ((program (executable-find "android-phone")))
-    (unless program
-      (user-error "android-phone is not installed; rebuild the NixOS configuration"))
-    (with-temp-buffer
-      ;; Never run the unmount helper with its process cwd inside the mount.
-      (let ((default-directory (expand-file-name "~/"))
-            (status (call-process program nil t nil action)))
-        (unless (eq status 0)
-          (user-error "%s" (string-trim (buffer-string))))))))
+(defun my/android-phone-process-sentinel (process _event)
+  "Finish the asynchronous android-phone helper PROCESS."
+  (when (and (memq (process-status process) '(exit signal))
+             (not (process-get process 'handled)))
+    (process-put process 'handled t)
+    (let* ((status (process-exit-status process))
+           (output-buffer (process-buffer process))
+           (details (if (buffer-live-p output-buffer)
+                        (with-current-buffer output-buffer
+                          (string-trim (buffer-string)))
+                      ""))
+           (action (process-get process 'action))
+           (target-window (process-get process 'target-window))
+           (source-buffer (process-get process 'source-buffer)))
+      (when (eq process my/android-phone-process)
+        (setq my/android-phone-process nil))
+      (unwind-protect
+          (cond
+           ((process-get process 'cancelled)
+            (message "Stopped Android phone operation"))
+           ((zerop status)
+            (if (string-equal action "mount")
+                (if (and (window-live-p target-window)
+                         (eq (window-buffer target-window) source-buffer))
+                    (with-selected-window target-window
+                      (dirvish-dwim my/android-mount-directory))
+                  (message "Android phone is mounted; use quick access again"))
+              (message "Android phone unmounted")))
+           (t
+            (message "android-phone %s failed%s"
+                     action
+                     (if (string-empty-p details)
+                         ""
+                       (format ": %s" details)))))
+        (when (buffer-live-p output-buffer)
+          (kill-buffer output-buffer))))))
+
+(defun my/run-android-phone-async (action)
+  "Run the android-phone helper with ACTION without blocking Emacs."
+  (if (process-live-p my/android-phone-process)
+      (message "An Android phone operation is already running")
+    (let ((program (executable-find "android-phone"))
+          (output-buffer (generate-new-buffer " *android-phone*"))
+          (default-directory (expand-file-name "~/")))
+      (unless program
+        (kill-buffer output-buffer)
+        (user-error "android-phone is not installed; rebuild NixOS"))
+      (let ((process
+             (condition-case error-data
+                 (make-process
+                  :name "android-phone"
+                  :buffer output-buffer
+                  :command (list program action)
+                  :connection-type 'pipe
+                  :noquery t
+                  :sentinel #'ignore)
+               (error
+                (kill-buffer output-buffer)
+                (signal (car error-data) (cdr error-data))))))
+        (setq my/android-phone-process process)
+        (process-put process 'action action)
+        (process-put process 'target-window (selected-window))
+        (process-put process 'source-buffer (current-buffer))
+        (message "%s Android phone... use C-c C-k to cancel"
+                 (if (string-equal action "mount") "Mounting" "Unmounting"))
+        (set-process-sentinel process #'my/android-phone-process-sentinel)
+        (unless (process-live-p process)
+          (my/android-phone-process-sentinel process "finished\n"))))))
 
 (defun my/dirvish-mac-mini-connect-sentinel (process _event)
   "Open mac-mini when its persistent connector PROCESS succeeds."
@@ -115,8 +173,7 @@
       (my/dirvish-open-mac-mini))
      ((equal normalized-path
              (directory-file-name my/android-mount-directory))
-      (my/run-android-phone "mount")
-      (dirvish-dwim path))
+      (my/run-android-phone-async "mount"))
      (t
       (dirvish-dwim path)))))
 
@@ -129,7 +186,21 @@
   "Leave and unmount the Android phone filesystem."
   (interactive)
   (dirvish-dwim (expand-file-name "~/"))
-  (my/run-android-phone "unmount"))
+  (my/run-android-phone-async "unmount"))
+
+(defun my/dirvish-cancel-background-operation ()
+  "Cancel the current background mount or connection operation."
+  (interactive)
+  (cond
+   ((process-live-p my/android-phone-process)
+    (let ((process my/android-phone-process))
+      (setq my/android-phone-process nil)
+      (process-put process 'cancelled t)
+      (delete-process process)))
+   ((process-live-p my/mac-mini-connect-process)
+    (my/dirvish-cancel-mac-mini-connect))
+   (t
+    (message "No background mount or connection is running"))))
 
 (defun my/dired-local-files ()
   "Return the marked local Dired files, or signal for remote files."
@@ -188,19 +259,41 @@
   (mouse-drag-and-drop-region-cross-program t)
   :hook (dired-mode . auto-revert-mode)
   :config
-  (setq auto-revert-verbose nil)
+  (setq auto-revert-verbose nil
+        auto-revert-remote-files nil
+        auto-revert-avoid-polling t)
   (put 'dired-find-alternate-file 'disabled nil))
+
+(defun my/dired-async-message (format-string _face &rest arguments)
+  "Report a Dired async message without pausing the Emacs event loop."
+  (apply #'message format-string arguments))
+
+(use-package dired-async
+  :demand t
+  :custom
+  (dired-async-log-file
+   (expand-file-name "dired-async.log" my/emacs-cache-dir))
+  (dired-async-message-function #'my/dired-async-message)
+  (dired-async-mode-lighter nil)
+  (dired-async-skip-fast nil)
+  (dired-async-small-file-max (* 4 1024 1024))
+  :config
+  (dired-async-mode 1))
 
 (use-package dirvish
   :init
   (dirvish-override-dired-mode)
   :custom
   (dirvish-attributes
-   '(vc-state subtree-state nerd-icons collapse git-msg file-time file-size))
+   '(vc-state subtree-state nerd-icons collapse file-time file-size))
   (dirvish-cache-dir
    (expand-file-name "dirvish/" my/emacs-cache-dir))
   (dirvish-default-layout '(1 0.15 0.55))
   (dirvish-large-directory-threshold 20000)
+  (dirvish-input-debounce 0.03)
+  (dirvish-input-throttle 0.15)
+  (dirvish-preview-large-file-threshold (* 512 1024))
+  (dirvish-preview-buffers-max-count 3)
   (dirvish-mode-line-format
    '(:left (sort symlink) :right (omit yank index)))
   :bind
@@ -217,10 +310,16 @@
    ("M-f" . dirvish-history-go-forward)
    ("M-b" . dirvish-history-go-backward)
    ("C-c C-a" . my/dirvish-mount-android)
-   ("C-c C-k" . my/dirvish-cancel-mac-mini-connect)
+   ("C-c C-k" . my/dirvish-cancel-background-operation)
    ("C-c C-u" . my/dirvish-unmount-android)
    ("C-c C-d" . my/dirvish-drag-files)
    ("C-c C-t" . my/dirvish-open-in-thunar)))
+
+(with-eval-after-load 'dired
+  (define-key dired-mode-map [remap dired-do-copy] #'dired-async-do-copy)
+  (define-key dired-mode-map [remap dired-do-hardlink] #'dired-async-do-hardlink)
+  (define-key dired-mode-map [remap dired-do-rename] #'dired-async-do-rename)
+  (define-key dired-mode-map [remap dired-do-symlink] #'dired-async-do-symlink))
 
 (use-package dirvish-history
   :ensure nil
