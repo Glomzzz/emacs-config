@@ -37,7 +37,7 @@ work with project-aware tools such as Eglot."
 (defun my/python-maybe-eglot-ensure ()
   "Start Eglot only when a supported Python language server is available."
   (when (my/python-lsp-server-available-p)
-    (eglot-ensure)))
+    (my/eglot-ensure-idle)))
 
 (defun my/python-major-mode ()
   "Open Python files with the best available major mode."

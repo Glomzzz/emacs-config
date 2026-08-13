@@ -65,7 +65,7 @@
 (defun my/flix-maybe-eglot-ensure ()
   "Start Eglot when the Flix compiler is available."
   (when (my/flix-command-prefix)
-    (eglot-ensure)))
+    (my/eglot-ensure-idle)))
 
 (defun my/flix-shell-command (arguments)
   "Quote and join Flix command ARGUMENTS for the shell."

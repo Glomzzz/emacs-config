@@ -3,4 +3,4 @@
 (use-package nix-ts-mode
   :mode "\\.nix\\'")
 
-(add-hook 'nix-ts-mode-hook #'eglot-ensure)
+(add-hook 'nix-ts-mode-hook #'my/eglot-ensure-idle)

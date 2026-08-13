@@ -15,6 +15,37 @@
   "Install LANG grammar with ORIG into the cache-backed OUT-DIR."
   (funcall orig lang (my/treesit-install-dir out-dir)))
 
+(defun my/treesit-install-language-grammar-async (lang &optional out-dir)
+  "Install the LANG grammar in a background Emacs process."
+  (interactive
+   (list (intern
+          (completing-read
+           "Language: " (mapcar #'car treesit-language-source-alist)))
+         'interactive))
+  (require 'async)
+  (let* ((destination
+          (my/treesit-install-dir
+           (unless (eq out-dir 'interactive) out-dir)))
+         (recipe (assq lang treesit-language-source-alist)))
+    (unless recipe
+      (user-error "No tree-sitter recipe for %s" lang))
+    (message "Installing the %s grammar in the background..." lang)
+    (async-start
+     `(lambda ()
+        (require 'treesit)
+        (setq treesit-language-source-alist ',treesit-language-source-alist)
+        (condition-case error-data
+            (progn
+              (treesit-install-language-grammar ',lang ,destination)
+              (list t ',lang))
+          (error (list nil ',lang (error-message-string error-data)))))
+     (lambda (result)
+       (pcase result
+         (`(t ,language)
+          (message "Installed the %s grammar; reopen its buffers" language))
+         (`(nil ,language ,details)
+          (message "Could not install the %s grammar: %s" language details)))))))
+
 (defun my/enable-treesit-cache-installs ()
   "Keep tree-sitter grammar installs under `.cache/tree-sitter/'."
   (unless (advice-member-p #'my/treesit-install-language-grammar-to-cache
@@ -27,6 +58,16 @@
     (my/enable-treesit-cache-installs)
   (with-eval-after-load 'treesit
     (my/enable-treesit-cache-installs)))
+
+(global-set-key (kbd "C-c T") #'my/treesit-install-language-grammar-async)
+
+(connection-local-set-profile-variables
+ 'my/tramp-direct-async
+ '((tramp-direct-async-process . t)))
+(dolist (protocol '("rsync" "scp" "ssh"))
+  (connection-local-set-profiles
+   `(:application tramp :protocol ,protocol)
+   'my/tramp-direct-async))
 
 (defun my/flymake-setup ()
   "Use jump commands instead of inline end-of-line diagnostics."
@@ -45,6 +86,27 @@
   "Apply shared LSP helpers when Eglot starts managing a buffer."
   (my/lsp-buffer-setup))
 
+(defvar-local my/eglot-start-timer nil)
+
+(defun my/eglot-ensure-idle ()
+  "Start or join the project Eglot server once Emacs becomes idle."
+  (when (timerp my/eglot-start-timer)
+    (cancel-timer my/eglot-start-timer))
+  (setq my/eglot-start-timer
+        (run-with-idle-timer
+         0.15 nil
+         (lambda (buffer)
+           (when (buffer-live-p buffer)
+             (with-current-buffer buffer
+               (setq my/eglot-start-timer nil)
+               (unless (or (minibufferp) (file-remote-p default-directory))
+                 (condition-case error-data
+                     (eglot-ensure)
+                   (error
+                    (message "Eglot did not start: %s"
+                             (error-message-string error-data))))))))
+         (current-buffer))))
+
 (defun my/enable-eldoc-box ()
   "Show ElDoc in an at-point childframe when the display supports it."
   (eldoc-box-hover-at-point-mode
@@ -56,6 +118,11 @@
   :bind ("C-c r" . eglot-rename)
   :hook (eglot-managed-mode . my/eglot-managed-mode-setup)
   :init
+  (setq eglot-autoshutdown nil
+        eglot-sync-connect 0
+        eglot-send-changes-idle-time 0.25
+        eglot-events-buffer-config '(:size 0 :format short)
+        eglot-report-progress nil)
   (setq-default
    eglot-workspace-configuration
    '(:rust-analyzer
@@ -67,8 +134,6 @@
        (:showImplicitArguments t
         :showInferredTypes t
         :showFullQualifiers :json-false)))))
-  :custom
-  (eglot-autoshutdown t)
   :config
   (add-to-list 'eglot-server-programs '(scheme-mode . ("scheme-langserver")))
   (add-to-list 'eglot-server-programs '(nix-ts-mode . ("nixd"))))
@@ -76,7 +141,7 @@
 (use-package treesit-auto
   :hook (after-init . global-treesit-auto-mode)
   :custom
-  (treesit-auto-install 'prompt)
+  (treesit-auto-install nil)
   :init
   (setq treesit-language-source-alist
         '((flix "https://github.com/wstein/tree-sitter-flix" "v0.1.1")

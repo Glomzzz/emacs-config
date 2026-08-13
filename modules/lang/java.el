@@ -9,7 +9,7 @@
 (defun my/java-maybe-eglot-ensure ()
   "Start Eglot when a Java language server is available."
   (when (my/java-lsp-server-available-p)
-    (eglot-ensure)))
+    (my/eglot-ensure-idle)))
 
 (defun my/java-buffer-setup ()
   "Set Java indentation and a useful compilation command."

@@ -387,12 +387,12 @@
 (defun my/javascript-maybe-eglot-ensure ()
   "Start Eglot when a JavaScript language server is available."
   (when (my/javascript-eglot-command)
-    (eglot-ensure)))
+    (my/eglot-ensure-idle)))
 
 (defun my/javascript-maybe-json-eglot-ensure ()
   "Start Eglot when a JSON language server is available."
   (when (my/javascript-json-eglot-command)
-    (eglot-ensure)))
+    (my/eglot-ensure-idle)))
 
 (defun my/javascript-buffer-setup ()
   "Set JavaScript indentation, local tools, formatting, and builds."

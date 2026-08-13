@@ -30,7 +30,7 @@
 (defun my/kotlin-maybe-eglot-ensure ()
   "Start Eglot when a Kotlin language server is available."
   (when (my/kotlin-lsp-server-available-p)
-    (eglot-ensure)))
+    (my/eglot-ensure-idle)))
 
 (defun my/kotlin-standalone-command ()
   "Return a compiler command for the current standalone Kotlin file."

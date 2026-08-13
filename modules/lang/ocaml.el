@@ -79,7 +79,7 @@
 (defun my/ocaml-maybe-eglot-ensure ()
   "Start Eglot when the OCaml language server is available."
   (when (my/ocaml-lsp-server-available-p)
-    (eglot-ensure)))
+    (my/eglot-ensure-idle)))
 
 (defun my/ocaml-standalone-command ()
   "Return an `ocamlc' command for the current standalone source file."

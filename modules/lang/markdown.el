@@ -26,4 +26,4 @@
                    ("typ" . my/markdown-typst-mode)))
     (add-to-list 'markdown-code-lang-modes entry)))
 
-(add-hook 'markdown-mode-hook #'eglot-ensure)
+(add-hook 'markdown-mode-hook #'my/eglot-ensure-idle)

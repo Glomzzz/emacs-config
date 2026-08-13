@@ -21,22 +21,11 @@
     (require 'rust-mode-treesitter nil t))
   (rust-mode))
 
-(defun my/rust-rustup-stable-analyzer ()
-  "Return the stable-toolchain `rust-analyzer' binary when available."
-  (when-let* ((rustup (executable-find "rustup"))
-              (binary (car-safe
-                       (ignore-errors
-                         (process-lines rustup
-                                        "which"
-                                        "--toolchain"
-                                        "stable"
-                                        "rust-analyzer")))))
-    (and (file-executable-p binary) binary)))
-
 (defun my/rust-analyzer-proxy-p (path)
   "Return non-nil when PATH resolves to a rustup proxy."
   (when-let* ((truename (ignore-errors (file-truename path))))
-    (string-match-p "/rustup[^/]*/bin/rust-analyzer\\'" truename)))
+    (or (string-match-p "/rustup[^/]*/bin/" truename)
+        (string-match-p "/bin/rustup\\'" truename))))
 
 (defun my/rust-direct-analyzer ()
   "Return the first non-proxy `rust-analyzer' found on `exec-path'."
@@ -46,12 +35,24 @@
                      (not (my/rust-analyzer-proxy-p candidate)))
            return candidate))
 
+(defun my/rustup-stable-analyzer ()
+  "Return rust-analyzer from the rustup stable toolchain without a subprocess."
+  (let* ((rustup-home (file-name-as-directory
+                       (or (getenv "RUSTUP_HOME")
+                           (expand-file-name "~/.rustup"))))
+         (toolchains-directory (expand-file-name "toolchains/" rustup-home))
+         (toolchain
+          (and (file-directory-p toolchains-directory)
+               (car (directory-files toolchains-directory t
+                                     "\\`stable-" t)))))
+    (when toolchain
+      (let ((binary (expand-file-name "bin/rust-analyzer" toolchain)))
+        (and (file-executable-p binary) binary)))))
+
 (defun my/rust-eglot-command (&optional _interactive _project)
   "Return a working `rust-analyzer' command for Eglot."
-  ;; Prefer a real analyzer binary over the rustup proxy so project-local
-  ;; toolchain overrides (such as `channel = \"esp\"`) do not recurse forever.
-  (when-let* ((binary (or (my/rust-rustup-stable-analyzer)
-                          (my/rust-direct-analyzer)
+  (when-let* ((binary (or (my/rust-direct-analyzer)
+                          (my/rustup-stable-analyzer)
                           (executable-find "rust-analyzer"))))
     (list binary)))
 
@@ -62,7 +63,7 @@
 (defun my/rust-maybe-eglot-ensure ()
   "Start Eglot only when `rust-analyzer' is available."
   (when (my/rust-lsp-server-available-p)
-    (eglot-ensure)))
+    (my/eglot-ensure-idle)))
 
 (defun my/register-rust-auto-mode ()
   "Ensure `.rs` files always open in `rust-mode'."

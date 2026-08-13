@@ -209,7 +209,7 @@
 (defun my/koka-maybe-eglot-ensure ()
   "Start Eglot when the Koka compiler and language server are available."
   (when (my/koka-eglot-command)
-    (eglot-ensure)))
+    (my/eglot-ensure-idle)))
 
 (defconst koka--renameable-identifier-re
   (rx string-start

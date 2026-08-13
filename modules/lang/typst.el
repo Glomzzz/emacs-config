@@ -37,8 +37,8 @@
 
 (my/register-typst-auto-mode)
 (add-hook 'project-find-functions #'my/typst-local-project)
-(add-hook 'typst-mode-hook #'eglot-ensure)
-(add-hook 'typst-ts-mode-hook #'eglot-ensure)
+(add-hook 'typst-mode-hook #'my/eglot-ensure-idle)
+(add-hook 'typst-ts-mode-hook #'my/eglot-ensure-idle)
 
 (with-eval-after-load 'typst-ts-mode
   (my/register-typst-auto-mode))

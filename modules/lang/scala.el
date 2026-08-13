@@ -20,7 +20,7 @@
 (defun my/scala-maybe-eglot-ensure ()
   "Start Eglot when Metals is available."
   (when (my/scala-lsp-server-available-p)
-    (eglot-ensure)))
+    (my/eglot-ensure-idle)))
 
 (defun my/scala-standalone-command ()
   "Return a runner or compiler command for a standalone Scala file."
