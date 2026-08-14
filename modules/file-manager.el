@@ -13,6 +13,8 @@
 (defconst my/mac-mini-mount-directory
   (expand-file-name "~/mnt/mac-mini/"))
 
+(defconst my/mac-mini-remote-home-directory "/Users/glom/")
+
 (defvar my/mac-mini-connect-process nil)
 (defvar my/android-phone-process nil)
 
@@ -231,6 +233,48 @@
     (when (seq-some #'file-remote-p files)
       (user-error "This action only supports local files"))
     (mapcar #'file-local-name files)))
+
+(defun my/mac-mini-relative-path (path)
+  "Return PATH relative to the mac-mini mount, or nil when it is outside."
+  (let ((relative
+         (file-relative-name (expand-file-name path)
+                             my/mac-mini-mount-directory)))
+    (unless (or (equal relative "..")
+                (string-prefix-p "../" relative))
+      (if (equal relative "./") "" relative))))
+
+(defun my/mac-mini-rsync-destination (path)
+  "Convert local mac-mini mount PATH to its SSH TRAMP directory."
+  (when-let* ((relative (my/mac-mini-relative-path path)))
+    (concat "/ssh:mac-mini:"
+            (file-name-as-directory
+             (expand-file-name relative my/mac-mini-remote-home-directory)))))
+
+(defun my/dirvish-rsync-to-mac-mini (&optional destination)
+  "Rsync marked files to a mac-mini DESTINATION with live progress."
+  (interactive)
+  (let* ((sources (dired-get-marked-files))
+         (suggested (or destination (dired-dwim-target-directory)))
+         (local-destination
+          (if (my/mac-mini-relative-path suggested)
+              suggested
+            (read-directory-name "mac-mini destination: "
+                                 my/mac-mini-mount-directory nil t)))
+         (remote-destination
+          (my/mac-mini-rsync-destination local-destination)))
+    (unless remote-destination
+      (user-error "Destination is outside the mac-mini mount"))
+    (require 'dirvish-rsync)
+    (let ((dirvish-yank-sources (lambda () sources)))
+      (dirvish-rsync remote-destination))))
+
+(defun my/dired-copy-dispatch (&optional argument)
+  "Copy with rsync when the Dired target is mac-mini, asynchronously otherwise."
+  (interactive "P")
+  (let ((destination (dired-dwim-target-directory)))
+    (if (my/mac-mini-relative-path destination)
+        (my/dirvish-rsync-to-mac-mini destination)
+      (dired-async-do-copy argument))))
 
 (defun my/dirvish-drag-files ()
   "Open marked files in ripdrag as a cross-application drag source."
@@ -482,6 +526,7 @@
    ("M-f" . dirvish-history-go-forward)
    ("M-b" . dirvish-history-go-backward)
    ("C-c j" . my/async-task-list-in-dirvish)
+   ("C-c C-r" . my/dirvish-rsync-to-mac-mini)
    ("C-c C-a" . my/dirvish-mount-android)
    ("C-c C-k" . my/dirvish-cancel-background-operation)
    ("C-c C-u" . my/dirvish-unmount-android)
@@ -489,7 +534,7 @@
    ("C-c C-t" . my/dirvish-open-in-thunar)))
 
 (with-eval-after-load 'dired
-  (define-key dired-mode-map [remap dired-do-copy] #'dired-async-do-copy)
+  (define-key dired-mode-map [remap dired-do-copy] #'my/dired-copy-dispatch)
   (define-key dired-mode-map [remap dired-do-hardlink] #'dired-async-do-hardlink)
   (define-key dired-mode-map [remap dired-do-rename] #'dired-async-do-rename)
   (define-key dired-mode-map [remap dired-do-symlink] #'dired-async-do-symlink))
@@ -527,7 +572,15 @@
 
 (use-package dirvish-rsync
   :ensure nil
-  :commands (dirvish-rsync dirvish-rsync-switches-menu))
+  :commands (dirvish-rsync dirvish-rsync-switches-menu)
+  :custom
+  (dirvish-rsync-args
+   '("--archive"
+     "--human-readable"
+     "--partial"
+     "--partial-dir=.rsync-partial"
+     "--info=progress2"
+     "--timeout=600")))
 
 (use-package dirvish-subtree
   :ensure nil
