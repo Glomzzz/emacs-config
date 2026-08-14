@@ -361,11 +361,10 @@
   :init
   (dirvish-override-dired-mode)
   :custom
-  (dirvish-attributes
-   '(vc-state subtree-state nerd-icons collapse file-time file-size))
+  (dirvish-attributes '(file-time))
   (dirvish-cache-dir
    (expand-file-name "dirvish/" my/emacs-cache-dir))
-  (dirvish-default-layout '(1 0.15 0.55))
+  (dirvish-default-layout '(0 0.0 0.55))
   (dirvish-large-directory-threshold 20000)
   (dirvish-input-debounce 0.03)
   (dirvish-input-throttle 0.15)
