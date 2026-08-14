@@ -6,7 +6,8 @@
 (require 'tabulated-list)
 
 (cl-defstruct (my/async-task (:constructor my/async-task-create))
-  id name kind state started finished detail project process buffer cancel-function)
+  id name kind state started finished detail project process buffer
+  progress-function progress-files cancel-function)
 
 (defgroup my/async-tasks nil
   "Track background work started by Emacs."
@@ -29,6 +30,7 @@
 (defvar my/async-task-refreshing nil)
 (defvar eglot--servers-by-project)
 (defvar jsonrpc--events-buffer-scrollback-size)
+(defvar dirvish--props)
 
 (declare-function eglot--server-name "eglot" (server))
 (declare-function eglot-project-nickname "eglot" (server))
@@ -105,7 +107,6 @@
   "Return non-nil when PROCESS is already represented by a task or service."
   (or (process-get process 'my/async-task)
       (process-get process 'my/async-task-hidden)
-      (process-get process 'dired-async-process)
       (member (process-name process) '("server" "emacs-server"))
       (and (featurep 'eglot)
            (boundp 'eglot--servers-by-project)
@@ -123,11 +124,81 @@
 
 (defun my/async-task-process-detail (process)
   "Return a concise command description for PROCESS."
-  (let ((command (process-command process)))
-    (cond
-     ((consp command) (mapconcat #'identity command " "))
-     ((stringp command) command)
-     (t (symbol-name (process-type process))))))
+  (if-let* ((details (my/async-task-dirvish-details process))
+            (sources (nth 1 details))
+            (destination (nth 2 details))
+            (method (nth 3 details)))
+      (format "%s to %s"
+              (my/async-task-dirvish-method-label method)
+              (abbreviate-file-name destination))
+    (let ((command (process-command process)))
+      (cond
+       ((consp command) (mapconcat #'identity command " "))
+       ((stringp command) command)
+       (t (symbol-name (process-type process)))))))
+
+(defun my/async-task-dirvish-details (process)
+  "Return Dirvish yank DETAILS for PROCESS, when available."
+  (let ((details (process-get process 'details)))
+    (when (and (listp details)
+               (bufferp (car details))
+               (listp (cadr details))
+               (stringp (nth 2 details))
+               (symbolp (nth 3 details)))
+      details)))
+
+(defun my/async-task-dirvish-method-label (method)
+  "Return a readable label for Dirvish yank METHOD."
+  (pcase method
+    ('dired-copy-file "Copy")
+    ('dired-rename-file "Move")
+    ('dired-hardlink "Hardlink")
+    ('make-symbolic-link "Symlink")
+    ('dired-make-relative-symlink "Relative symlink")
+    ('rsync "Rsync")
+    (_ (capitalize (replace-regexp-in-string
+                    "-" " " (symbol-name method))))))
+
+(defun my/async-task-process-name (process)
+  "Return a readable dashboard name for PROCESS."
+  (if-let* ((details (my/async-task-dirvish-details process))
+            (sources (nth 1 details))
+            (method (nth 3 details)))
+      (format "%s %d file%s"
+              (my/async-task-dirvish-method-label method)
+              (length sources)
+              (if (= (length sources) 1) "" "s"))
+    (process-name process)))
+
+(defun my/async-task-process-kind (process)
+  "Return the dashboard kind for PROCESS."
+  (cond
+   ((process-get process 'dired-async-process) 'dired)
+   ((my/async-task-dirvish-details process) 'dirvish)
+   (t 'process)))
+
+(defun my/async-task-dirvish-progress (task)
+  "Return the percentage reported by the Dirvish task in TASK."
+  (when-let* ((process (my/async-task-process task))
+              (buffer (process-buffer process))
+              ((buffer-live-p buffer)))
+    (with-current-buffer buffer
+      (or (alist-get :yank-percent dirvish--props)
+          (and (process-live-p process) "running")))))
+
+(defun my/async-task-progress-string (task)
+  "Return a display string describing TASK's current progress."
+  (if (eq (my/async-task-state task) 'running)
+      (or (when-let* ((function (my/async-task-progress-function task)))
+            (condition-case nil
+                (funcall function task)
+              (error nil)))
+          "running")
+    (pcase (my/async-task-state task)
+      ('done "done")
+      ('cancelled "cancelled")
+      ('failed "failed")
+      (_ ""))))
 
 (defun my/async-task-process-project (process)
   "Return the project or working directory associated with PROCESS."
@@ -140,13 +211,17 @@
   "Register active Emacs subprocesses not already known to the dashboard."
   (dolist (process (process-list))
     (when (my/async-task-interesting-process-p process)
-      (let ((project (my/async-task-process-project process)))
+      (let* ((kind (my/async-task-process-kind process))
+             (project (my/async-task-process-project process))
+             (progress-function
+              (and (eq kind 'dirvish) #'my/async-task-dirvish-progress)))
         (my/async-task-register
-         (process-name process) 'process
+         (my/async-task-process-name process) kind
          :detail (my/async-task-process-detail process)
          :project project
          :process process
-         :buffer (process-buffer process))))))
+         :buffer (process-buffer process)
+         :progress-function progress-function)))))
 
 (defun my/async-task-reconcile-processes ()
   "Update running task states from their subprocesses."
@@ -197,6 +272,7 @@
          (my/async-task-name task)
          (my/async-task-elapsed (my/async-task-started task)
                                 (my/async-task-finished task))
+         (my/async-task-progress-string task)
          (or (my/async-task-project task) "")
          (or (my/async-task-detail task) ""))))
 
@@ -214,6 +290,7 @@
            "lsp"
            (eglot--server-name server)
            (my/async-task-elapsed started)
+           "service"
            (eglot-project-nickname server)
            (if (consp command) (mapconcat #'identity command " ") "network")))))
 
@@ -312,6 +389,7 @@
          ("Kind" 10 t)
          ("Task" 28 t)
          ("Elapsed" 10 nil)
+         ("Progress" 24 nil)
          ("Project" 28 t)
          ("Detail" 48 nil)]
         tabulated-list-padding 2
@@ -344,11 +422,27 @@
 (defun my/async-task-list ()
   "Show all active tasks, recent history, and Eglot services."
   (interactive)
+  (pop-to-buffer (my/async-task--list-buffer))
+  (my/async-task-start-refresh-timer))
+
+(defun my/async-task--list-buffer ()
+  "Return the initialized task dashboard buffer."
   (let ((buffer (get-buffer-create my/async-task-buffer-name)))
     (with-current-buffer buffer
       (my/async-task-list-mode)
       (tabulated-list-print))
-    (pop-to-buffer buffer)
+    buffer))
+
+(defun my/async-task-list-in-dirvish ()
+  "Show the task dashboard in a bottom pane while keeping Dirvish visible."
+  (interactive)
+  (let* ((buffer (my/async-task--list-buffer))
+         (window
+          (display-buffer-in-side-window
+           buffer '((side . bottom) (slot . 0) (window-height . 0.30)))))
+    (if (window-live-p window)
+        (select-window window)
+      (pop-to-buffer buffer))
     (my/async-task-start-refresh-timer)))
 
 (global-set-key (kbd "C-c j") #'my/async-task-list)
