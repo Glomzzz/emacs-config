@@ -21,4 +21,6 @@
 (dolist (hook '(term-mode-hook shell-mode-hook eshell-mode-hook vterm-mode-hook))
   (add-hook hook #'my/disable-line-numbers))
 
-(set-face-attribute 'default nil :font "JetBrainsMono Nerd Font-18")
+(set-face-attribute 'default nil
+                    :family "JetBrainsMono Nerd Font"
+                    :height 160)
