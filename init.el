@@ -16,6 +16,8 @@
     "completion"
     "lsp"
     "terminal"
+    "ai"
+    "lang/fish"
     "lang/scheme"
     "lang/racket"
     "lang/rust"

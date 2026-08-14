@@ -12,17 +12,18 @@
       '(("gnu" . 30)
         ("nongnu" . 20)
         ("melpa" . 10))
-      package-pinned-packages '((scala-mode . "melpa"))
+      package-pinned-packages '((gptel . "melpa")
+                                (scala-mode . "melpa"))
       package-install-upgrade-built-in t
       package-quickstart-file my/emacs-package-quickstart-file
       use-package-always-ensure nil
       use-package-expand-minimally t)
 
 (defconst my/required-packages
-  '(corfu dirvish dune eldoc-box envrc gruber-darker-theme jarchive kotlin-mode
-    kotlin-ts-mode leetcode magit markdown-mode nerd-icons nix-ts-mode nov
-    racket-mode rust-mode scala-mode treesit-auto tuareg typst-ts-mode utop
-    vterm yasnippet))
+  '(async corfu dirvish dune eldoc-box envrc fish-completion fish-mode
+    gptel gruber-darker-theme jarchive kotlin-mode kotlin-ts-mode leetcode
+    magit markdown-mode nerd-icons nix-ts-mode nov racket-mode rust-mode
+    scala-mode treesit-auto tuareg typst-ts-mode utop vterm yasnippet))
 
 (defvar my/refresh-package-quickstart-after-startup nil)
 

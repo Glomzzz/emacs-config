@@ -8,8 +8,8 @@
   :config
   ;; Keep Meta-w in Emacs so region copying works inside vterm buffers.
   (add-to-list 'vterm-keymap-exceptions "M-w")
-  (when-let* ((nu-shell (executable-find "nu")))
-    (setq vterm-shell nu-shell)))
+  (when-let* ((fish-shell (executable-find "fish")))
+    (setq vterm-shell fish-shell)))
 
 
 (defun my/switch-to-vterm ()

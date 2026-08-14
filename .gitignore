@@ -1,2 +1,8 @@
 .git/
 .cache/
+<<<<<<< HEAD
+=======
+desktop.el
+image-dired/
+multisession/
+>>>>>>> 7e79ed1 (feat(emacs): add AI and Fish integrations)

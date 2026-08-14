@@ -22,12 +22,12 @@
 
 (let ((my/posix-shell (or (executable-find "bash")
                           (executable-find "sh")))
-      (my/nu-shell (executable-find "nu")))
+      (my/fish-shell (executable-find "fish")))
   (when my/posix-shell
-    (setq shell-file-name my/posix-shell
-          explicit-shell-file-name my/posix-shell))
-  (when my/nu-shell
-    (setenv "SHELL" my/nu-shell)))
+    (setq shell-file-name my/posix-shell))
+  (when my/fish-shell
+    (setq explicit-shell-file-name my/fish-shell)
+    (setenv "SHELL" my/fish-shell)))
 
 (setq-default indent-tabs-mode nil
               display-line-numbers-type 'relative)
