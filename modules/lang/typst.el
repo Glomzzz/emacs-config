@@ -41,7 +41,13 @@
 (add-hook 'typst-ts-mode-hook #'my/eglot-ensure-idle)
 
 (with-eval-after-load 'typst-ts-mode
-  (my/register-typst-auto-mode))
+  (my/register-typst-auto-mode)
+  (keymap-unset typst-ts-mode-map "M-<left>")
+  (keymap-unset typst-ts-mode-map "M-<right>")
+  (keymap-set typst-ts-mode-map "C-c <left>"
+              #'typst-ts-editing-heading-left)
+  (keymap-set typst-ts-mode-map "C-c <right>"
+              #'typst-ts-editing-heading-right))
 
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
