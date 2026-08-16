@@ -34,7 +34,8 @@
     "lang/markdown"
     "lang/leetcode"
     "lang/nix"
-    "lang/koka"))
+    "lang/koka"
+    "lang/ryzenbit"))
 
 (defun my/load-module (relative-path)
   "Load RELATIVE-PATH from `my/modules-dir' in documented order."
