@@ -32,6 +32,10 @@
 (setq-default indent-tabs-mode nil
               display-line-numbers-type 'relative)
 
+;; Free the bare right-shift key (only used as an unshifted modifier):
+;; translation and binding together make a lone right-shift press a no-op
+;; instead of self-inserting, so it can be rebound without dead keys.
+;; Shift-combinations (S-*, C-S-*) are unaffected.
 (define-key key-translation-map [right-shift] [ignore])
 (global-set-key [right-shift] #'ignore)
 (global-set-key (kbd "C-c f") #'find-file-at-point)
