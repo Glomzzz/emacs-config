@@ -13,7 +13,11 @@
         ("nongnu" . 20)
         ("melpa" . 10))
       package-pinned-packages '((gptel . "melpa")
-                                (scala-mode . "melpa"))
+                                (scala-mode . "melpa")
+                                ;; This config advises dirvish internals
+                                ;; (yank/redisplay hooks), so keep it on
+                                ;; the archive it is developed against.
+                                (dirvish . "melpa"))
       package-install-upgrade-built-in t
       package-quickstart-file my/emacs-package-quickstart-file
       use-package-always-ensure nil

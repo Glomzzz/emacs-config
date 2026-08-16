@@ -13,14 +13,22 @@
            (scan-error nil)))))
 
 (defun my/eglot-completion-snippet (snippet)
-  "Normalize an Eglot completion SNIPPET for the text after point."
-  (when (and (my/parenthesized-expression-after-point-p)
-             (string-match
-              "\\`\\(.*?\\)(\\(?:.\\|\n\\)*)\\(\\(?:\\$0\\|\\${0}\\)\\)?\\'"
-              snippet))
-    (setq snippet (concat (match-string 1 snippet)
-                          (or (match-string 2 snippet) ""))))
-  (string-replace "," "" snippet))
+  "Normalize an Eglot completion SNIPPET for the text after point.
+
+When point is already followed by a balanced parenthesized form,
+drop the trailing argument list (and the final `$0' placeholder) from
+the snippet so accepting a completion does not duplicate the parens.
+The snippet text is otherwise left untouched: stripping characters
+here used to mangle legitimate snippets (e.g. generic or multi-argument
+completions), so any server-specific cleanup must be scoped to that
+server's `eglot-managed-mode' hook instead."
+  (if (and (my/parenthesized-expression-after-point-p)
+           (string-match
+            "\\`\\(.*?\\)(\\(?:.\\|\n\\)*)\\(\\(?:\\$0\\|\\${0}\\)\\)?\\'"
+            snippet))
+      (concat (match-string 1 snippet)
+              (or (match-string 2 snippet) ""))
+    snippet))
 
 (defun my/eglot-snippet-expander (expander)
   "Wrap EXPANDER to normalize completion snippets before expansion."
