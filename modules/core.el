@@ -47,5 +47,18 @@
 (my/prepend-to-path (expand-file-name "~/.cargo/bin"))
 (my/prepend-to-path (expand-file-name "~/.local/bin"))
 
+;; envrc 20260518.1537 predates Emacs 31's define-globalized-minor-mode
+;; machinery: the macro now generates --set-explicitly bookkeeping for every
+;; globalized minor mode.  Native-compiled artifacts built by Emacs 31
+;; reference these variables while older bytecode does not declare them,
+;; which surfaces as "Symbol's value as variable is void:
+;; envrc-mode--set-explicitly" when the two mix.  Predeclare them so any
+;; loaded variant of envrc finds the bindings.
+(defvar envrc-mode--set-explicitly nil
+  "Preedeclared for Emacs 31 `define-globalized-minor-mode' compatibility.")
+(make-variable-buffer-local 'envrc-mode--set-explicitly)
+(defvar envrc-mode--suppress-set-explicitly nil
+  "Preedeclared for Emacs 31 `define-globalized-minor-mode' compatibility.")
+
 (use-package envrc
   :hook (after-init . envrc-global-mode))
