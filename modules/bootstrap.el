@@ -20,7 +20,8 @@
       use-package-expand-minimally t)
 
 (defconst my/required-packages
-  '(async corfu dirvish dune eldoc-box envrc fish-completion fish-mode
+  '(
+    async dirvish corfu  dune eldoc-box envrc fish-completion fish-mode
     gptel gruber-darker-theme jarchive kotlin-mode kotlin-ts-mode leetcode
     magit markdown-mode nerd-icons nix-ts-mode nov racket-mode rust-mode
     scala-mode treesit-auto tuareg typst-ts-mode utop vterm yasnippet))
