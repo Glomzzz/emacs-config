@@ -39,8 +39,6 @@
   "Set Scala indentation, completion, and compilation defaults."
   (when (boundp 'scala-indent:step)
     (setq-local scala-indent:step 2))
-  (when (boundp 'corfu-auto-trigger)
-    (setq-local corfu-auto-trigger ".${"))
   (my/jvm-buffer-setup (my/scala-standalone-command)))
 
 (add-hook 'scala-mode-hook #'my/scala-buffer-setup)
