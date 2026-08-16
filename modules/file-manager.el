@@ -481,6 +481,11 @@
   (prog1 (apply orig arguments)
     (my/async-task-discover-processes)))
 
+(defun my/dirvish-pre-redisplay-selected-window (orig window)
+  "Run Dirvish redisplay handler ORIG only for the selected WINDOW."
+  (when (eq (frame-selected-window) window)
+    (funcall orig window)))
+
 (use-package dired-async
   :demand t
   :custom
@@ -512,19 +517,13 @@
   (dirvish-preview-buffers-max-count 3)
   (dirvish-mode-line-format
    '(:left (sort symlink) :right (omit yank index)))
+  :config
+  (advice-add #'dirvish-pre-redisplay-h
+              :around #'my/dirvish-pre-redisplay-selected-window)
   :bind
   (("C-x d" . dirvish-dwim)
    ("C-c d" . dirvish)
    :map dirvish-mode-map
-   ("?" . dirvish-dispatch)
-   ("/" . dirvish-fd)
-   ("N" . dirvish-narrow)
-   ("o" . dirvish-quick-access)
-   ("s" . dirvish-quicksort)
-   ("y" . dirvish-yank-menu)
-   ("TAB" . dirvish-subtree-toggle)
-   ("M-f" . dirvish-history-go-forward)
-   ("M-b" . dirvish-history-go-backward)
    ("C-c j" . my/async-task-list-in-dirvish)
    ("C-c C-r" . my/dirvish-rsync-to-mac-mini)
    ("C-c C-a" . my/dirvish-mount-android)
@@ -543,19 +542,43 @@
   :ensure nil
   :commands (dirvish-history-go-backward
              dirvish-history-go-forward
-             dirvish-history-menu))
+             dirvish-history-menu)
+  :bind
+  (:map dirvish-mode-map
+   ("M-f" . dirvish-history-go-forward)
+   ("M-b" . dirvish-history-go-backward)))
 
 (use-package dirvish-emerge
   :ensure nil
   :commands dirvish-emerge-menu)
 
+(use-package dirvish-extras
+  :ensure nil
+  :commands dirvish-dispatch
+  :bind
+  (:map dirvish-mode-map
+   ("?" . dirvish-dispatch)))
+
+(use-package dirvish-fd
+  :ensure nil
+  :commands dirvish-fd
+  :bind
+  (:map dirvish-mode-map
+   ("/" . dirvish-fd)))
+
 (use-package dirvish-ls
   :ensure nil
-  :commands (dirvish-ls-switches-menu dirvish-quicksort))
+  :commands (dirvish-ls-switches-menu dirvish-quicksort)
+  :bind
+  (:map dirvish-mode-map
+   ("s" . dirvish-quicksort)))
 
 (use-package dirvish-narrow
   :ensure nil
-  :commands dirvish-narrow)
+  :commands dirvish-narrow
+  :bind
+  (:map dirvish-mode-map
+   ("N" . dirvish-narrow)))
 
 (use-package dirvish-quick-access
   :ensure nil
@@ -568,7 +591,10 @@
      ("e" ,user-emacs-directory "Emacs config")
      ("g" "~/git/" "Git repositories")
      ("m" ,my/mac-mini-mount-directory "mac-mini (SMB)")
-     ("a" ,my/android-mount-directory "Android phone"))))
+     ("a" ,my/android-mount-directory "Android phone")))
+  :bind
+  (:map dirvish-mode-map
+   ("o" . dirvish-quick-access)))
 
 (use-package dirvish-rsync
   :ensure nil
@@ -584,7 +610,10 @@
 
 (use-package dirvish-subtree
   :ensure nil
-  :commands (dirvish-subtree-menu dirvish-subtree-toggle))
+  :commands (dirvish-subtree-menu dirvish-subtree-toggle)
+  :bind
+  (:map dirvish-mode-map
+   ("TAB" . dirvish-subtree-toggle)))
 
 (use-package dirvish-vc
   :ensure nil
@@ -602,7 +631,10 @@
 
 (use-package dirvish-yank
   :ensure nil
-  :commands dirvish-yank-menu)
+  :commands dirvish-yank-menu
+  :bind
+  (:map dirvish-mode-map
+   ("y" . dirvish-yank-menu)))
 
 (with-eval-after-load 'dirvish-yank
   (advice-add #'dirvish-yank--start-proc
