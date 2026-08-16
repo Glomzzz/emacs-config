@@ -62,3 +62,49 @@
 
 (use-package envrc
   :hook (after-init . envrc-global-mode))
+
+;;; --- daemon self-management helpers (used by the `emc' launcher) ---
+
+(defun my/gui-frames ()
+  "Return live frames shown on a real display (graphical or tty).
+A `--fg-daemon' keeps one display-less initial frame around even
+when no client has opened a frame, and `frames-on-display-list'
+returns that phantom whenever it is the selected frame.  The
+`window-system' frame parameter is nil even on real PGTK frames,
+so discriminate on `display' instead: a real frame names its
+wayland/tty display, the phantom has none."
+  (seq-filter (lambda (frame)
+                (frame-parameter frame 'display))
+              (frame-list)))
+
+(defun my/config-newest-mtime ()
+  "Return the newest modification time of the hand-written config.
+Covers the top-level .el files and everything under modules/, but
+not the package/cache state under .cache/ nor the custom-file:
+the daemon itself rewrites custom-file (Customize saves,
+package-selected-packages), so its mtime is always newer than the
+daemon and would make the config look permanently stale."
+  (let ((modules-dir (expand-file-name "modules/" user-emacs-directory))
+        (newest nil))
+    (dolist (file (append
+                   (directory-files user-emacs-directory t "\\.el\\'")
+                   (when (file-directory-p modules-dir)
+                     (directory-files-recursively modules-dir "\\.el\\'"))))
+      (unless (string-equal (file-truename file)
+                            (file-truename custom-file))
+        (let ((mtime (file-attribute-modification-time
+                      (file-attributes file))))
+          (when (and mtime
+                     (or (null newest) (time-less-p newest mtime)))
+            (setq newest mtime)))))
+    newest))
+
+(defun my/config-stale-p ()
+  "Return non-nil if the hand-written config changed after daemon start.
+The `emc' launcher wrapper checks this together with an empty
+frame list: when the launching client is the daemon's only client,
+the wrapper restarts the daemon before connecting so the edited
+config is loaded."
+  (let ((newest (my/config-newest-mtime)))
+    (and newest
+         (time-less-p before-init-time newest))))

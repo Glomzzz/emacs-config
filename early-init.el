@@ -28,7 +28,6 @@
 (defconst my/emacs-url-dir
   (expand-file-name "url/" my/emacs-cache-dir))
 
-<<<<<<< HEAD
 (dolist (dir (list my/emacs-cache-dir
                    my/emacs-package-dir
                    my/emacs-auto-save-dir
@@ -36,10 +35,6 @@
                    my/emacs-tree-sitter-dir
                    my/emacs-url-dir))
   (make-directory dir t))
-=======
-(defconst my/emacs-desktop-dir
-  (expand-file-name "desktop/" my/emacs-cache-dir))
->>>>>>> f1bf166 (perf(emacs): defer startup work and tune redisplay)
 
 (setq frame-inhibit-implied-resize t
       inhibit-redisplay t

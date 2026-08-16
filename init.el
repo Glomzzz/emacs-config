@@ -42,7 +42,22 @@
   (load (expand-file-name relative-path my/modules-dir) nil 'nomessage))
 
 ;; Load order matters: shared helpers are defined before dependent modules.
-(dolist (module my/module-load-order)
-  (my/load-module module))
+(condition-case error
+    (dolist (module my/module-load-order)
+      (my/load-module module))
+  (error
+   ;; A daemon with a half-loaded config looks healthy but serves stale
+   ;; definitions (void-function errors on every client call, as the
+   ;; launcher's restart probes rely on modules that never loaded).
+   ;; Refuse to start instead: systemd marks the service failed and the
+   ;; real error lands in the journal.
+   (when (daemonp)
+     (message "Emacs daemon refusing to start: config module failed to load: %s"
+              (error-message-string error))
+     (backtrace)
+     (kill-emacs 1))
+   ;; Interactive sessions keep Emacs' usual behavior: report the error
+   ;; and continue with the modules loaded so far.
+   (signal (car error) (cdr error))))
 
 ;;; init.el ends here
