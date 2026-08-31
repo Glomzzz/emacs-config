@@ -2,6 +2,8 @@
 
 (mod/import
  '("dired.el"
-   "dired-async.el"))
+   "dired-async.el"
+   "mounts.el"
+   "dirvish.el"))
 
 ;;; mod.el ends here

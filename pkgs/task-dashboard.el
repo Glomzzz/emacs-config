@@ -39,9 +39,9 @@
 (cl-defstruct (task-dashboard-task
                (:constructor task-dashboard--make-task))
   "A task managed by `task-dashboard'."
-  id label command process output-buffer status progress start-time end-time
-  exit-code error directory scan-tail cancel-requested cancel-timer kind result
-  completion-function)
+  id label command process output-buffer status progress progress-function
+  start-time end-time exit-code error directory scan-tail cancel-requested
+  cancel-timer kind result completion-function)
 
 (defvar task-dashboard--tasks nil
   "Tasks known to the current Emacs session, newest tasks at the end.")
@@ -509,13 +509,14 @@ can perform its normal cleanup and buffer refresh."
 
 ;;;###autoload
 (cl-defun task-dashboard-track-process (process
-                                        &key label directory)
+                                        &key label directory progress-function)
   "Track an already-running asynchronous PROCESS in the dashboard.
 
 PROCESS keeps its existing filter and sentinel; the dashboard wraps them so
 the package that owns PROCESS retains its normal output and cleanup behavior.
 This is intended for integrations such as `dired-async' whose work is already
-asynchronous but would otherwise be absent from the dashboard."
+asynchronous but would otherwise be absent from the dashboard.  When supplied,
+PROGRESS-FUNCTION receives the task and may return a numeric percentage."
   (unless (processp process)
     (signal 'wrong-type-argument (list 'processp process)))
   (or (process-get process 'task-dashboard-task)
@@ -530,6 +531,7 @@ asynchronous but would otherwise be absent from the dashboard."
                     :status (if (process-live-p process) 'running 'queued)
                     :directory directory
                     :start-time (current-time)
+                    :progress-function progress-function
                     :kind 'adopted
                     :scan-tail "")))
         (setf (task-dashboard-task-output-buffer task)
@@ -552,6 +554,17 @@ asynchronous but would otherwise be absent from the dashboard."
            (task-dashboard-task-label task)))
         (task-dashboard--refresh-all)
         task)))
+
+(defun task-dashboard-cancel-process (process)
+  "Mark the task associated with PROCESS as cancelled.
+
+This is intended for integrations that own a process and need to terminate it
+outside the dashboard's point-based interactive command.  The process owner
+still decides how to signal or delete PROCESS; the dashboard sentinel will
+then record the cancellation instead of reporting a failure."
+  (when-let* ((task (process-get process 'task-dashboard-task)))
+    (setf (task-dashboard-task-cancel-requested task) t)
+    task))
 
 (defun task-dashboard--force-cancel (task)
   "Escalate cancellation of TASK to SIGKILL when it is still running."
@@ -682,6 +695,24 @@ have progress information that is not printed by the child process."
   (task-dashboard--refresh-all)
   (task-dashboard-task-progress task))
 
+(defun task-dashboard--refresh-progress (task)
+  "Refresh TASK's progress from its optional progress callback."
+  (when (and (eq (task-dashboard-task-status task) 'running)
+             (task-dashboard-task-progress-function task))
+    (condition-case error-data
+        (let ((progress
+               (funcall (task-dashboard-task-progress-function task) task)))
+          (when (numberp progress)
+            (setf (task-dashboard-task-progress task)
+                  (max 0.0 (min 100.0 progress)))))
+      (error
+       (when-let* ((process (task-dashboard-task-process task)))
+         (unless (process-get process 'task-dashboard-progress-error-reported)
+           (process-put process 'task-dashboard-progress-error-reported t)
+           (message "Task %d progress callback failed: %s"
+                    (task-dashboard-task-id task)
+                    (error-message-string error-data))))))))
+
 (defun task-dashboard--status-label (status)
   "Return a dashboard label for STATUS."
   (capitalize (symbol-name (or status 'unknown))))
@@ -722,6 +753,7 @@ have progress information that is not printed by the child process."
   "Return `tabulated-list-entries' for the task dashboard."
   (mapcar
    (lambda (task)
+     (task-dashboard--refresh-progress task)
      (list (task-dashboard-task-id task)
            (vector (number-to-string (task-dashboard-task-id task))
                    (task-dashboard--status-label
