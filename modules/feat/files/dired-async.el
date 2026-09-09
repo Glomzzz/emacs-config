@@ -22,10 +22,6 @@
                   (file-creator operation fn-list name-constructor
                                  &optional marker-char))
 (declare-function dired-async-processes "dired-async" (&optional propname))
-(declare-function dired-dwim-target-directory "dired" ())
-(declare-function mounts/mac-mini-mounted-p "mounts" ())
-(declare-function mounts/mac-mini-relative-path "mounts" (path))
-(declare-function mounts/rsync-to-mac-mini "mounts" (&optional destination))
 (declare-function task-dashboard-track-process "task-dashboard"
                   (process &rest arguments))
 (declare-function task-dashboard-run-async "task-dashboard"
@@ -188,24 +184,6 @@ authentication prompt."
                           (length deleted)
                           (if (= (length deleted) 1) "" "s"))))))))))))
 
-(defun dired-async/copy-dispatch (&optional argument)
-  "Copy asynchronously, using Mac-mini rsync for its mounted target."
-  (interactive "P")
-  (let* ((destination (dired-dwim-target-directory))
-         (mac-target-p
-          (and destination
-               (not (file-remote-p destination))
-               (not (cl-some #'file-remote-p (dired-get-marked-files)))
-               (mounts/mac-mini-relative-path destination))))
-    (cond
-     ((and mac-target-p (mounts/mac-mini-mounted-p))
-      (mounts/rsync-to-mac-mini destination))
-     (mac-target-p
-      (user-error "Mac-mini is not mounted; refusing local copy to %s"
-                  destination))
-     (t
-      (dired-async-do-copy argument)))))
-
 (defun dired-async/enable ()
   "Enable asynchronous Dired file operations when the package is present."
   (when (require 'dired-async nil t)
@@ -234,7 +212,6 @@ authentication prompt."
                   #'dired-async-do-hardlink))))
 
 (with-eval-after-load 'dired
-  (dired-async/enable)
-  (define-key dired-mode-map [remap dired-do-copy] #'dired-async/copy-dispatch))
+  (dired-async/enable))
 
 ;;; dired-async.el ends here

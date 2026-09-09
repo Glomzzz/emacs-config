@@ -1,4 +1,37 @@
 ;;; emacs.el --- Emacs defaults -*- lexical-binding: t; -*-
+
+(require 'seq)
+
+;; FUSE-backed removable/network mounts can remain mounted after their
+;; connection has failed.  A synchronous stat on one of these paths can then
+;; block Emacs for the duration of the FUSE/network timeout (including while
+;; the daemon is shutting down).  Keep this check purely lexical: resolving a
+;; path with `file-truename' would perform the very I/O we are avoiding.
+(defconst emacs/unreliable-path-prefixes
+  (mapcar #'file-name-as-directory
+          (list (expand-file-name "~/mnt/mac-mini/")
+                (expand-file-name "~/mnt/android/")))
+  "Path prefixes backed by FUSE mounts that may become unresponsive.")
+
+(defun emacs/unreliable-path-p (path)
+  "Return non-nil when PATH is below a known unreliable mount.
+
+The comparison intentionally uses expanded strings rather than filesystem
+queries so this predicate is safe to call from timer and shutdown hooks."
+  (when path
+    (let ((expanded (expand-file-name path)))
+      (seq-some (lambda (prefix)
+                  (string-prefix-p prefix expanded))
+                emacs/unreliable-path-prefixes))))
+
+(defun emacs/disable-auto-revert-on-unreliable-path ()
+  "Disable auto-revert for buffers below an unreliable FUSE mount."
+  (when (and auto-revert-mode
+             (emacs/unreliable-path-p (or buffer-file-name default-directory)))
+    (auto-revert-mode -1)))
+
+(add-hook 'auto-revert-mode-hook
+          #'emacs/disable-auto-revert-on-unreliable-path)
 (setq read-process-output-max (* 1024 1024)
       process-adaptive-read-buffering nil
       redisplay-skip-fontification-on-input t
