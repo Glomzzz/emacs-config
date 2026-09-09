@@ -3,6 +3,7 @@
 (mod/import
  '("c.el"
    "cpp.el"
+   "haskell.el"
    "javascript.el"
    "markdown.el"
    "nix.el"
