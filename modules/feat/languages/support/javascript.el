@@ -22,12 +22,36 @@
 (use-package typescript-mode
   :ensure nil
   :mode "\\.tsx?\\'"
-  :hook (typescript-mode . eglot-ensure))
+  :hook (typescript-mode . javascript/eglot-ensure))
 
-(add-hook 'js-mode-hook #'eglot-ensure)
-(add-hook 'js-ts-mode-hook #'eglot-ensure)
-(add-hook 'typescript-ts-mode-hook #'eglot-ensure)
-(add-hook 'tsx-ts-mode-hook #'eglot-ensure)
+(add-hook 'js-mode-hook #'javascript/eglot-ensure)
+(add-hook 'js-ts-mode-hook #'javascript/eglot-ensure)
+(add-hook 'typescript-ts-mode-hook #'javascript/eglot-ensure)
+(add-hook 'tsx-ts-mode-hook #'javascript/eglot-ensure)
+
+(defun javascript/eglot-workspace-configuration (_server)
+  "Configure TypeScript Language Server for useful project-wide completion."
+  '(:typescript (:inlayHints (:includeInlayParameterNameHints "all"
+                            :includeInlayParameterNameHintsWhenArgumentMatches t
+                            :includeInlayFunctionParameterTypeHints t
+                            :includeInlayVariableTypeHints t
+                            :includeInlayPropertyDeclarationTypeHints t
+                            :includeInlayFunctionLikeReturnTypeHints t
+                            :includeInlayEnumMemberValueHints t)
+                :preferences (:includeCompletionsForModuleExports t
+                              :includeCompletionsForImportStatements t
+                              :includeAutomaticOptionalChainCompletions t
+                              :includeAutomaticSuggest t))
+    :javascript (:preferences (:includeCompletionsForModuleExports t
+                               :includeCompletionsForImportStatements t
+                               :includeAutomaticOptionalChainCompletions t
+                               :includeAutomaticSuggest t))))
+
+(defun javascript/eglot-ensure ()
+  "Start Eglot with the TypeScript Language Server project settings."
+  (setq-local eglot-workspace-configuration
+              #'javascript/eglot-workspace-configuration)
+  (eglot-ensure))
 
 (with-eval-after-load 'eglot
   ;; TypeScript Language Server handles JavaScript as well as TypeScript and
@@ -37,14 +61,26 @@
     (setf (alist-get mode eglot-server-programs)
           '("typescript-language-server" "--stdio"))))
 
+(defun javascript--marker-root (directory)
+  "Return the JavaScript project root found above DIRECTORY."
+  (seq-some (lambda (marker)
+              (locate-dominating-file directory marker))
+            '("deno.json" "deno.jsonc" "bun.lock" "bun.lockb"
+              "tsconfig.json" "package.json")))
+
+(defun javascript/project-try (directory)
+  "Return a project object for JavaScript projects without VCS metadata."
+  (when-let* ((root (javascript--marker-root directory)))
+    ;; `transient' is a project type understood by Emacs' project API.
+    (cons 'transient root)))
+
+(add-hook 'project-find-functions #'javascript/project-try)
+
 (defun javascript/project-root ()
   "Return the project root for the current JavaScript buffer."
   (or (when-let* ((project (project-current)))
         (project-root project))
-      (seq-some (lambda (marker)
-                  (locate-dominating-file default-directory marker))
-                '("deno.json" "deno.jsonc" "bun.lock" "bun.lockb"
-                  "tsconfig.json" "package.json"))
+      (javascript--marker-root default-directory)
       default-directory))
 
 (defun javascript--typescript-p ()
