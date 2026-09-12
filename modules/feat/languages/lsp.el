@@ -19,6 +19,11 @@
   :ensure nil
   :hook (eglot-managed-mode . lsp/format-on-save)
   :init
+  ;; Show hover/signature documentation after the cursor has rested briefly.
+  ;; Eglot feeds server documentation through Eldoc's normal display.
+  (setq eldoc-idle-delay 0.3
+        eldoc-echo-area-use-multiline-p t
+        eglot-autoshutdown t)
   ;; Disable inlay hints until they are explicitly requested.
   (setq eglot-ignored-server-capabilities '(:inlayHintProvider))
   ;; Older versions of this configuration added a global hook.  Remove it for
