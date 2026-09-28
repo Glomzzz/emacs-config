@@ -85,9 +85,10 @@
 (set-face-attribute 'default nil :family "Cascadia Mono NF" :height 160)
 ;; unicode
 (set-fontset-font t 'unicode (font-spec :family "Noto Sans"))
-;; zh_cn
+;; zh_cn.  No `:size' here: a fixed pixel size does not follow the frame's
+;; point size on a scaled display, so let the fontset inherit the face height.
 (dolist (CnFamily '(han cjk-misc bopomofo))
-  (set-fontset-font t CnFamily (font-spec :family "LXGW WenKai" :size 20) nil 'prepend))
+  (set-fontset-font t CnFamily (font-spec :family "LXGW WenKai") nil 'prepend))
 ;; symbol
 (set-fontset-font t 'symbol (font-spec :family "Noto Sans Symbols 2") nil 'prepend)
 ;; emoji

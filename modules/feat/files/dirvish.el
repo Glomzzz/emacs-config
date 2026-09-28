@@ -232,12 +232,7 @@
   (advice-add #'dirvish-yank--start-proc
               :around #'dirvish/track-yank-start))
 
-;; Keep EPUB and PostScript documents useful after routing them through Emacs.
-(packages/declare 'nov)
-(use-package nov
-  :ensure nil
-  :mode ("\\.epub\\'" . nov-mode))
-
+;; Keep PostScript documents useful after routing them through Emacs.
 (use-package doc-view
   :ensure nil
   :mode (("\\.e?ps\\'" . doc-view-mode-maybe)))

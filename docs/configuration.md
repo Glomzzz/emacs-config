@@ -148,6 +148,7 @@ writing state into the repository.  The main paths currently include:
 | `tramp-auto-save/` | TRAMP auto-save data |
 | `custom.el` | Emacs Customize state |
 | `history`, `recentf`, `places` | Minibuffer, recent-file, and save-place state |
+| `nov-places` | EPUB reading positions for `nov-mode` |
 | `transient/` | Transient history and values |
 | `projects.eld` | Project list state |
 | `dired-async.log` | Asynchronous Dired log |
