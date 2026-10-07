@@ -325,6 +325,17 @@ terminals.  The package owns its display hooks and cursor-following behavior;
 this configuration does not advise private Eldoc update functions, suppress
 comments globally, or install a private Eldoc Box renderer.
 
+While the Eldoc popup is visible, **`M-n`** scrolls down three lines and
+**`M-p`** scrolls up three lines without moving the source cursor or switching
+focus.  A numeric prefix changes the line count (for example `C-u 8 M-n`).
+These bindings apply only in Eldoc Box at-point hover buffers; they do not
+replace ordinary buffer or minibuffer keys.  At the ends, scrolling is a
+no-op.  The package's public command allowlist keeps these doc-only actions
+from triggering its usual motion-based dismissal.  `C-g` still dismisses.
+If you prefer direct reading, `C-M-d` when the popup is already visible
+focuses it; `q` closes it and returns focus.  Ordinary mouse-wheel commands
+are not remapped by this change and can still dismiss the at-point popup.
+
 The popup's text matches the source frame's default font family and size,
 including the source buffer's `text-scale-mode` zoom.  A public
 `eldoc-box-buffer-setup-hook` applies the doc-buffer face remap before the
