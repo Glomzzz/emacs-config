@@ -444,7 +444,12 @@ Both write their HTML under `/tmp/emacs/markdown-preview/` (via
 registered with treesit-auto because Emacs' `markdown-ts-mode` derives from
 `text-mode` and would drop the editing and preview commands.
 
-`javascript.el` owns JavaScript, TypeScript, and TSX.  It registers the
+`javascript.el` owns JavaScript, TypeScript, and TSX.  `.ts` selects
+`typescript-mode` (remapped to `typescript-ts-mode`); `.tsx` selects the
+configuration's `typescript-tsx-mode` fallback (remapped to `tsx-ts-mode`).
+The fallback inherits basic TypeScript editing, not JSX-aware parsing.
+With grammars installed, the file-opening tests check the actual parser
+language as well as the major mode.  It registers the
 `javascript`, `typescript`, and `tsx` Tree-sitter grammars, starts
 `typescript-language-server` for the fallback and Tree-sitter modes, and uses
 Prettier through Apheleia when Eglot is not managing the buffer; Prettier

@@ -16,6 +16,7 @@
 ;; Reuse installed packages without touching the user's history, Customize,
 ;; quickstart file, or other state.  Normal startup never installs packages.
 (let* ((package-directory (cache/folder "elpa"))
+       (grammar-directory (cache/tree-sitter))
        (state-directory (make-temp-file "emacs-config-tests-" t))
        (cache/root (file-name-as-directory state-directory))
        (original-cache-folder (symbol-function 'cache/folder))
@@ -26,10 +27,15 @@
                    (if (equal path "elpa")
                        package-directory
                      (funcall original-cache-folder path)))))
+        (require 'treesit)
+        (add-to-list 'treesit-extra-load-path grammar-directory)
         (load (expand-file-name "init.el" user-emacs-directory)
               nil 'nomessage)
+        (setq treesit-auto-install nil)
         (load (expand-file-name "tests/configuration-tests.el"
                                 user-emacs-directory)
+              nil 'nomessage)
+        (load (expand-file-name "tests/language-selection-tests.el" user-emacs-directory)
               nil 'nomessage)
         (load (expand-file-name "tests/pairs-tests.el" user-emacs-directory)
               nil 'nomessage)

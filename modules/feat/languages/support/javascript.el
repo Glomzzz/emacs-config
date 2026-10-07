@@ -79,12 +79,18 @@ Nil grants no extra permissions; --allow-all requires explicit opt-in."
   "Start Eglot for JavaScript and TypeScript buffers."
   (eglot-ensure))
 
-;; `js-mode' is built into Emacs.  The TypeScript fallback comes from MELPA;
-;; the Tree-sitter modes are built into current Emacs releases.
+;; Give TSX its own fallback identity: treesit-auto remaps it to tsx-ts-mode,
+;; whereas typescript-mode remaps to the TypeScript (not TSX) parser.
+(define-derived-mode typescript-tsx-mode typescript-mode "TypeScript/TSX"
+  "Edit TSX without a grammar, using TypeScript's basic editing support.
+Install the TSX grammar for JSX-aware parsing and highlighting.")
+
+;; `js-mode' and the Tree-sitter modes are built into Emacs.
 (packages/declare 'typescript-mode)
 (use-package typescript-mode
   :ensure nil
-  :mode "\\.tsx?\\'"
+  :mode (("\\.ts\\'" . typescript-mode)
+         ("\\.tsx\\'" . typescript-tsx-mode))
   :hook (typescript-mode . javascript/eglot-ensure))
 
 (add-hook 'js-mode-hook #'javascript/eglot-ensure)
