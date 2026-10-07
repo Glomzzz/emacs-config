@@ -161,6 +161,15 @@ writing state into the repository.  The main paths currently include:
 before packages load, so native compilation does not fill the repository or
 the default Emacs cache with configuration-specific artifacts.
 
+### Documentation at Point
+
+Programming buffers use automatic Eldoc.  Graphical frames enable the public
+`eldoc-box-hover-at-point-mode`; terminal frames keep built-in Eldoc display.
+`C-M-d` calls `eldoc-box-help-at-point` in a GUI and requests normal Eldoc in
+terminals.  The package owns its display hooks and cursor-following behavior;
+this configuration does not advise private Eldoc update functions, suppress
+comments globally, or install a private Eldoc Box renderer.
+
 ### Project Editing Policies
 
 Save-time whitespace cleanup defaults to code/config buffers only; text,

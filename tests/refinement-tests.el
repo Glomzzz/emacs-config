@@ -109,5 +109,31 @@
   (let ((javascript/deno-permissions nil))
     (should-not (member "--allow-all" (append (javascript/deno-debug-arguments) nil)))))
 
+(ert-deftest config-test/eldoc-uses-public-hover-mode ()
+  (require 'eldoc-box)
+  (with-temp-buffer
+    (emacs-lisp-mode)
+    (let ((eldoc-display-functions '(eldoc-display-in-echo-area))
+          enabled)
+      (cl-letf (((symbol-function 'display-graphic-p) (lambda (&optional _display) t))
+                ((symbol-function 'eldoc-box-hover-at-point-mode)
+                 (lambda (argument) (setq enabled argument))))
+        (completion/eldoc-popup-maybe)
+        (should eldoc-mode)
+        (should (= enabled 1))
+        (should (equal eldoc-display-functions '(eldoc-display-in-echo-area)))))))
+
+(ert-deftest config-test/eldoc-terminal-keeps-built-in-display ()
+  (with-temp-buffer
+    (emacs-lisp-mode)
+    (let (requested)
+      (cl-letf (((symbol-function 'display-graphic-p) (lambda (&optional _display) nil))
+                ((symbol-function 'eldoc-print-current-symbol-info)
+                 (lambda (&optional interactive) (setq requested interactive))))
+        (completion/eldoc-popup-maybe)
+        (should eldoc-mode)
+        (completion/eldoc-show-at-point)
+        (should requested)))))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here
