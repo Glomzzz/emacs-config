@@ -92,6 +92,36 @@ Corfu installs timer hooks; preserve explicit buffer-local opt-outs."
       (call-interactively #'eldoc-box-help-at-point)
     (eldoc-print-current-symbol-info t)))
 
+(defun completion/eldoc-scroll-forward (&optional lines)
+  "Read further down the Eldoc popup without moving the source cursor.
+Scroll three lines by default, or LINES with a prefix argument."
+  (interactive (list (if current-prefix-arg
+                         (prefix-numeric-value current-prefix-arg)
+                       3)))
+  (require 'eldoc-box)
+  (condition-case nil
+      (eldoc-box-scroll-up (or lines 3))
+    ((beginning-of-buffer end-of-buffer) nil)))
+
+(defun completion/eldoc-scroll-backward (&optional lines)
+  "Read earlier lines in the Eldoc popup without moving the source cursor.
+Scroll three lines by default, or LINES with a prefix argument."
+  (interactive (list (if current-prefix-arg
+                         (prefix-numeric-value current-prefix-arg)
+                       3)))
+  (require 'eldoc-box)
+  (condition-case nil
+      (eldoc-box-scroll-down (or lines 3))
+    ((beginning-of-buffer end-of-buffer) nil)))
+
+(defvar completion--eldoc-navigation-map
+  (let ((map (make-sparse-keymap)))
+    (keymap-set map "M-n" #'completion/eldoc-scroll-forward)
+    (keymap-set map "M-p" #'completion/eldoc-scroll-backward)
+    map)
+  "Scrolling keys active only in Eldoc Box at-point hover buffers.
+Use Emacs' public minor-mode map registry; the package defines no keymap.")
+
 (defvar-local completion--eldoc-font-remap nil
   "Cookie for the documentation buffer's source-font remapping.")
 
@@ -125,7 +155,17 @@ geometry is measured.  Keep its own faces, colors, and Markdown styling."
   ;; Show both short signatures and longer documentation in the popup.
   (eldoc-box-only-multi-line nil)
   (eldoc-box-clear-with-C-g t)
-  (eldoc-box-hover-display-frame-above-point nil))
+  (eldoc-box-hover-display-frame-above-point nil)
+  :config
+  (add-to-list 'minor-mode-map-alist
+               (cons 'eldoc-box-hover-at-point-mode completion--eldoc-navigation-map))
+  ;; The package normally hides the at-point popup after non-typing commands.
+  ;; Its public allowlist also lets doc-only scrolling keep the popup visible.
+  (dolist (command '(completion/eldoc-scroll-forward completion/eldoc-scroll-backward
+                     universal-argument universal-argument-more digit-argument negative-argument))
+    ;; Prefix entry must not hide the popup before the scroll key is read.
+    (add-to-list 'eldoc-box-self-insert-command-list command)
+    (eldoc-add-command command)))
 
 (defun completion/eldoc-popup-after-frame (frame)
   "Enable documentation popups in programming buffers after FRAME appears."

@@ -206,6 +206,63 @@
                 (should (= (plist-get (cdr completion--eldoc-font-remap) :height) 180)))))
         (kill-buffer origin)))))
 
+(ert-deftest config-test/eldoc-scroll-keys-are-local-to-hover-buffers ()
+  (require 'eldoc-box)
+  (with-temp-buffer
+    (let ((eldoc-box-hover-at-point-mode t))
+      (should (eq (key-binding (kbd "M-n")) #'completion/eldoc-scroll-forward))
+      (should (eq (key-binding (kbd "M-p")) #'completion/eldoc-scroll-backward)))
+    (let ((eldoc-box-hover-at-point-mode nil))
+      (should-not (eq (key-binding (kbd "M-n")) #'completion/eldoc-scroll-forward))
+      (should-not (eq (key-binding (kbd "M-p")) #'completion/eldoc-scroll-backward)))))
+
+(ert-deftest config-test/eldoc-scroll-keys-dispatch-and-preserve-source-point ()
+  (save-window-excursion
+    (with-temp-buffer
+      (emacs-lisp-mode)
+      (insert "source text")
+      (goto-char 4)
+      (switch-to-buffer (current-buffer))
+      (let ((eldoc-box-hover-at-point-mode t)
+            (eldoc-box--inhibit-childframe nil)
+            calls)
+        (cl-letf (((symbol-function 'eldoc-box-scroll-up)
+                   (lambda (lines) (push (cons 'forward lines) calls)))
+                  ((symbol-function 'eldoc-box-scroll-down)
+                   (lambda (lines) (push (cons 'backward lines) calls))))
+          (execute-kbd-macro (kbd "M-n M-p C-u 8 M-n"))
+          (should (equal (reverse calls) '((forward . 3) (backward . 3) (forward . 8))))
+          (should (= (point) 4))
+          (should-not eldoc-box--inhibit-childframe))))))
+
+(ert-deftest config-test/eldoc-scroll-does-not-inhibit-popup-after-command ()
+  (require 'eldoc-box)
+  (let ((eldoc-box--inhibit-childframe nil))
+    (cl-letf (((symbol-function 'eldoc-box--frame-visible-p) (lambda () nil)))
+      (dolist (command '(completion/eldoc-scroll-forward completion/eldoc-scroll-backward
+                         universal-argument universal-argument-more digit-argument negative-argument))
+        (should (memq command eldoc-box-self-insert-command-list))
+        (should (eldoc--message-command-p command))
+        (let ((this-command command))
+          (eldoc-box--follow-cursor)
+          (should-not eldoc-box--inhibit-childframe))))))
+
+(ert-deftest config-test/eldoc-scroll-keeps-C-g-dismissal ()
+  (require 'eldoc-box)
+  (should eldoc-box-clear-with-C-g)
+  (should-not (memq 'keyboard-quit eldoc-box-self-insert-command-list))
+  (with-temp-buffer
+    (let ((eldoc-box-hover-at-point-mode t))
+      (should (eq (key-binding (kbd "C-g")) #'keyboard-quit)))))
+
+(ert-deftest config-test/eldoc-scroll-at-boundary-does-not-error ()
+  (cl-letf (((symbol-function 'eldoc-box-scroll-up)
+             (lambda (&rest _) (signal 'end-of-buffer nil)))
+            ((symbol-function 'eldoc-box-scroll-down)
+             (lambda (&rest _) (signal 'beginning-of-buffer nil))))
+    (completion/eldoc-scroll-forward)
+    (completion/eldoc-scroll-backward)))
+
 (ert-deftest config-test/eldoc-terminal-keeps-built-in-display ()
   (with-temp-buffer
     (emacs-lisp-mode)
