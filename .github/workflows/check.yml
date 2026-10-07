@@ -1,0 +1,28 @@
+name: Configuration checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cold-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Launcher smoke tests
+        run: sh tests/launcher-tests.sh
+      # No cache restore: every run must exercise actual first-run installation.
+      # Follow Emacs 31 nixpkgs updates; this is not a package lockfile.
+      - name: Cold packages, offline startup, and actual grammar selection
+        run: |
+          nix --extra-experimental-features 'nix-command flakes' shell \
+            github:NixOS/nixpkgs/nixos-unstable#emacs31-pgtk \
+            github:NixOS/nixpkgs/nixos-unstable#git \
+            github:NixOS/nixpkgs/nixos-unstable#gcc \
+            --command env EMACS_TEST_INSTALL_GRAMMARS=1 sh tests/cold-bootstrap.sh

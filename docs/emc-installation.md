@@ -229,6 +229,13 @@ EMACS_TEST_REQUIRE_GRAMMARS=1 emacs --batch -Q \
   -l "$HOME/.config/emacs/tests/run.el"           # requires TS, TSX, Typst grammars
 ```
 
+Set `EMACS_TEST_INSTALL_GRAMMARS=1` when running `tests/cold-bootstrap.sh`
+to also download/build the TypeScript, TSX, and Typst grammars and require
+all parser tests.  This needs C/C++ compilers.  This complete cold path was
+tested locally with no site-package overlay.  The GitHub Actions workflow
+runs it without restoring a package cache; CI execution itself must be
+confirmed on the hosting service.
+
 Cold-bootstrap smoke coverage does not validate GUI/TTY interaction, Vterm's
 native build, or external LSP/DAP sessions.  Validate those manually before
 calling your own deployment ready to use.
