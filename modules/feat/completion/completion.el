@@ -92,8 +92,35 @@ Corfu installs timer hooks; preserve explicit buffer-local opt-outs."
       (call-interactively #'eldoc-box-help-at-point)
     (eldoc-print-current-symbol-info t)))
 
+(defvar-local completion--eldoc-font-remap nil
+  "Cookie for the documentation buffer's source-font remapping.")
+
+(defun completion/eldoc-sync-font (origin)
+  "Match documentation text to ORIGIN's frame font and buffer text scale.
+Run in the doc buffer through Eldoc Box's public setup hook, before popup
+geometry is measured.  Keep its own faces, colors, and Markdown styling."
+  (when (buffer-live-p origin)
+    (require 'face-remap)
+    (let* ((window (if (eq (window-buffer (selected-window)) origin)
+                       (selected-window)
+                     (get-buffer-window origin t)))
+           (frame (if window (window-frame window) (selected-frame)))
+           (height (face-attribute 'default :height frame))
+           (family (face-attribute 'default :family frame))
+           (scale (with-current-buffer origin
+                    (if (bound-and-true-p text-scale-mode)
+                        (expt text-scale-mode-step text-scale-mode-amount)
+                      1))))
+      (when completion--eldoc-font-remap
+        (face-remap-remove-relative completion--eldoc-font-remap))
+      (setq completion--eldoc-font-remap
+            (face-remap-add-relative 'default
+                                     :family family
+                                     :height (max 1 (round (* height scale))))))))
+
 (use-package eldoc-box
   :ensure nil
+  :hook (eldoc-box-buffer-setup . completion/eldoc-sync-font)
   :custom
   ;; Show both short signatures and longer documentation in the popup.
   (eldoc-box-only-multi-line nil)

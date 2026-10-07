@@ -148,6 +148,64 @@
           (should (eq (cadr request) #'eldoc--update))
           (should (> (car request) (car suppression))))))))
 
+(ert-deftest config-test/eldoc-popup-font-matches-source-frame-and-zoom ()
+  (require 'eldoc-box)
+  (require 'face-remap)
+  (let ((origin (generate-new-buffer " *eldoc font source*")))
+    (unwind-protect
+        (progn
+          (with-current-buffer origin
+            (text-scale-set 2))
+          (with-temp-buffer
+            (let ((eldoc-box-buffer-hook nil))
+              (cl-letf (((symbol-function 'face-attribute)
+                         (lambda (_face attribute &rest _)
+                           (pcase attribute (:height 160) (:family "Source Mono")))))
+                ;; Use the package's real setup hook, not a direct renderer.
+                (eldoc-box-buffer-setup origin)
+                (should completion--eldoc-font-remap)
+                (let ((spec (cdr completion--eldoc-font-remap)))
+                  (should (equal (plist-get spec :family) "Source Mono"))
+                  (should (= (plist-get spec :height) (round (* 160 (expt 1.2 2)))))
+                  (should-not (plist-member spec :foreground))
+                  (should-not (plist-member spec :background)))))))
+      (kill-buffer origin))))
+
+(ert-deftest config-test/eldoc-popup-font-refresh-replaces-old-scale ()
+  (require 'face-remap)
+  (let ((origin (generate-new-buffer " *eldoc scale source*")))
+    (unwind-protect
+        (with-temp-buffer
+          (let ((other (face-remap-add-relative 'default :weight 'bold)))
+            (cl-letf (((symbol-function 'face-attribute)
+                       (lambda (_face attribute &rest _)
+                         (pcase attribute (:height 160) (:family "Source Mono")))))
+              (with-current-buffer origin (text-scale-set 2))
+              (completion/eldoc-sync-font origin)
+              (let ((old completion--eldoc-font-remap))
+                (with-current-buffer origin (text-scale-set 0))
+                (completion/eldoc-sync-font origin)
+                (let ((remaps (cdr (assq 'default face-remapping-alist))))
+                  (should-not (memq (cdr old) remaps))
+                  (should (memq (cdr other) remaps))
+                  (should (= (plist-get (cdr completion--eldoc-font-remap) :height) 160)))))))
+      (kill-buffer origin))))
+
+(ert-deftest config-test/eldoc-popup-font-prefers-origin-window ()
+  (save-window-excursion
+    (let ((origin (generate-new-buffer " *eldoc window source*")))
+      (unwind-protect
+          (progn
+            (switch-to-buffer origin)
+            (with-temp-buffer
+              (cl-letf (((symbol-function 'face-attribute)
+                         (lambda (_face attribute frame &rest _)
+                           (should (eq frame (window-frame (get-buffer-window origin))))
+                           (pcase attribute (:height 180) (:family "Frame Mono")))))
+                (completion/eldoc-sync-font origin)
+                (should (= (plist-get (cdr completion--eldoc-font-remap) :height) 180)))))
+        (kill-buffer origin)))))
+
 (ert-deftest config-test/eldoc-terminal-keeps-built-in-display ()
   (with-temp-buffer
     (emacs-lisp-mode)
