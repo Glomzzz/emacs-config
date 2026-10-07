@@ -33,6 +33,8 @@
               nil 'nomessage)
         (load (expand-file-name "tests/pairs-tests.el" user-emacs-directory)
               nil 'nomessage)
+        (load (expand-file-name "tests/refinement-tests.el" user-emacs-directory)
+              nil 'nomessage)
         (setq stats (ert-run-tests-batch "^config-test/")))
     (dolist (mode '(savehist-mode recentf-mode save-place-mode))
       (when (fboundp mode)

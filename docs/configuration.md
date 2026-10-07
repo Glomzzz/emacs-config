@@ -323,16 +323,18 @@ markers, even without VCS metadata; roots inside Git repositories retain
 Git-aware file listing and ignore rules.  Neither language installs a
 competing global project finder.  It replaces Eglot's bundled
 `static-ls` candidate with `haskell-language-server-wrapper`, launched with
-`-j 2` so indexing cannot saturate every core, and the buffer sets
+`-j 2` by default (`haskell/server-threads` is customizable or directory-local;
+nil lets HLS choose), and the buffer sets
 `eglot-sync-connect` to nil so Emacs never blocks on HLS's slow cold start.
 HLS starts automatically for every Haskell buffer, using the nearest
 project cradle when the file belongs to one and its default plain-GHC
 session for standalone files.  Apheleia/Ormolu owns save-time formatting even while
 Eglot manages the buffer: the module sets `format/apheleia-owns` because
 HLS formatting is a synchronous request that can block a save while the
-server loads the cradle.  Completion candidates are ordered by proximity:
-bindings local to the current declaration first, then other definitions,
-then names imported from other modules.
+server loads the cradle.  Completion ordering is owned by HLS's `sortText`
+and Eglot's completion metadata, not custom parsing of labels or HLS-private
+resolve data.  `haskell/max-completions` defaults to 1000 and can be adjusted
+per project through directory-local variables.
 
 `markdown.el` is the editing-and-preview exception: `markdown-mode` owns
 `.md`/`.markdown`/`.mdx` buffers (with `gfm-mode` for README files), and
@@ -436,8 +438,8 @@ retains commands returned by `completionItem/resolve` on the original
 completion item, preserving Eglot's resolution cache without an extra
 request.  Property-less candidates from *Completions* are looked up in the
 original completion table.  HLS uses this for `extend import`;
-`haskell.el` raises `maxCompletions` to 1000 so unimported names are
-actually returned before the import command runs.
+`haskell.el` raises `maxCompletions` to `haskell/max-completions` (1000 by
+default) so unimported names are returned before the import command runs.
 
 ### Debugging with Dape
 

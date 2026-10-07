@@ -245,7 +245,7 @@
           (should started)
           (should format/apheleia-owns)
           (should apheleia-mode)
-          (should (equal (car (alist-get major-mode eglot-server-programs))
+          (should (equal (car (funcall (alist-get major-mode eglot-server-programs)))
                          "haskell-language-server-wrapper"))
           (should (eq (alist-get major-mode apheleia-mode-alist) 'ormolu)))))))
 

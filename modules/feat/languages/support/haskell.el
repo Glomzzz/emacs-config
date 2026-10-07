@@ -2,15 +2,36 @@
 
 (require 'packages)
 (require 'project)
-(require 'seq)
 
 (defvar eglot-server-programs)
 (defvar eglot-sync-connect)
 (defvar apheleia-formatters)
 (defvar apheleia-mode-alist)
 (defvar format/apheleia-owns)
-(defvar corfu-sort-override-function)
-(declare-function corfu-sort-length-alpha "corfu" (list))
+(defgroup haskell-tools nil
+  "Haskell server and formatter integration."
+  :group 'tools)
+
+(defcustom haskell/server-threads 2
+  "HLS worker limit, or nil to use the server's own default."
+  :type '(choice (const nil) (integer :tag "Workers"))
+  :group 'haskell-tools)
+
+(defcustom haskell/max-completions 1000
+  "Maximum completions requested from HLS."
+  :type 'integer
+  :group 'haskell-tools)
+
+(put 'haskell/server-threads 'safe-local-variable
+     (lambda (value) (or (null value) (and (integerp value) (> value 0)))))
+(put 'haskell/max-completions 'safe-local-variable
+     (lambda (value) (and (integerp value) (> value 0))))
+
+(defun haskell/server-command (&rest _ignored)
+  "Return the HLS command using the current project's worker limit."
+  (append '("haskell-language-server-wrapper" "--lsp")
+          (when haskell/server-threads
+            (list "-j" (number-to-string haskell/server-threads)))))
 
 ;; Haskell does not have a built-in Tree-sitter mode in this Emacs build;
 ;; `haskell-mode' provides the editing mode and project integration.
@@ -52,7 +73,7 @@ handshake inside a mode hook freezes every Emacs frame."
 HLS orders in-scope completions before package exports and truncates
 the list to `maxCompletions' (40 by default), which hides the exports
 that carry its `extend import' command."
-  '(:haskell (:maxCompletions 1000)))
+  (list :haskell (list :maxCompletions haskell/max-completions)))
 
 (with-eval-after-load 'eglot
   ;; HLS selects the GHC version and project component from the current
@@ -61,68 +82,14 @@ that carry its `extend import' command."
   ;; so the server choice is deterministic.
   (dolist (mode '(haskell-mode haskell-literate-mode))
     (setf (alist-get mode eglot-server-programs)
-          '("haskell-language-server-wrapper" "--lsp" "-j" "2")))
+          #'haskell/server-command))
   (lsp/register-workspace-configuration
    '(haskell-mode haskell-literate-mode)
    #'haskell/eglot-workspace-configuration))
 
-;;; completion
-
-(defun haskell--completion-rank (candidate)
-  "Return the proximity rank of completion CANDIDATE.
-Lower ranks come first: bindings local to the current declaration, then
-other definitions, and finally names imported from other modules.  HLS
-provides the needed metadata in the completion item: imported names have
-a \"from MODULE\" detail, while local bindings have a type detail but no
-`:itemFile' in their resolve data."
-  (let* ((item (get-text-property 0 'eglot--lsp-item candidate))
-         (detail (and item (plist-get item :detail)))
-         (file (and item
-                    (plist-get (plist-get (plist-get item :data)
-                                          :resolveValue)
-                               :itemFile))))
-    (cond
-     ((and (stringp detail) (string-prefix-p "from " detail)) 2)
-     ((and (null file)
-           (stringp detail)
-           (string-prefix-p ":: " detail))
-      0)
-     (t 1))))
-
-(defun haskell--completion-sort-text (candidate)
-  "Return HLS's sort key for CANDIDATE, or an empty string."
-  (or (plist-get (get-text-property 0 'eglot--lsp-item candidate) :sortText)
-      ""))
-
-(defun haskell--sort-completions (candidates)
-  "Sort CANDIDATES with local bindings first, then imported names last.
-Falls back to Corfu's default length/alpha sort when no LSP candidates
-are present, for example when Cape supplies file names or buffer words."
-  (if (seq-some (lambda (candidate)
-                  (get-text-property 0 'eglot--lsp-item candidate))
-                candidates)
-      (sort (copy-sequence candidates)
-            (lambda (a b)
-              (let ((ra (haskell--completion-rank a))
-                    (rb (haskell--completion-rank b)))
-                (or (< ra rb)
-                    (and (= ra rb)
-                         (let ((sa (haskell--completion-sort-text a))
-                               (sb (haskell--completion-sort-text b)))
-                           (or (string-lessp sa sb)
-                               (and (string= sa sb)
-                                    (string-lessp (substring-no-properties a)
-                                                  (substring-no-properties b))))))))))
-    (if (fboundp 'corfu-sort-length-alpha)
-        (corfu-sort-length-alpha candidates)
-      candidates)))
-
-(defun haskell/setup-completion ()
-  "Order Haskell completion candidates by proximity.
-Local bindings come first, then other definitions, then imported names."
-  (require 'corfu nil t)
-  (when (boundp 'corfu-sort-override-function)
-    (setq-local corfu-sort-override-function #'haskell--sort-completions)))
+;; Corfu already honors Eglot's display-sort-function and HLS's sortText.
+;; Do not parse human-readable labels or server-private resolve payloads.
+(remove-hook 'haskell-mode-hook 'haskell/setup-completion)
 
 (defun haskell/configure-apheleia ()
   "Use Ormolu for Haskell buffers when Eglot is not formatting them."
@@ -144,7 +111,6 @@ Local bindings come first, then other definitions, then imported names."
          ("\\.lhs\\'" . haskell-literate-mode)
          ("\\.hsc\\'" . haskell-mode))
   :hook ((haskell-mode . haskell/eglot-ensure)
-         (haskell-mode . haskell/setup-completion)
          (haskell-mode . format/mode-maybe)))
 
 ;;; haskell.el ends here
