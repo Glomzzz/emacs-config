@@ -364,11 +364,24 @@
            (destination (expand-file-name "destination/" root))
            (task-dashboard--tasks nil)
            (dirvish-yank-log-buffers nil)
-           process)
+           (override-enabled dirvish-override-dired-mode)
+           (callback-count 0)
+           callback-succeeded dired-buffer process
+           (observer (lambda (original &rest arguments)
+                       (cl-incf callback-count)
+                       (prog1 (apply original arguments)
+                         (setq callback-succeeded t)))))
       (make-directory destination)
       (unwind-protect
           (cl-letf (((symbol-function 'task-dashboard--notify) #'ignore))
-            (with-temp-buffer
+            ;; A real, file-backed Dired listing lets the package's sentinel
+            ;; revert its source buffer.  No temporary non-file buffer and no
+            ;; stubbing of the package's callback/refresh behavior.
+            (dirvish-override-dired-mode -1)
+            (setq dired-buffer (dired-noselect root))
+            (when override-enabled (dirvish-override-dired-mode 1))
+            (advice-add 'dirvish-yank-proc-sentinel :around observer)
+            (with-current-buffer dired-buffer
               (dirvish-yank-default-handler 'dired-copy-file (list source) destination)
               (should (= (length task-dashboard--tasks) 1))
               (let* ((task (car task-dashboard--tasks))
@@ -379,8 +392,17 @@
                 (should-not (process-live-p process))
                 (should (= (process-exit-status process) 0))
                 (should (eq (task-dashboard-task-status task) 'completed))
-                (should (file-exists-p (expand-file-name "source.txt" destination))))))
+                (should (= callback-count 1))
+                (should callback-succeeded)
+                (should (equal (with-temp-buffer
+                                 (insert-file-contents
+                                  (expand-file-name "source.txt" destination))
+                                 (buffer-string))
+                               "temporary test content")))))
         (when (and process (process-live-p process)) (delete-process process))
+        (advice-remove 'dirvish-yank-proc-sentinel observer)
+        (dirvish-override-dired-mode (if override-enabled 1 -1))
+        (when (buffer-live-p dired-buffer) (kill-buffer dired-buffer))
         (dolist (task task-dashboard--tasks)
           (when-let* ((buffer (task-dashboard-task-output-buffer task))
                       ((buffer-live-p buffer)))
