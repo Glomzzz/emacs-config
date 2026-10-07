@@ -40,6 +40,14 @@ queries so this predicate is safe to call from timer and shutdown hooks."
       ;; for smoother redisplay when many fonts are configured.
       inhibit-compacting-font-caches t)
 
+;; Flymake refuses to start backends such as `eglot-flymake-backend' in files
+;; that are not trusted.  Trust the user's own code and scratch space so LSP
+;; diagnostics are shown; files elsewhere still need an explicit entry.
+(setq trusted-content '("~/" "/tmp/"))
+;; Summarize the most severe diagnostic at the end of its line, in addition
+;; to the fringe indicators and `M-g f' (`consult-flymake').
+(setq flymake-show-diagnostics-at-end-of-line 'short)
+
 (setq create-lockfiles nil)
 (setq make-backup-files t
       backup-by-copying t
