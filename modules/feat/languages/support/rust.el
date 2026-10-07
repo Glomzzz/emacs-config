@@ -29,7 +29,8 @@
   (require 'smartparens-rust)
   ;; Preserve upstream lifetime/character rules, but make angle-bracket
   ;; insertion explicit so compact comparisons such as `a<b` stay literal.
-  (sp-local-pair '(rust-mode rust-ts-mode) "<" ">" :actions '(wrap)))
+  (unless pairs/automatic-angle-pairing
+    (sp-local-pair '(rust-mode rust-ts-mode) "<" ">" :actions '(wrap))))
 
 (defun rust/configure-apheleia ()
   "Use rustfmt for Rust buffers when Eglot is not formatting them."

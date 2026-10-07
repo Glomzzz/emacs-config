@@ -187,5 +187,16 @@
                    '("/bin/helper" "--profile" "phone"))))
   (should-error (mounts/resolve-command nil) :type 'user-error))
 
+(ert-deftest config-test/pair-activation-is-configurable ()
+  (with-temp-buffer
+    (text-mode)
+    (let ((pairs/enabled-modes '(text-mode)))
+      (pairs/enable)
+      (should smartparens-mode)))
+  (with-temp-buffer
+    (let ((pairs/enabled-modes nil))
+      (emacs-lisp-mode)
+      (should-not smartparens-mode))))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

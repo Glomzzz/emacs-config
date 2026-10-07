@@ -125,9 +125,10 @@ Nil grants no extra permissions; --allow-all requires explicit opt-in."
   (require 'smartparens-javascript)
   ;; `<` and `>` are also comparisons, shifts, and arrows.  Do not guess:
   ;; keep angle brackets for explicit wrapping via `C-c p <` only.
-  (sp-local-pair '(js-mode js-ts-mode typescript-mode
-                   typescript-ts-mode tsx-ts-mode)
-                 "<" ">" :actions '(wrap)))
+  (unless pairs/automatic-angle-pairing
+    (sp-local-pair '(js-mode js-ts-mode typescript-mode
+                     typescript-ts-mode tsx-ts-mode)
+                   "<" ">" :actions '(wrap))))
 
 (defconst javascript--project-markers
   '("deno.json" "deno.jsonc" "tsconfig.json" "package.json")

@@ -17,6 +17,23 @@
 (declare-function sp-pair "smartparens" (open close &rest arguments))
 (declare-function sp-get-pair "smartparens" (id &optional prop))
 
+(defgroup pairs nil
+  "Optional policies on top of Smartparens' language rules."
+  :group 'editing)
+
+(defcustom pairs/enabled-modes '(prog-mode conf-mode markdown-mode org-mode)
+  "Parent/major modes that opt into automatic Smartparens activation."
+  :type '(repeat symbol) :group 'pairs)
+(defcustom pairs/automatic-angle-pairing nil
+  "Use upstream automatic angle-bracket rules in JavaScript/TypeScript/Rust.
+Nil keeps ambiguous operators literal and allows explicit wrapping only.
+This policy is applied when language rules load; restart after changing it."
+  :type 'boolean :group 'pairs)
+(defcustom pairs/pair-escaped-quotes nil
+  "Automatically insert a second escaped quote using upstream rules.
+Nil leaves manual escapes literal.  Restart after changing this policy."
+  :type 'boolean :group 'pairs)
+
 (defun pairs/wrap-angle ()
   "Wrap the region or next expression in angle brackets when supported."
   (interactive "*")
@@ -28,19 +45,17 @@
   "Enable non-strict Smartparens in ordinary structured editing buffers.
 Do not install pairing hooks in minibuffers, special/read-only buffers,
 or very large buffers.  Plain prose and process buffers do not opt in."
-  (unless (or (minibufferp)
-              buffer-read-only
-              (derived-mode-p 'special-mode 'comint-mode)
-              (not (buffers/small-p)))
+  (when (and (apply #'derived-mode-p pairs/enabled-modes)
+             (not (minibufferp))
+             (not buffer-read-only)
+             (not (derived-mode-p 'special-mode 'comint-mode))
+             (buffers/small-p))
     (smartparens-mode 1)))
 
 (use-package smartparens
   :ensure nil
   :commands (smartparens-mode sp-cheat-sheet)
-  :hook ((prog-mode . pairs/enable)
-         (conf-mode . pairs/enable)
-         (markdown-mode . pairs/enable)
-         (org-mode . pairs/enable))
+  :hook (after-change-major-mode . pairs/enable)
   :custom
   ;; Skip at the actual end of an expression, never jump across its contents.
   (sp-autoskip-closing-pair 'always-end)
@@ -68,6 +83,7 @@ or very large buffers.  Plain prose and process buffers do not opt in."
   ;; An escaped quote inside a string is content, not a nested string.  The
   ;; upstream escaped-quote pair otherwise inserts a second escape as well.
   ;; Retain explicit wrapping/navigation, but leave manual escapes literal.
-  (sp-pair "\\\"" nil :actions '(wrap navigate)))
+  (unless pairs/pair-escaped-quotes
+    (sp-pair "\\\"" nil :actions '(wrap navigate))))
 
 ;;; pairs.el ends here

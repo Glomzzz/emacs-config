@@ -236,6 +236,10 @@ JavaScript/TypeScript and Rust do not automatically pair or skip `<`/`>`:
 these characters are ambiguous comparisons, shifts, arrows, and type syntax.
 Their language modules keep angle brackets for explicit wrapping only.
 This deliberate policy avoids trying to infer intent with fragile regexes.
+`pairs/automatic-angle-pairing` and `pairs/pair-escaped-quotes` can opt back
+into upstream behavior; restart after changing these load-time policies.
+`pairs/enabled-modes` controls automatic activation without editing hooks.
+Use Smartparens' own options for skipping, deletion, and wrapping preferences.
 
 Smartparens commands live under a buffer-local `C-c p` prefix:
 
