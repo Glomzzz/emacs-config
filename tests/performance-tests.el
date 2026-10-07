@@ -1,7 +1,9 @@
-;;; performance-tests.el --- Resource guard regressions -*- lexical-binding: t; -*-
+;;; performance-tests.el --- Resource guards and benchmark regressions -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'cl-lib)
+(load (expand-file-name "benchmark-lib.el" (file-name-directory load-file-name))
+      nil 'nomessage)
 
 (ert-deftest config-test/line-numbers-respect-size-limit ()
   (with-temp-buffer
@@ -97,5 +99,25 @@
           (should corfu-mode)
           (should corfu-auto))
       (kill-buffer buffer))))
+
+(ert-deftest config-test/benchmark-summary-preserves-samples ()
+  (let* ((samples '(3.0 1.0 4.0 2.0))
+         (summary (benchmark/summarize samples)))
+    (should (= (plist-get summary :count) 4))
+    (should (= (plist-get summary :median) 2.5))
+    (should (= (plist-get summary :p95) 4.0))
+    (should (= (plist-get summary :max) 4.0))
+    (should (equal samples '(3.0 1.0 4.0 2.0))))
+  (should (= (benchmark/percentile (number-sequence 1 100) 0.95) 95))
+  (should-error (benchmark/summarize nil)))
+
+(ert-deftest config-test/benchmark-detects-workload-drift ()
+  (let ((calls 0))
+    (should-error
+     (let ((standard-output (generate-new-buffer " *benchmark output*")))
+       (unwind-protect
+           (benchmark/measure "drift" (lambda () (cl-incf calls)) 2)
+         (kill-buffer standard-output)))))
+  (should-error (benchmark/measure "invalid" #'ignore 0)))
 
 ;;; performance-tests.el ends here

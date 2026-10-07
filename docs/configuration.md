@@ -611,6 +611,48 @@ validation alone does not update a running session.
 `C-c i` opens `consult-info`, and `M-g i` opens `consult-imenu`.  Do not
 install a longer binding below `C-c i`: it is a command, not a prefix.
 
+### Opt-in Performance Measurements
+
+Run the isolated synchronous workload harness from the configuration root:
+
+```sh
+emacs --batch -Q -l tests/benchmark.el
+EMACS_BENCHMARK_ITERATIONS=100 emacs --batch -Q -l tests/benchmark.el
+```
+
+It reuses installed packages and loads the config with temporary state, without
+installing packages, starting language servers, or touching the running daemon.
+Nothing in the normal configuration loads this harness.  It measures:
+
+- Orderless filtering of 10,000 synthetic candidate names;
+- fresh Cape Dabbrev tables with the configured scan scope and a same-mode
+  comparison using identical generated buffers;
+- repeated local file visits with normal mode hooks, below and above the shared
+  buffer-size limit.  The result includes whether line numbers were enabled.
+
+Each workload has three untimed warmups and one pre-series garbage collection.
+Timed samples include natural GC; the runner reports median, nearest-rank p95,
+maximum, GC count/time, and a stable result count or size.  It also prints Emacs
+build features, relevant package versions, and runtime settings.  The default is
+30 samples; set `EMACS_BENCHMARK_ITERATIONS` between 1 and 1000.  Small runs are
+smoke tests, not trustworthy tail estimates.  There are no machine-dependent
+pass/fail timing thresholds or claims of GUI/LSP/input-to-screen latency.
+
+Compare several alternating runs of identical fixtures on the same machine,
+Emacs build, and package versions; record the Git revision and working-tree
+changes beside each result.  Do not infer an interactive speedup from one batch
+run.  For actual typing/scrolling pauses, start the built-in profiler with
+`M-x profiler-start` (CPU or CPU+memory), reproduce a short workload, then use
+`M-x profiler-stop` and `M-x profiler-report`.  Sampling shows attribution, not
+precise end-to-end latency, and profiling itself adds overhead.
+
+This workflow follows the useful lesson of
+[emacs-perf's latency design](https://git.ksqsf.moe/ksqsf/emacs-perf/commit/0b180d8e1d46bdc81e9bb9c960d8bcbae93542cc):
+optimize repeatable tail pauses and validate results, not just average CPU.
+Its compiled-regexp, loader-cache, and incremental-GC experiments require a
+patched Emacs binary and are not emulated by this configuration.  Keep runtime
+GC limits bounded; raising them indefinitely is not incremental collection.
+
 ## 4. Function Naming
 
 Custom functions use the feature alias as their namespace.  Do not introduce
