@@ -77,19 +77,19 @@ file below it and shadow more specific projects."
                        javascript--project-markers))))
     (car (sort roots (lambda (a b) (> (length a) (length b)))))))
 
-(defun javascript/project-try (directory)
-  "Return a project object for JavaScript projects without VCS metadata."
-  (when-let* ((root (javascript--marker-root directory)))
-    ;; `transient' is a project type understood by Emacs' project API.
-    (cons 'transient root)))
-
-(add-hook 'project-find-functions #'javascript/project-try)
+;; Share marker selection with Haskell and Git instead of competing global
+;; finders.  The VC-aware backend also handles manifest-only projects.
+(remove-hook 'project-find-functions 'javascript/project-try)
+(dolist (marker javascript--project-markers)
+  (add-to-list 'project-vc-extra-root-markers marker t))
 
 (defun javascript/project-root ()
-  "Return the project root for the current JavaScript buffer."
-  (or (when-let* ((project (project-current)))
+  "Return the nearest JavaScript manifest root, then the current project.
+Runtime and compiler commands use the manifest even in mixed-language
+repositories whose general project root belongs to another toolchain."
+  (or (javascript--marker-root default-directory)
+      (when-let* ((project (project-current)))
         (project-root project))
-      (javascript--marker-root default-directory)
       default-directory))
 
 (defun javascript--typescript-p ()

@@ -272,9 +272,12 @@ mode-scoped configurations (`gdb` for C/C++, `lldb-dap` for Rust) cover
 debugging without a language-specific registration.
 
 `haskell.el` owns `.hs`, `.lhs`, and `.hsc` buffers through `haskell-mode`.
-Haskell cradles usually have no VCS metadata, so the module adds a
-transient project finder for `hie.yaml`, `stack.yaml`, `cabal.project`,
-`package.yaml`, and package `*.cabal` files.  It replaces Eglot's bundled
+It registers `hie.yaml`, `stack.yaml`, `cabal.project`, `package.yaml`, and
+package `*.cabal` files in `project-vc-extra-root-markers`.  Emacs' built-in
+project finder chooses the nearest root across Haskell and JavaScript
+markers, even without VCS metadata; roots inside Git repositories retain
+Git-aware file listing and ignore rules.  Neither language installs a
+competing global project finder.  It replaces Eglot's bundled
 `static-ls` candidate with `haskell-language-server-wrapper`, launched with
 `-j 2` so indexing cannot saturate every core, and the buffer sets
 `eglot-sync-connect` to nil so Emacs never blocks on HLS's slow cold start.
@@ -302,10 +305,12 @@ registered with treesit-auto because Emacs' `markdown-ts-mode` derives from
 `javascript`, `typescript`, and `tsx` Tree-sitter grammars, starts
 `typescript-language-server` for the fallback and Tree-sitter modes, and uses
 Prettier through Apheleia when Eglot is not managing the buffer; Prettier
-infers the parser from each buffer's filename, including JSX and TSX.  The
-project finder picks the nearest `package.json`, `deno.json`, or
-`tsconfig.json`; lockfiles are not markers on their own, so a stray
-`bun.lock` cannot claim unrelated trees.  `M-x
+infers the parser from each buffer's filename, including JSX and TSX.  It
+registers `package.json`, `deno.json`, `deno.jsonc`, and `tsconfig.json`
+with the same VC-aware project finder as Haskell.  Lockfiles are not markers
+on their own, so a stray `bun.lock` cannot claim unrelated trees.  Runtime
+and compiler commands explicitly use the nearest JavaScript manifest,
+even when another language's marker is closer.  `M-x
 javascript/run` chooses Deno for Deno projects, Bun for Bun or TypeScript
 projects when available, and Node otherwise.  `M-x javascript/compile` runs
 `tsc` for TypeScript or `node --check` for JavaScript; `M-x javascript/check`

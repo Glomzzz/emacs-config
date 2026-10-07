@@ -8,7 +8,6 @@
 (defvar eglot-sync-connect)
 (defvar apheleia-formatters)
 (defvar apheleia-mode-alist)
-(defvar project-find-functions)
 (defvar format/apheleia-owns)
 (defvar corfu-sort-override-function)
 (declare-function corfu-sort-length-alpha "corfu" (list))
@@ -30,34 +29,17 @@
          (literate-haskell-mode . haskell/setup-completion)
          (literate-haskell-mode . format/mode-maybe)))
 
-(defconst haskell--cradle-files
+(defconst haskell--project-markers
   '("hie.yaml" "hie.yml" "stack.yaml" "cabal.project" "cabal.project.local"
-    "package.yaml")
-  "Cradle files that mark the root of a Haskell project.")
+    "package.yaml" "*.cabal")
+  "Cradle files and patterns that mark the root of a Haskell project.")
 
-(defun haskell--cradle-p (directory)
-  "Return non-nil when DIRECTORY contains a Haskell project cradle."
-  (or (seq-some (lambda (marker)
-                  (file-exists-p (expand-file-name marker directory)))
-                haskell--cradle-files)
-      ;; Cabal files are named after the package, so match any *.cabal.
-      (directory-files directory nil "\\`[^.]+\\.cabal\\'")))
-
-(defun haskell--marker-root (directory)
-  "Return the nearest Haskell project root at or above DIRECTORY."
-  (locate-dominating-file directory #'haskell--cradle-p))
-
-(defun haskell/project-try (directory)
-  "Return a project object for Haskell projects without VCS metadata.
-Haskell cradles usually have no `.git' directory, so `project-try-vc'
-cannot find them.  Without this finder Eglot would either fall back to a
-transient project at `default-directory' or pick an unrelated parent
-project such as the home directory."
-  (when-let* ((root (haskell--marker-root directory)))
-    ;; `transient' is a project type understood by Emacs' project API.
-    (cons 'transient root)))
-
-(add-hook 'project-find-functions #'haskell/project-try)
+;; The built-in finder chooses the nearest marker across languages and keeps
+;; Git file listing/ignores when a cradle is nested inside a repository.
+;; It also recognizes these roots without VCS metadata.
+(remove-hook 'project-find-functions 'haskell/project-try)
+(dolist (marker haskell--project-markers)
+  (add-to-list 'project-vc-extra-root-markers marker t))
 
 (defun haskell/setup-formatting ()
   "Let Apheleia/Ormolu own save-time formatting for Haskell buffers.
