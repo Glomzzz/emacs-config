@@ -1,6 +1,7 @@
 ;;; funcs.el --- Custom functions  -*- lexical-binding: t; -*-
 
 (declare-function eglot-format "eglot" (&optional beg end))
+(declare-function format/eglot-owns-p "format" (&optional region))
 
 (defun funcs/duplicate-line ()
   "Duplicate the current line and preserve the cursor column."
@@ -36,12 +37,19 @@
   (forward-line -1))
 
 (defun funcs/format-buffer ()
-  "Format the current buffer with Eglot or Apheleia."
+  "Format with the language's preferred and supported formatter.
+Eglot formats an active region when supported, otherwise the whole
+buffer.  Use Apheleia when preferred or Eglot cannot format the buffer."
   (interactive)
   (cond
-   ((and (fboundp 'eglot-managed-p)
-         (eglot-managed-p))
+   ((and (fboundp 'format/eglot-owns-p)
+         (format/eglot-owns-p (region-active-p)))
     (call-interactively #'eglot-format))
+   ((and (fboundp 'format/eglot-owns-p)
+         (format/eglot-owns-p))
+    ;; A server may support whole-buffer formatting but not range formatting.
+    ;; Do not call Apheleia here: it correctly skips Eglot-owned buffers.
+    (eglot-format))
    ((or (fboundp 'apheleia-format-buffer)
         (require 'apheleia nil t))
     (call-interactively #'apheleia-format-buffer))

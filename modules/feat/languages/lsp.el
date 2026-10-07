@@ -3,7 +3,7 @@
 (declare-function eglot-format "eglot" (&optional beg end))
 (declare-function eglot-execute "eglot" (server action))
 (declare-function eglot--major-modes "eglot" (server))
-(defvar format/apheleia-owns)
+(declare-function format/eglot-owns-p "format" (&optional region))
 (defvar eglot-workspace-configuration)
 
 ;;; workspace configuration
@@ -55,12 +55,10 @@ itself."
 
 ;;; eglot
 (defun lsp/format-on-save ()
-  "Enable Eglot formatting only in buffers managed by Eglot.
-Buffers with `format/apheleia-owns' set keep Apheleia enabled instead,
-because a synchronous Eglot formatting request can block saving."
-  (if (and (not format/apheleia-owns)
-           (fboundp 'eglot-managed-p)
-           (eglot-managed-p))
+  "Enable save formatting with the language's supported formatter.
+Use Apheleia when preferred by the language or when Eglot does not
+advertise whole-buffer formatting."
+  (if (format/eglot-owns-p)
       (progn
         (add-hook 'before-save-hook #'eglot-format nil t)
         (when (bound-and-true-p apheleia-mode)

@@ -343,15 +343,22 @@ alone does not create a major-mode remap.
 ### Eglot and formatting ownership
 
 The base LSP module does not enable Eglot globally for every programming
-buffer.  Each language opts in with an `eglot-ensure` hook.  When Eglot
-manages a buffer, `lsp/format-on-save` enables Eglot formatting and disables
-Apheleia there.  In unmanaged buffers, `format/mode-maybe` keeps Apheleia
+buffer.  Each language opts in with an `eglot-ensure` hook.
+`format/eglot-owns-p` selects Eglot only when it manages the buffer,
+advertises the needed formatting capability, and the language does not
+prefer Apheleia.  `lsp/format-on-save` uses this predicate for whole-buffer
+formatting and disables Apheleia only while Eglot owns that operation.
+Unmanaged buffers and servers without formatting support keep Apheleia
 available.  This prevents two formatters from racing on save.
 
 A language can keep Apheleia in charge by setting `format/apheleia-owns`
-buffer-locally.  `format/inhibit-eglot` and `lsp/format-on-save` then skip
-`eglot-format` and leave Apheleia enabled.  `haskell.el` uses this because
-HLS formatting is synchronous and can wait for a cradle load.
+buffer-locally.  Both save-time formatting and `C-c f`
+(`funcs/format-buffer`) honor that preference.  `haskell.el` uses this
+because HLS formatting is synchronous and can wait for a cradle load.
+Manual Eglot formatting requires range-formatting support when a region is
+active; if only whole-buffer formatting is supported, it formats the whole
+buffer instead.  Apheleia remains the fallback when Eglot cannot format the
+buffer at all.
 
 Flymake only starts backends such as `eglot-flymake-backend` in buffers whose
 files are listed in `trusted-content`.  The default trust list is `~/git/`

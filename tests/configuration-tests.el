@@ -36,6 +36,116 @@
         (should (plist-member (lsp/workspace-configuration 'server)
                               (cdr entry)))))))
 
+(ert-deftest config-test/manual-format-respects-apheleia-owner ()
+  (with-temp-buffer
+    (setq-local format/apheleia-owns t)
+    (let (formatter)
+      (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
+                ((symbol-function 'eglot-format)
+                 (lambda (&rest _) (interactive) (setq formatter 'eglot)))
+                ((symbol-function 'apheleia-format-buffer)
+                 (lambda (&rest _) (interactive) (setq formatter 'apheleia))))
+        (funcs/format-buffer)
+        (should (eq formatter 'apheleia))))))
+
+(ert-deftest config-test/manual-format-falls-back-without-capability ()
+  (with-temp-buffer
+    (let (formatter)
+      (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
+                ((symbol-function 'eglot-server-capable) (lambda (&rest _) nil))
+                ((symbol-function 'apheleia-format-buffer)
+                 (lambda (&rest _) (interactive) (setq formatter 'apheleia))))
+        (funcs/format-buffer)
+        (should (eq formatter 'apheleia))))))
+
+(ert-deftest config-test/manual-format-selects-supported-eglot ()
+  (with-temp-buffer
+    (let (formatter)
+      (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
+                ((symbol-function 'eglot-server-capable)
+                 (lambda (cap) (eq cap :documentFormattingProvider)))
+                ((symbol-function 'eglot-format)
+                 (lambda (&rest _) (interactive) (setq formatter 'eglot))))
+        (funcs/format-buffer)
+        (should (eq formatter 'eglot))))))
+
+(ert-deftest config-test/manual-range-falls-back-to-whole-buffer-eglot ()
+  (with-temp-buffer
+    (insert "example")
+    (set-mark (point-min))
+    (setq mark-active t)
+    (let ((transient-mark-mode t)
+          (called 'not-called))
+      (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
+                ((symbol-function 'eglot-server-capable)
+                 (lambda (cap) (eq cap :documentFormattingProvider)))
+                ((symbol-function 'eglot-format)
+                 (lambda (&rest bounds) (interactive) (setq called bounds))))
+        (should (region-active-p))
+        (funcs/format-buffer)
+        (should (null called))))))
+
+(ert-deftest config-test/range-formatting-has-its-own-capability ()
+  (with-temp-buffer
+    (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
+              ((symbol-function 'eglot-server-capable)
+               (lambda (cap) (eq cap :documentRangeFormattingProvider))))
+      (should (format/eglot-owns-p t))
+      (should-not (format/eglot-owns-p)))))
+
+(ert-deftest config-test/ignored-formatting-capability-falls-back ()
+  (with-temp-buffer
+    (let ((eglot-ignored-server-capabilities '(:documentFormattingProvider)))
+      (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
+                ((symbol-function 'eglot--current-server-or-lose)
+                 (lambda () 'server))
+                ((symbol-function 'eglot--capabilities)
+                 (lambda (_server) '(:documentFormattingProvider t))))
+        (should-not (format/eglot-owns-p))))))
+
+(ert-deftest config-test/save-formatting-honors-apheleia-owner ()
+  (with-temp-buffer
+    (setq-local format/apheleia-owns t
+                before-save-hook (list #'eglot-format))
+    (let (fallback)
+      (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
+                ((symbol-function 'format/mode-maybe)
+                 (lambda () (setq fallback t))))
+        (lsp/format-on-save)
+        (should fallback)
+        (should-not (memq #'eglot-format before-save-hook))))))
+
+(ert-deftest config-test/save-formatting-checks-server-capability ()
+  (with-temp-buffer
+    (setq-local before-save-hook nil)
+    (let (fallback)
+      (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
+                ((symbol-function 'eglot-server-capable) (lambda (&rest _) nil))
+                ((symbol-function 'format/mode-maybe)
+                 (lambda () (setq fallback t))))
+        (lsp/format-on-save)
+        (should fallback)
+        (should-not (memq #'eglot-format before-save-hook))))))
+
+(ert-deftest config-test/save-formatting-enables-only-one-owner ()
+  (with-temp-buffer
+    (setq-local before-save-hook nil)
+    (apheleia-mode 1)
+    (cl-letf (((symbol-function 'eglot-managed-p) (lambda () t))
+              ((symbol-function 'eglot-server-capable) (lambda (&rest _) t)))
+      (lsp/format-on-save)
+      (should (memq #'eglot-format before-save-hook))
+      (should-not apheleia-mode)
+      (should-not (memq #'apheleia-format-after-save after-save-hook)))))
+
+(ert-deftest config-test/disconnecting-eglot-restores-apheleia ()
+  (with-temp-buffer
+    (setq-local before-save-hook (list #'eglot-format))
+    (cl-letf (((symbol-function 'eglot-managed-p) (lambda () nil)))
+      (lsp/format-on-save)
+      (should-not (memq #'eglot-format before-save-hook))
+      (should apheleia-mode))))
+
 (ert-deftest config-test/project-finder-preserves-git-and-ignores ()
   (config-test/with-directory
     (should (zerop (call-process "git" nil nil nil "init" "--quiet" root)))
