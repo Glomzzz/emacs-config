@@ -63,7 +63,7 @@ let
 in {
   environment.systemPackages = [ emacs pkgs.git pkgs.gcc ];
   fonts.packages = with pkgs; [
-    nerd-fonts.cascadia-mono noto-fonts lxgw-wenkai
+    nerd-fonts.caskaydia-mono noto-fonts lxgw-wenkai
     noto-fonts-color-emoji
   ];
   # Fonts and language tools can instead be managed in Home Manager.
