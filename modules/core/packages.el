@@ -32,6 +32,10 @@ Set this before loading the configuration for a one-shot bootstrap pass.")
       use-package-always-ensure nil
       use-package-expand-minimally t)
 
+;; Pins must precede `package-initialize', which reads cached archive metadata.
+;; NonGNU's old Smartparens build lacks its dependency and Tree-sitter rules.
+(add-to-list 'package-pinned-packages '(smartparens . "melpa"))
+
 (make-directory package-user-dir t)
 (package-initialize)
 (require 'use-package)

@@ -146,14 +146,6 @@ queries so this predicate is safe to call from timer and shutdown hooks."
       auto-revert-interval 5
       auto-revert-verbose nil)
 (global-auto-revert-mode t)
-;; Auto pair
-(electric-pair-mode t)
-
-
-(setq electric-pair-open-newline-between-pairs t)
-(setq electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit)
-(setq electric-pair-delete-adjacent-pairs t)
-(setq electric-pair-skip-self t)
 
 ;; uniquify buffer
 (setq uniquify-buffer-name-style 'forward)

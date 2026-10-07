@@ -2,6 +2,11 @@
 
 (require 'packages)
 
+(declare-function sp-local-pair "smartparens" (modes open close &rest arguments))
+(defvar eglot-server-programs)
+(defvar apheleia-formatters)
+(defvar apheleia-mode-alist)
+
 ;; rust-ts-mode is built into Emacs; rust-mode is the non-Tree-sitter
 ;; fallback and comes from MELPA.
 (treesit/register-language 'rust)
@@ -19,6 +24,12 @@
   ;; Keep the server choice deterministic: rust-analyzer for both modes.
   (add-to-list 'eglot-server-programs '(rust-mode . ("rust-analyzer")))
   (add-to-list 'eglot-server-programs '(rust-ts-mode . ("rust-analyzer"))))
+
+(with-eval-after-load 'smartparens-config
+  (require 'smartparens-rust)
+  ;; Preserve upstream lifetime/character rules, but make angle-bracket
+  ;; insertion explicit so compact comparisons such as `a<b` stay literal.
+  (sp-local-pair '(rust-mode rust-ts-mode) "<" ">" :actions '(wrap)))
 
 (defun rust/configure-apheleia ()
   "Use rustfmt for Rust buffers when Eglot is not formatting them."

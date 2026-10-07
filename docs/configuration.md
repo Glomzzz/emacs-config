@@ -161,6 +161,50 @@ writing state into the repository.  The main paths currently include:
 before packages load, so native compilation does not fill the repository or
 the default Emacs cache with configuration-specific artifacts.
 
+### Pairing and Structural Editing
+
+`modules/feat/editing/pairs.el` uses non-strict Smartparens instead of
+`electric-pair-mode`.  Only one engine owns pairing.  Automatic pairing is
+opted into programming/config modes and Markdown/Org, not ordinary prose,
+minibuffers, terminals, or special/read-only buffers.  Buffers of 2 MiB or
+more skip activation; So Long also disables Smartparens on very long lines.
+
+The upstream `smartparens-config` supplies language rules, including Lisp
+quote prefixes, Haskell primes, Rust lifetimes, and Markdown/Org markup.
+Normal deletion, kill/yank, and temporarily unbalanced code are allowed:
+strict mode is not enabled and no bulk replacement of Emacs keybindings is
+installed.  Typing an opener wraps an active selection rather than replacing
+it; Backspace inside an empty pair removes both delimiters.  Matching closers
+are skipped only at the end of an expression, never by jumping over its
+contents.  Manually escaped quotes inside strings remain literal rather than
+inserting a second escaped quote.
+
+JavaScript/TypeScript and Rust do not automatically pair or skip `<`/`>`:
+these characters are ambiguous comparisons, shifts, arrows, and type syntax.
+Their language modules keep angle brackets for explicit wrapping only.
+This deliberate policy avoids trying to infer intent with fragile regexes.
+
+Smartparens commands live under a buffer-local `C-c p` prefix:
+
+| Key | Action |
+| --- | --- |
+| `C-c p (` / `[` / `{` | Wrap the selection or next expression |
+| `C-c p <` | Explicit angle wrapping in supported modes |
+| `C-c p s` / `S` | Slurp the next/previous expression into the pair |
+| `C-c p b` / `B` | Barf the last/first expression out of the pair |
+| `C-c p u` | Remove the enclosing delimiters (splice) |
+| `C-c p r` | Raise an expression out of its parent |
+| `C-c p n` / `p` | Move forward/backward by expression |
+| `C-c p q` | Insert the next character literally (also `C-q`) |
+| `C-c p t` | Disable Smartparens in this buffer |
+| `C-c p ?` | Open the Smartparens cheat sheet |
+
+After disabling the mode, use `M-x smartparens-mode` to enable it again.
+Smartparens is declared through the normal package workflow and pinned to
+MELPA: the old NonGNU build lacks its Dash dependency and current Tree-sitter
+integration.  Dash is installed as a dependency, not configured separately.
+Run `M-x packages/bootstrap` before using the integration on a new machine.
+
 ## 2. Adding Language Support
 
 The four files directly under `modules/feat/languages/` are shared APIs:
@@ -437,8 +481,11 @@ The runner loads the complete configuration, reuses installed packages, and
 redirects persistent state to a temporary directory.  It does not install
 packages, start language servers, or change the running daemon.  Tests cover
 trust boundaries, project roots and Git ignore rules, completion commands
-and resolution caching, formatter ownership, navigation bindings, and
-stale-config detection.  Install declared packages before running the suite.
+and resolution caching, formatter ownership, navigation bindings,
+stale-config detection, and interactive pairing/structural editing.
+`tests/pairs-tests.el` types through the real command loop to check wrapping,
+closing-delimiter skipping, deletion, apostrophes, operators, and snippets.
+Install declared packages before running the suite.
 
 `emc/config-stale-p` includes top-level Elisp, `modules/`, and `pkgs/` in
 its modification-time check.  Changes to a local package therefore mark the
