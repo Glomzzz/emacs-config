@@ -33,6 +33,7 @@ modules/
     mod.el                    UI module index
     *.el                      Theme, appearance, and UI integrations
 pkgs/                         Small local packages shipped with the config
+tests/                        Batch configuration regression tests
 docs/                         Configuration documentation
 ```
 
@@ -403,7 +404,22 @@ buffer is displayed; remote buffers remain excluded by the feature hook.
 - Check `*Warnings*`, `*Messages*`, and the user service journal after a clean
   restart.
 
-## 3. Function Naming
+## 3. Validation
+
+Run the regression suite from the configuration root:
+
+```sh
+emacs --batch -Q -l tests/run.el
+```
+
+The runner loads the complete configuration, reuses installed packages, and
+redirects persistent state to a temporary directory.  It does not install
+packages, start language servers, or change the running daemon.  Tests cover
+trust boundaries, project roots and Git ignore rules, completion commands
+and resolution caching, formatter ownership, navigation bindings, and
+stale-config detection.  Install declared packages before running the suite.
+
+## 4. Function Naming
 
 Custom functions use the feature alias as their namespace.  Do not introduce
 new `my/...` or `my-...` names.  The namespace is the owning module, followed
