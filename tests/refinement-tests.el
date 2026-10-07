@@ -135,6 +135,45 @@
         (completion/eldoc-show-at-point)
         (should requested)))))
 
+(ert-deftest config-test/completion-balanced-performance-defaults ()
+  (require 'corfu-auto)
+  (require 'cape)
+  (should corfu-auto)
+  (should (= corfu-auto-prefix 2))
+  (should (= corfu-auto-delay 0.2))
+  (should (equal corfu-popupinfo-delay '(0.5 . 0.2)))
+  (should (eq cape-dabbrev-buffer-function #'current-buffer)))
+
+(ert-deftest config-test/completion-manual-dabbrev-stays-buffer-local ()
+  (require 'cape)
+  (let ((other (generate-new-buffer " *completion scan test*")))
+    (unwind-protect
+        (progn
+          (with-current-buffer other
+            (text-mode)
+            (insert "configperfremote"))
+          (with-temp-buffer
+            (text-mode)
+            (insert "configperflocal\nc")
+            ;; Manual completion still works with a one-character prefix.
+            (let* ((completion-at-point-functions '(cape-dabbrev))
+                   matches
+                   (completion-in-region-function
+                    (lambda (beg end table &optional predicate)
+                      (setq matches
+                            (all-completions (buffer-substring beg end)
+                                             table predicate))
+                      t)))
+              (should (completion-at-point))
+              (should (member "configperflocal" matches))
+              (should-not (member "configperfremote" matches)))
+            ;; The same fixture exposes the cross-buffer candidate when opted in.
+            (let* ((cape-dabbrev-buffer-function #'cape-same-mode-buffers)
+                   (capf (cape-dabbrev)))
+              (should (member "configperfremote"
+                              (all-completions "c" (nth 2 capf)))))))
+      (kill-buffer other))))
+
 (ert-deftest config-test/completion-colors-follow-theme-changes ()
   (require 'corfu-popupinfo)
   (deftheme config-test-completion-palette "Temporary completion palette.")

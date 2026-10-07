@@ -202,6 +202,21 @@ completion and documentation popups follow theme changes automatically;
 theme-provided Corfu faces and Customize settings still take precedence.
 Vertico already inherits standard theme faces.
 
+### Completion Responsiveness
+
+Corfu starts automatic completion after a two-character prefix and a 200 ms
+pause; backends can override the prefix threshold.  Manual
+`completion-at-point` (normally `C-M-i`) remains available for shorter input.
+Candidate documentation waits 500 ms initially and 200 ms after selection
+changes to avoid resolving every briefly selected candidate.  This does not
+change Eldoc's separate idle delay or server-provided completion ordering.
+
+Cape's Dabbrev fallback scans only the current buffer.  Customize
+`cape-dabbrev-buffer-function` to `cape-same-mode-buffers` to restore
+cross-buffer candidates, or set it buffer-locally for a project.  These
+settings trade a slightly later popup and fewer fallback words for less
+background work; they do not add completion caches or private package advice.
+
 ### Documentation at Point
 
 Programming buffers use automatic Eldoc.  Graphical frames enable the public

@@ -18,8 +18,9 @@ Theme-provided Corfu faces and Customize settings take precedence."
   :ensure nil
   :custom
   (corfu-auto t)
-  (corfu-auto-delay 0.15)
-  (corfu-auto-prefix 1)
+  ;; Avoid querying broad one-character candidate sets during short pauses.
+  (corfu-auto-delay 0.2)
+  (corfu-auto-prefix 2)
   (corfu-cycle t)
   (corfu-preselect 'prompt)
   (corfu-quit-no-match 'separator)
@@ -37,7 +38,8 @@ Theme-provided Corfu faces and Customize settings take precedence."
   :ensure nil
   :after corfu
   :custom
-  (corfu-popupinfo-delay '(0.2 . 0.1)))
+  ;; Let selection settle before resolving documentation for a candidate.
+  (corfu-popupinfo-delay '(0.5 . 0.2)))
 
 ;; Cape
 
@@ -104,6 +106,9 @@ Theme-provided Corfu faces and Customize settings take precedence."
 
 (use-package cape
   :ensure nil
+  :custom
+  ;; Fallback word completion should not scan every same-mode buffer.
+  (cape-dabbrev-buffer-function #'current-buffer)
   :config
   (add-hook 'prog-mode-hook #'completion/setup-capf)
   (add-hook 'conf-mode-hook #'completion/setup-capf)
