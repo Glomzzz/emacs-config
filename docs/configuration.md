@@ -223,6 +223,9 @@ its timer hooks are installed.  Manual completion still works.  This check
 runs at activation, not on every keystroke; toggle Corfu off/on to recheck a
 buffer that grew past the limit.  Existing buffer-local opt-outs are preserved.
 
+So Long disables Corfu along with Font Lock and line numbers for minified
+files; `so-long-revert` restores the modes it disabled.
+
 ### Documentation at Point
 
 Programming buffers use automatic Eldoc.  Graphical frames enable the public

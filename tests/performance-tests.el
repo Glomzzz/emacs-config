@@ -72,4 +72,30 @@
       (should corfu-auto)))
   (should (default-value 'corfu-auto)))
 
+(ert-deftest config-test/so-long-disables-expensive-modes-and-reverts ()
+  (require 'so-long)
+  (dolist (mode '(font-lock-mode display-line-numbers-mode corfu-mode))
+    (should (memq mode so-long-minor-modes)))
+  (let ((buffer (generate-new-buffer "so-long-test")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (emacs-lisp-mode)
+          ;; Font Lock skips batch sessions and space-prefixed buffers.
+          (let ((noninteractive nil)) (font-lock-mode 1))
+          (display-line-numbers-mode 1)
+          (corfu-mode 1)
+          (should font-lock-mode)
+          (should corfu-mode)
+          (so-long 'so-long-minor-mode)
+          (should-not font-lock-mode)
+          (should-not display-line-numbers-mode)
+          (should-not corfu-mode)
+          (should-not buffer-read-only)
+          (let ((noninteractive nil)) (so-long-revert))
+          (should font-lock-mode)
+          (should display-line-numbers-mode)
+          (should corfu-mode)
+          (should corfu-auto))
+      (kill-buffer buffer))))
+
 ;;; performance-tests.el ends here

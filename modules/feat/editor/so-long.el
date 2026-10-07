@@ -16,11 +16,10 @@
   (add-to-list 'so-long-variable-overrides
                '(save-place-alist . nil))
 
-  ;; Keep these modes disabled for large files
-  (setq so-long-minor-modes
-        (delq 'font-lock-mode so-long-minor-modes))
-  (setq so-long-minor-modes
-        (delq 'display-line-numbers-mode so-long-minor-modes))
+  ;; This is a disable list: removing modes would keep them running.
+  ;; Corfu's timer hooks must also stop when So Long handles minified files.
+  (dolist (mode '(font-lock-mode display-line-numbers-mode corfu-mode))
+    (add-to-list 'so-long-minor-modes mode))
 
   ;; Don't make huge buffers read-only
   (setf (alist-get 'buffer-read-only
