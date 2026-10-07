@@ -2,9 +2,16 @@
 
 (require 'packages)
 
+(defvar-local format/apheleia-owns nil
+  "When non-nil, Apheleia owns save-time formatting in this buffer.
+Language modules set this when the Eglot server's formatting request is
+synchronous and can block Emacs, for example while the server loads a
+project cradle.")
+
 (defun format/inhibit-eglot ()
   "Return non-nil when Eglot owns formatting in the current buffer."
-  (and (fboundp 'eglot-managed-p)
+  (and (not format/apheleia-owns)
+       (fboundp 'eglot-managed-p)
        (eglot-managed-p)))
 
 (defun format/mode-maybe ()
