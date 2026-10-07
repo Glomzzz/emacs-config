@@ -1,6 +1,7 @@
 ;;; theme.el --- Gruber Darker theme setup -*- lexical-binding: t; -*-
 
 (require 'packages)
+(require 'cl-lib)
 (require 'warnings)
 (packages/declare 'gruber-darker-theme)
 
@@ -23,22 +24,26 @@ it to mean that the face should inherit the terminal default."
    (t value)))
 
 (defun theme--custom-theme-set-faces (orig theme &rest args)
-  "Apply theme face ARGS after normalising obsolete nil attributes."
+  "Normalize obsolete attributes only in Gruber Darker's face ARGS."
   (apply orig theme
-         (mapcar #'theme--replace-nil-face-attributes args)))
+         (if (eq theme 'gruber-darker)
+             (mapcar #'theme--replace-nil-face-attributes args)
+           args)))
 
-(unless (advice-member-p #'theme--custom-theme-set-faces
-                         #'custom-theme-set-faces)
-  (advice-add 'custom-theme-set-faces
-              :around
-              #'theme--custom-theme-set-faces))
+(defun theme/load-gruber-darker ()
+  "Load Gruber Darker with a compatibility wrapper scoped to this load."
+  (let ((original (symbol-function 'custom-theme-set-faces)))
+    (cl-letf (((symbol-function 'custom-theme-set-faces)
+               (lambda (theme &rest args)
+                 (apply #'theme--custom-theme-set-faces original theme args))))
+      (load-theme 'gruber-darker t))))
 
 (let ((warning-inhibit-types
        (cons '(files missing-lexbind-cookie) warning-inhibit-types)))
   (when (file-readable-p custom-file)
     (load custom-file nil 'nomessage))
   (when (package-installed-p 'gruber-darker-theme)
-    (load-theme 'gruber-darker t)))
+    (theme/load-gruber-darker)))
 
 (provide 'theme)
 

@@ -135,5 +135,22 @@
         (completion/eldoc-show-at-point)
         (should requested)))))
 
+(ert-deftest config-test/theme-workaround-is-scoped-and-restored ()
+  (let ((original (symbol-function 'custom-theme-set-faces))
+        received)
+    (cl-letf (((symbol-function 'load-theme)
+               (lambda (&rest _ignored)
+                 (custom-theme-set-faces 'unrelated '(example ((t (:foreground nil)))))
+                 (should (equal received '(unrelated (example ((t (:foreground nil)))))))
+                 (custom-theme-set-faces 'gruber-darker '(example ((t (:foreground nil)))))
+                 (should (equal received '(gruber-darker (example ((t (:foreground unspecified)))))))
+                 (error "Load failed")))
+              ((symbol-function 'custom-theme-set-faces)
+               (lambda (&rest args) (setq received args))))
+      (let ((before (symbol-function 'custom-theme-set-faces)))
+        (should-error (theme/load-gruber-darker))
+        (should (eq (symbol-function 'custom-theme-set-faces) before))))
+    (should (eq (symbol-function 'custom-theme-set-faces) original))))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

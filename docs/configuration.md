@@ -161,6 +161,12 @@ writing state into the repository.  The main paths currently include:
 before packages load, so native compilation does not fill the repository or
 the default Emacs cache with configuration-specific artifacts.
 
+### Theme Compatibility
+
+Gruber Darker's legacy nil face colors are normalized only while
+`theme/load-gruber-darker` loads that theme.  The original Emacs face API is
+restored even if loading fails; other themes and Customize are untouched.
+
 ### Documentation at Point
 
 Programming buffers use automatic Eldoc.  Graphical frames enable the public
