@@ -162,8 +162,9 @@ triggering authentication or network I/O in the parent Emacs."
       (with-current-buffer buffer
         (let ((at-end (= (point) (point-max)))
               (inhibit-read-only t))
-          (goto-char (point-max))
-          (insert output)
+          (save-excursion
+            (goto-char (point-max))
+            (insert output))
           (set-buffer-modified-p nil)
           (when at-end
             (goto-char (point-max))))))))
