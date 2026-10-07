@@ -308,8 +308,14 @@ files; `so-long-revert` restores the modes it disabled.
 
 ### Documentation at Point
 
-Programming buffers use automatic Eldoc.  Graphical frames enable the public
+Programming buffers use automatic Eldoc after **600 ms of idle time** at
+the text cursor (not mouse hover).  Graphical frames enable the public
 `eldoc-box-hover-at-point-mode`; terminal frames keep built-in Eldoc display.
+The at-point popup suppresses display for 500 ms after motion.  Requesting
+at 300 ms could deliver documentation while suppressed, with no retry until
+the cursor moved again.  The completion module now owns the longer delay;
+Eglot does not reset it.  Server response latency is additional, and a
+language backend must provide documentation for the symbol at point.
 `C-M-d` calls `eldoc-box-help-at-point` in a GUI and requests normal Eldoc in
 terminals.  The package owns its display hooks and cursor-following behavior;
 this configuration does not advise private Eldoc update functions, suppress
