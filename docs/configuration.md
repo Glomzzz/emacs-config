@@ -378,17 +378,22 @@ Eglot enables LSP snippet completions only when Yasnippet is available.
 expand them with editable fields.
 
 If a server needs language-specific initialization options, define a
-`foo/eglot-workspace-configuration' function in the language module and
-register it with `lsp/register-workspace-configuration'.  Eglot evaluates
-`eglot-workspace-configuration' in a temporary buffer, so a buffer-local
+`foo/eglot-workspace-configuration` function in the language module and
+register it with `lsp/register-workspace-configuration`.  Eglot evaluates
+`eglot-workspace-configuration` in a temporary buffer, so a buffer-local
 value is ignored; the shared dispatcher in `lsp.el` looks the
 configuration up by the server's major mode.  Keep the function in the
 language file rather than changing `lsp.el`.
 
-`lsp.el` also advises `eglot-completion-at-point' so a server-provided
-`CompletionItem.command' runs after a completion is accepted.  HLS uses
-this for `extend import'; `haskell.el` raises `maxCompletions' to 1000 so
-unimported names are actually returned before the import command runs.
+`lsp.el` also advises `eglot-completion-at-point` so a server-provided
+`CompletionItem.command` runs after a completion is accepted and its edits
+have succeeded, in the originating buffer.  The `eglot--request` advice
+retains commands returned by `completionItem/resolve` on the original
+completion item, preserving Eglot's resolution cache without an extra
+request.  Property-less candidates from *Completions* are looked up in the
+original completion table.  HLS uses this for `extend import`;
+`haskell.el` raises `maxCompletions` to 1000 so unimported names are
+actually returned before the import command runs.
 
 ### Debugging with Dape
 

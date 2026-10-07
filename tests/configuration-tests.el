@@ -36,6 +36,136 @@
         (should (plist-member (lsp/workspace-configuration 'server)
                               (cdr entry)))))))
 
+(ert-deftest config-test/direct-completion-command-runs-after-exit ()
+  (with-temp-buffer
+    (let* ((command (list :title "Import" :command "extend-import"))
+           (item (list :command command))
+           (proxy (propertize "foo" 'eglot--lsp-item item))
+           events)
+      (cl-letf (((symbol-function 'eglot-execute)
+                 (lambda (server action)
+                   (should (eq server 'server))
+                   (push action events)
+                   (cl-remf action :title))))
+        (lsp/completion-command-execute
+         (lambda (_proxy _status) (push 'exit events))
+         proxy 'finished (current-buffer) 'server (list proxy))
+        (should (eq (cadr events) 'exit))
+        (should (equal (plist-get (car events) :command) "extend-import"))
+        (should (equal (plist-get (plist-get item :command) :title) "Import"))))))
+
+(ert-deftest config-test/completion-command-uses-originating-buffer ()
+  (let ((source (generate-new-buffer " *config-test source*")))
+    (unwind-protect
+        (let* ((item (list :command '(:command "import")))
+               (proxy (propertize "foo" 'eglot--lsp-item item))
+               (exit (lambda (_proxy _status)
+                       (should (eq (current-buffer) source))))
+               capf executed)
+          (with-current-buffer source
+            (cl-letf (((symbol-function 'eglot-current-server)
+                       (lambda () 'origin-server)))
+              (setq capf (lsp/completion-command-filter
+                          (list 1 1 (list proxy) :exit-function exit)))))
+          (with-temp-buffer
+            (cl-letf (((symbol-function 'eglot-execute)
+                       (lambda (server _command)
+                         (should (eq server 'origin-server))
+                         (should (eq (current-buffer) source))
+                         (setq executed t))))
+              ;; *Completions* strips candidate properties.
+              (funcall (plist-get (cdddr capf) :exit-function)
+                       (substring-no-properties proxy) 'finished)))
+          (should executed))
+      (kill-buffer source))))
+
+(ert-deftest config-test/completion-command-does-not-run-on-abort-or-error ()
+  (with-temp-buffer
+    (let* ((proxy (propertize "foo" 'eglot--lsp-item
+                              '(:command (:command "import"))))
+           executed exited)
+      (cl-letf (((symbol-function 'eglot-execute)
+                 (lambda (&rest _) (setq executed t))))
+        (lsp/completion-command-execute
+         (lambda (&rest _) (setq exited t)) proxy 'sole
+         (current-buffer) 'server (list proxy))
+        (should exited)
+        (should-not executed)
+        (should-error
+         (lsp/completion-command-execute
+          (lambda (&rest _) (error "Edit failed")) proxy 'finished
+          (current-buffer) 'server (list proxy)))
+        (should-not executed)))))
+
+(ert-deftest config-test/completion-after-source-buffer-is-killed ()
+  (let ((source (generate-new-buffer " *config-test killed*")))
+    (kill-buffer source)
+    (lsp/completion-command-execute
+     (lambda (&rest _) (ert-fail "Dead-buffer exit ran"))
+     "foo" 'finished source 'server '("foo"))))
+
+(ert-deftest config-test/completion-filter-preserves-original-capf ()
+  (let* ((exit #'ignore)
+         (capf (list 1 1 '("foo") :exit-function exit)))
+    (cl-letf (((symbol-function 'eglot-current-server) (lambda () nil)))
+      (let ((wrapped (lsp/completion-command-filter capf)))
+        (should (eq (plist-get (cdddr capf) :exit-function) exit))
+        (should-not (eq (plist-get (cdddr wrapped) :exit-function) exit)))))
+  (should-not (lsp/completion-command-filter nil)))
+
+(defun config-test/resolved-completion (prefetch strip-properties)
+  "Check a resolved completion, optionally PREFETCH or STRIP-PROPERTIES."
+  (with-temp-buffer
+    (setq buffer-file-name "/tmp/emacs-config-test.hs"
+          buffer-file-truename buffer-file-name)
+    (insert "f")
+    (let* ((eglot--capf-session :none)
+           (item (list :label "foo" :sortText "1" :data '(:id 1)))
+           (command (list :title "Import" :command "extend-import"))
+           (resolved (append item (list :command command :detail ":: Int")))
+           (resolve-count 0)
+           executed)
+      (cl-letf (((symbol-function 'eglot-server-capable) (lambda (&rest _) t))
+                ((symbol-function 'eglot--current-server-or-lose)
+                 (lambda () 'server))
+                ((symbol-function 'eglot-current-server) (lambda () 'server))
+                ((symbol-function 'jsonrpc-request)
+                 (lambda (_server method &rest _args)
+                   (pcase method
+                     (:textDocument/completion (vector item))
+                     (:completionItem/resolve
+                      (cl-incf resolve-count)
+                      resolved)
+                     (_ (error "Unexpected request: %S" method)))))
+                ((symbol-function 'eglot--signal-textDocument/didChange) #'ignore)
+                ((symbol-function 'eglot-execute)
+                 (lambda (_server action) (setq executed action))))
+        (let* ((capf (eglot-completion-at-point))
+               (proxy (car (funcall (nth 2 capf) "" nil t))))
+          (when prefetch
+            (funcall (plist-get (cdddr capf) :company-docsig) proxy))
+          (funcall (plist-get (cdddr capf) :exit-function)
+                   (if strip-properties (substring-no-properties proxy) proxy)
+                   'finished)
+          (should (equal executed command))
+          (should (= resolve-count 1)))))))
+
+(ert-deftest config-test/resolved-completion-command-is-not-lost ()
+  (config-test/resolved-completion nil nil))
+
+(ert-deftest config-test/cached-resolution-does-not-request-again ()
+  (config-test/resolved-completion t nil))
+
+(ert-deftest config-test/resolved-completion-without-properties ()
+  (config-test/resolved-completion nil t))
+
+(ert-deftest config-test/unrelated-requests-do-not-modify-params ()
+  (let ((params (list :data 1)))
+    (lsp/completion-resolve-command
+     (lambda (&rest _) '(:command (:command "ignore")))
+     'server :textDocument/hover params)
+    (should-not (plist-member params :command))))
+
 (ert-deftest config-test/manual-format-respects-apheleia-owner ()
   (with-temp-buffer
     (setq-local format/apheleia-owns t)
