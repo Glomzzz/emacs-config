@@ -49,5 +49,35 @@ Keep real auto-mode selection and hooks, but do not start external servers."
           (should (derived-mode-p 'typescript-mode))
           (should-not (treesit-parser-list)))))))
 
+(ert-deftest config-test/typst-opens-without-grammar-before-install-prompt ()
+  (let ((treesit-auto-install 'prompt)
+        prompts)
+    (cl-letf (((symbol-function 'treesit-ready-p) (lambda (&rest _) nil))
+              ((symbol-function 'y-or-n-p)
+               (lambda (prompt) (push prompt prompts) nil)))
+      (config-test/with-language-file "sample.typ" "= Hello\n"
+        (should (eq major-mode 'typst-mode))
+        (should (derived-mode-p 'text-mode))
+        (should-not (treesit-parser-list))
+        (should (= (length prompts) 1))
+        (should (string-match-p "typst" (car prompts)))))))
+
+(ert-deftest config-test/typst-opens-with-grammar ()
+  (let ((ready (treesit-ready-p 'typst t))
+        (treesit-auto-install nil))
+    (when (getenv "EMACS_TEST_REQUIRE_GRAMMARS") (should ready))
+    (skip-unless ready)
+    (config-test/with-language-file "sample.typ" "= Hello\n"
+      (should (eq major-mode 'typst-ts-mode))
+      (should (memq 'typst (mapcar #'treesit-parser-language
+                                  (treesit-parser-list)))))))
+
+(ert-deftest config-test/typst-package-loading-keeps-safe-association ()
+  (require 'typst-ts-mode)
+  (let ((treesit-auto-install nil))
+    (cl-letf (((symbol-function 'treesit-ready-p) (lambda (&rest _) nil)))
+      (config-test/with-language-file "sample.typ" "= Hello\n"
+        (should (eq major-mode 'typst-mode))))))
+
 (provide 'language-selection-tests)
 ;;; language-selection-tests.el ends here

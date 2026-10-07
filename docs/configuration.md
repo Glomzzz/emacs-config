@@ -475,10 +475,13 @@ inspector port, and browser URL are the project-local options
 specific flags with `javascript/deno-permissions` (directory-local approval
 required), rather than granting `--allow-all` globally.
 
-`typst.el` owns `.typ` buffers through `typst-ts-mode`, registers the Typst
-Tree-sitter grammar, and starts `tinymist` for both the fallback and
-Tree-sitter modes.  Tinymist is configured to use Typstyle for Eglot-managed
-formatting, while `typstyle` is registered as the Apheleia fallback.
+`typst.el` associates `.typ` with a grammar-free `typst-mode` derived from
+`text-mode`.  This allows treesit-auto's installation prompt to run before
+entering `typst-ts-mode`; declining installation leaves a usable text buffer.
+With the grammar installed it remaps to `typst-ts-mode`.  Reopen or revert
+a fallback buffer after manually installing the grammar.  Both modes start
+`tinymist`, configured to use Typstyle for Eglot-managed formatting, while
+`typstyle` is registered as the Apheleia fallback.
 
 ### Tree-sitter grammar
 
