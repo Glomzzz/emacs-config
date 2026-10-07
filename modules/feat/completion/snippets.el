@@ -22,4 +22,14 @@
   :ensure nil
   :after tempel)
 
+;; Eglot advertises LSP snippet support only when Yasnippet is available.
+;; Bridge its snippet expansion to Tempel so servers that return snippet
+;; completions (HLS, TypeScript Server, and others) expand editable fields.
+(packages/declare 'eglot-tempel)
+(use-package eglot-tempel
+  :ensure nil
+  :after eglot
+  :config
+  (eglot-tempel-mode 1))
+
 ;;; snippets.el ends here

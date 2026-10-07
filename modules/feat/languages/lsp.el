@@ -1,6 +1,7 @@
 ;;; lsp.el  -*- lexical-binding: t; -*-
 
 (declare-function eglot-format "eglot" (&optional beg end))
+(declare-function eglot-execute "eglot" (server action))
 (declare-function eglot--major-modes "eglot" (server))
 (defvar eglot-workspace-configuration)
 
@@ -23,6 +24,33 @@ their configuration functions here instead."
   (when-let* ((mode (car (eglot--major-modes server)))
               (function (cdr (assq mode lsp/workspace-configurations))))
     (funcall function server)))
+
+;;; completion commands
+(defun lsp/completion-command-execute (original proxy status)
+  "Call ORIGINAL completion exit, then run the item's server command.
+Servers such as HLS attach an `extend import' command to completions of
+unimported names; Eglot does not execute `CompletionItem.command' by
+itself."
+  (let ((item (and (stringp proxy)
+                   (get-text-property 0 'eglot--lsp-item proxy)))
+        (server (and (fboundp 'eglot-current-server)
+                     (eglot-current-server))))
+    (funcall original proxy status)
+    (when (and server item (memq status '(finished exact)))
+      (when-let* ((command (plist-get item :command)))
+        (eglot-execute server command)))))
+
+(defun lsp/completion-command-filter (capf)
+  "Wrap CAPF's exit function so `CompletionItem.command' is executed."
+  (when (and (consp capf)
+             (functionp (plist-get (cdddr capf) :exit-function)))
+    (let* ((plist (cdddr capf))
+           (exit (plist-get plist :exit-function)))
+      (setcdr (cddr capf)
+              (plist-put plist :exit-function
+                         (lambda (proxy status)
+                           (lsp/completion-command-execute exit proxy status))))))
+  capf)
 
 ;;; eglot
 (defun lsp/format-on-save ()
@@ -54,6 +82,13 @@ their configuration functions here instead."
   ;; Older versions of this configuration added a global hook.  Remove it for
   ;; an already-running session before installing the buffer-local hook above.
   (remove-hook 'prog-mode-hook #'eglot-ensure)
-  (remove-hook 'before-save-hook #'eglot-format))
+  (remove-hook 'before-save-hook #'eglot-format)
+  :config
+  ;; Run server-provided completion commands (for example HLS's
+  ;; `extend import') after a completion is accepted.
+  (unless (advice-member-p #'lsp/completion-command-filter
+                           'eglot-completion-at-point)
+    (advice-add 'eglot-completion-at-point :filter-return
+                #'lsp/completion-command-filter)))
 
 ;;; lsp.el ends here
