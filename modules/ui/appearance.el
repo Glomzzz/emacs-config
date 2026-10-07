@@ -35,7 +35,7 @@
   "Highlight the current line in local, reasonably-sized buffers."
   (when (and (not (file-remote-p default-directory))
              (not (derived-mode-p 'special-mode))
-             (< (buffer-size) (* 2 1024 1024)))
+             (buffers/small-p))
     (hl-line-mode 1)))
 
 (add-hook 'prog-mode-hook #'appearance/hl-line-maybe)

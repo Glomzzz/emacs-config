@@ -20,5 +20,14 @@
       (haskell-mode)
       (should-not (local-variable-p 'corfu-sort-override-function)))))
 
+(ert-deftest config-test/shared-buffer-size-policy ()
+  (with-temp-buffer
+    (insert "12345")
+    (let ((buffers/feature-size-limit 5))
+      (should-not (buffers/small-p))
+      (should (buffers/small-p 6)))
+    (let ((buffers/feature-size-limit nil))
+      (should (buffers/small-p)))))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

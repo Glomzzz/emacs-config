@@ -161,6 +161,14 @@ writing state into the repository.  The main paths currently include:
 before packages load, so native compilation does not fill the repository or
 the default Emacs cache with configuration-specific artifacts.
 
+### Shared Resource Limits
+
+`modules/core/buffers.el` owns `buffers/feature-size-limit` (2 MiB-sized
+character count by default), used by pairing, whitespace cleanup, highlighting,
+and Git markers.  `buffers/color-preview-size-limit` defaults to 1 MiB-sized
+character count.  Customize either limit; nil removes the size restriction.
+Other package-specific limits remain in their own package options.
+
 ### Pairing and Structural Editing
 
 `modules/feat/editing/pairs.el` uses non-strict Smartparens instead of

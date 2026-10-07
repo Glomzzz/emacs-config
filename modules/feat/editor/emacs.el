@@ -134,7 +134,7 @@ queries so this predicate is safe to call from timer and shutdown hooks."
   "Delete trailing whitespace in local, reasonably-sized source buffers."
   (when (and (derived-mode-p 'prog-mode 'text-mode 'conf-mode)
              (not (file-remote-p default-directory))
-             (< (buffer-size) (* 2 1024 1024)))
+             (buffers/small-p))
     (delete-trailing-whitespace)))
 
 (add-hook 'before-save-hook #'emacs/delete-trailing-whitespace-maybe)

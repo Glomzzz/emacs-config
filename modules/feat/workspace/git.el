@@ -8,7 +8,7 @@
   "Enable diff markers for local file buffers that are not huge."
   (when (and buffer-file-name
              (not (file-remote-p buffer-file-name))
-             (< (buffer-size) (* 2 1024 1024))
+             (buffers/small-p)
              (fboundp 'diff-hl-mode))
     (diff-hl-mode 1)))
 

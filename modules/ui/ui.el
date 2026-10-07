@@ -9,7 +9,8 @@
   "Preview colors in local, reasonably-sized source buffers."
   (when (and (fboundp 'colorful-mode)
              (not (file-remote-p default-directory))
-             (< (buffer-size) (* 1024 1024)))
+             (or (null buffers/color-preview-size-limit)
+                 (buffers/small-p buffers/color-preview-size-limit)))
     (colorful-mode 1)))
 
 (use-package colorful-mode

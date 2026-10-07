@@ -31,7 +31,7 @@ or very large buffers.  Plain prose and process buffers do not opt in."
   (unless (or (minibufferp)
               buffer-read-only
               (derived-mode-p 'special-mode 'comint-mode)
-              (>= (buffer-size) (* 2 1024 1024)))
+              (not (buffers/small-p)))
     (smartparens-mode 1)))
 
 (use-package smartparens
