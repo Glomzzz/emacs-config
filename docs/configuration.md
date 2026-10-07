@@ -598,6 +598,25 @@ retain Git-aware file listing and ignore rules.  As with Haskell and JavaScript,
 project.el chooses the nearest registered marker; without `.typst-root`, normal
 project discovery still applies.
 
+Typst strings starting with `..`, `./`, or `/` get **Cape file completion** in
+the normal Corfu popup, including immediately after the prefix.  Use `C-M-i`
+for manual completion.  `./` and `../` resolve relative to the current source
+file; `/` resolves relative to the nearest `.typst-root`, then the normal
+project root, then the source directory when no project exists.  It is not
+the filesystem root.  Completing a directory keeps its trailing slash so
+completion can continue into it; quotes and the leading path prefix stay intact.
+Spaces, Chinese filenames, and escaped quotes/backslashes are supported.
+
+The Typst module supplies only string context, path-base selection, and string
+quoting; Cape and Emacs own directory enumeration, matching, file metadata, and
+completion insertion.  The path source takes priority over Tinymist only in
+these strings, including after Eglot reconnects.  Other strings, code symbols,
+and package imports keep their usual completion sources.  Tree-sitter rejects
+markup/raw-text quotes and comments, including when earlier prose contains an
+unmatched quote.  Without the grammar, basic Emacs string/comment syntax is
+used instead; it cannot fully distinguish markup quotes from code strings.
+No new package installation is needed because Cape is already declared.
+
 ### Tree-sitter grammar
 
 `treesit-auto` is enabled globally for languages registered by their feature
@@ -725,6 +744,9 @@ binaries, without starting a real daemon.  Tests cover
 trust boundaries, project roots and Git ignore rules, completion commands
 and resolution caching, formatter ownership, navigation bindings,
 stale-config detection, and interactive pairing/structural editing.
+`tests/typst-completion-tests.el` exercises the real Cape file tables and
+completion insertion in both Typst modes, plus context rejection and Eglot
+completion-source ordering without starting a language server.
 `tests/refinement-tests.el` also exercises directory-local server settings,
 configurable commands/paths, and a real asynchronous copy between temporary
 files to verify Dirvish/dashboard integration.
