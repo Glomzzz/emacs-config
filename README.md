@@ -4,6 +4,15 @@ A modular, source-based Emacs configuration.  See the
 [configuration guide](docs/configuration.md) for setup, package management,
 module layout, and validation.
 
+## License
+
+Original code and documentation in this repository are licensed under
+[MIT](LICENSE).  Emacs, downloaded packages, grammars, fonts, and external
+tools retain their own licenses; this does not relicense them.  MIT is
+GPL-compatible, but distribution of a combined GPL-covered work must still
+comply with the GPL.  Any future copied/adapted upstream code must retain its
+copyright and license notices, with its scope identified explicitly.
+
 ## Credits
 
 Thanks to [ksqsf/emacs-perf](https://git.ksqsf.moe/ksqsf/emacs-perf) for
