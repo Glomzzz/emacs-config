@@ -171,5 +171,21 @@
       (should (equal (mounts/mac-mini-rsync-destination "ignored")
                      "/ssh:other-host:~/docs/")))))
 
+(ert-deftest config-test/desktop-commands-preserve-file-arguments ()
+  (let (started)
+    (cl-letf (((symbol-function 'executable-find) (lambda (name) (concat "/bin/" name)))
+              ((symbol-function 'dirvish--local-files)
+               (lambda () '("/tmp/file with spaces" "/tmp/$(not-a-command)")))
+              ((symbol-function 'start-process) (lambda (&rest args) (setq started args))))
+      (dirvish/desktop-action '("other-manager" "--new-window"))
+      (should (equal started '("other-manager" nil "/bin/other-manager" "--new-window"
+                               "/tmp/file with spaces" "/tmp/$(not-a-command)"))))))
+
+(ert-deftest config-test/mount-command-overrides-preserve-arguments ()
+  (cl-letf (((symbol-function 'executable-find) (lambda (_name) "/bin/helper")))
+    (should (equal (mounts/resolve-command '("helper" "--profile" "phone"))
+                   '("/bin/helper" "--profile" "phone"))))
+  (should-error (mounts/resolve-command nil) :type 'user-error))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

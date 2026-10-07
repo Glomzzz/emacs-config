@@ -23,6 +23,26 @@
 
 (packages/declare 'dirvish)
 
+(defgroup file-desktop nil
+  "Desktop file integration commands."
+  :group 'files)
+(defcustom dirvish/drag-command '("ripdrag" "-x")
+  "Drag-source command and arguments, followed by the marked files."
+  :type '(repeat string) :group 'file-desktop)
+(defcustom dirvish/file-manager-command '("thunar")
+  "Desktop file manager command, followed by the marked files."
+  :type '(repeat string) :group 'file-desktop)
+
+(defun dirvish/desktop-action (command)
+  "Launch desktop COMMAND with marked local files as separate arguments."
+  (unless (and (consp command) (seq-every-p #'stringp command))
+    (user-error "Desktop command must be a non-empty list of strings"))
+  (let ((program (or (executable-find (car command))
+                     (user-error "Desktop executable is not installed: %s"
+                                 (car command)))))
+    (apply #'start-process (car command) nil program
+           (append (cdr command) (dirvish--local-files)))))
+
 (when-let* ((dirvish-library (locate-library "dirvish"))
             (extensions-directory
              (expand-file-name "extensions/"
@@ -38,22 +58,17 @@
     (mapcar #'file-local-name files)))
 
 (defun dirvish/drag-files ()
-  "Open marked files in ripdrag as a cross-application drag source."
+  "Launch the configured drag source with marked local files."
   (interactive)
-  (let ((program (executable-find "ripdrag")))
-    (unless program
-      (user-error "ripdrag is not installed; rebuild the NixOS configuration"))
-    (apply #'start-process "ripdrag" nil program "-x"
-           (dirvish--local-files))))
+  (dirvish/desktop-action dirvish/drag-command))
 
-(defun dirvish/open-in-thunar ()
-  "Reveal marked files, or the file at point, in Thunar."
+(defun dirvish/open-in-file-manager ()
+  "Open marked local files in the configured desktop file manager."
   (interactive)
-  (let ((program (executable-find "thunar")))
-    (unless program
-      (user-error "Thunar is not installed; rebuild the NixOS configuration"))
-    (apply #'start-process "thunar" nil program
-           (dirvish--local-files))))
+  (dirvish/desktop-action dirvish/file-manager-command))
+
+;; Preserve existing launcher callers while using a neutral command name.
+(defalias 'dirvish/open-in-thunar #'dirvish/open-in-file-manager)
 
 (defun dirvish/command-line (_switch)
   "Handle the `--dirvish' command-line switch."
@@ -152,7 +167,7 @@
    ("C-c C-k" . mounts/cancel-background-operation)
    ("C-c C-u" . mounts/unmount-android)
    ("C-c C-d" . dirvish/drag-files)
-   ("C-c C-t" . dirvish/open-in-thunar)))
+   ("C-c C-t" . dirvish/open-in-file-manager)))
 
 (use-package dirvish-history
   :ensure nil

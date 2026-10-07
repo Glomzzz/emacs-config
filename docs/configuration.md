@@ -174,6 +174,13 @@ The remote home defaults to `~/`, resolved by TRAMP on the remote host, not
 `locations/projects-directory`, but explicit `trusted-content` Customize
 choices still take precedence.
 
+Desktop actions use configurable argument lists: `dirvish/drag-command`
+(default ripdrag -x), `dirvish/file-manager-command` (default Thunar),
+`mounts/android-command`, and `mounts/mac-mini-connect-command`.  Files are
+passed as separate process arguments, not interpolated into shell commands.
+Missing tools report the configured executable, without assuming NixOS is
+how every machine must install it.
+
 ### Theme Compatibility
 
 Gruber Darker's legacy nil face colors are normalized only while

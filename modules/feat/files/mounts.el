@@ -13,6 +13,25 @@
 (declare-function task-dashboard-cancel-process "task-dashboard" (process))
 (defvar dirvish-yank-sources)
 
+(defgroup mounts nil
+  "External commands for removable/network mounts."
+  :group 'locations)
+
+(defcustom mounts/android-command '("android-phone")
+  "Command and initial arguments for Android mount/unmount actions."
+  :type '(repeat string) :group 'mounts)
+(defcustom mounts/mac-mini-connect-command '("mac-mini-connect")
+  "Command and arguments for connecting the Mac-mini share."
+  :type '(repeat string) :group 'mounts)
+
+(defun mounts/resolve-command (command)
+  "Resolve COMMAND's executable, preserving its arguments."
+  (unless (and (consp command) (seq-every-p #'stringp command))
+    (user-error "Mount command must be a non-empty list of strings"))
+  (cons (or (executable-find (car command))
+            (user-error "Mount executable is not installed: %s" (car command)))
+        (cdr command)))
+
 (defvar mounts/android-phone-process nil)
 (defvar mounts/mac-mini-connect-process nil)
 
@@ -79,17 +98,14 @@
   "Run the Android helper with ACTION without blocking Emacs."
   (if (process-live-p mounts/android-phone-process)
       (message "An Android phone operation is already running")
-    (let ((program (executable-find "android-phone"))
+    (let ((command (mounts/resolve-command mounts/android-command))
           (output-buffer (generate-new-buffer " *android-phone*")))
-      (unless program
-        (kill-buffer output-buffer)
-        (user-error "android-phone is not installed; rebuild NixOS"))
       (let ((process
              (condition-case error-data
                  (make-process
                   :name "android-phone"
                   :buffer output-buffer
-                  :command (list program action)
+                  :command (append command (list action))
                   :connection-type 'pipe
                   :noquery t
                   :sentinel #'mounts--android-sentinel)
@@ -142,18 +158,15 @@
   "Connect to Mac-mini asynchronously, then open it in Dirvish."
   (if (process-live-p mounts/mac-mini-connect-process)
       (message "Already connecting to mac-mini")
-    (let ((program (executable-find "mac-mini-connect"))
+    (let ((command (mounts/resolve-command mounts/mac-mini-connect-command))
           (output-buffer (generate-new-buffer " *mac-mini connector*")))
-      (unless program
-        (kill-buffer output-buffer)
-        (user-error "mac-mini-connect is not installed; rebuild NixOS"))
       (let ((process
              (condition-case error-data
                  (let ((default-directory (expand-file-name "~/")))
                    (make-process
                     :name "mac-mini connector"
                     :buffer output-buffer
-                    :command (list program)
+                    :command command
                     :connection-type 'pipe
                     :noquery t
                     :sentinel #'mounts--mac-mini-sentinel))
