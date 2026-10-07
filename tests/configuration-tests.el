@@ -28,7 +28,8 @@
   (dolist (entry '((nix-ts-mode . :nixd)
                    (typst-ts-mode . :tinymist)
                    (typescript-ts-mode . :typescript)
-                   (haskell-mode . :haskell)))
+                   (haskell-mode . :haskell)
+                   (haskell-literate-mode . :haskell)))
     (with-temp-buffer
       (setq major-mode (car entry))
       (cl-letf (((symbol-function 'eglot--major-modes)
@@ -232,6 +233,21 @@
                 ((symbol-function 'eglot--capabilities)
                  (lambda (_server) '(:documentFormattingProvider t))))
         (should-not (format/eglot-owns-p))))))
+
+(ert-deftest config-test/literate-haskell-inherits-formatting-and-lsp ()
+  (config-test/with-directory
+    (with-temp-buffer
+      (let (started)
+        (cl-letf (((symbol-function 'eglot-ensure)
+                   (lambda () (setq started t))))
+          (haskell-literate-mode)
+          (should (eq major-mode 'haskell-literate-mode))
+          (should started)
+          (should format/apheleia-owns)
+          (should apheleia-mode)
+          (should (equal (car (alist-get major-mode eglot-server-programs))
+                         "haskell-language-server-wrapper"))
+          (should (eq (alist-get major-mode apheleia-mode-alist) 'ormolu)))))))
 
 (ert-deftest config-test/save-formatting-honors-apheleia-owner ()
   (with-temp-buffer

@@ -15,19 +15,6 @@
 ;; Haskell does not have a built-in Tree-sitter mode in this Emacs build;
 ;; `haskell-mode' provides the editing mode and project integration.
 (packages/declare 'haskell-mode)
-(use-package haskell-mode
-  :ensure nil
-  :mode (("\\.hs\\'" . haskell-mode)
-         ("\\.lhs\\'" . literate-haskell-mode)
-         ("\\.hsc\\'" . haskell-mode))
-  :hook ((haskell-mode . haskell/eglot-ensure)
-         (haskell-mode . haskell/setup-formatting)
-         (haskell-mode . haskell/setup-completion)
-         (haskell-mode . format/mode-maybe)
-         (literate-haskell-mode . haskell/eglot-ensure)
-         (literate-haskell-mode . haskell/setup-formatting)
-         (literate-haskell-mode . haskell/setup-completion)
-         (literate-haskell-mode . format/mode-maybe)))
 
 (defconst haskell--project-markers
   '("hie.yaml" "hie.yml" "stack.yaml" "cabal.project" "cabal.project.local"
@@ -72,11 +59,11 @@ that carry its `extend import' command."
   ;; Cabal or Stack project.  Cap its worker threads so indexing cannot
   ;; saturate the machine, and replace Eglot's bundled `static-ls' candidate
   ;; so the server choice is deterministic.
-  (dolist (mode '(haskell-mode literate-haskell-mode))
+  (dolist (mode '(haskell-mode haskell-literate-mode))
     (setf (alist-get mode eglot-server-programs)
           '("haskell-language-server-wrapper" "--lsp" "-j" "2")))
   (lsp/register-workspace-configuration
-   '(haskell-mode literate-haskell-mode)
+   '(haskell-mode haskell-literate-mode)
    #'haskell/eglot-workspace-configuration))
 
 ;;; completion
@@ -142,11 +129,22 @@ Local bindings come first, then other definitions, then imported names."
   (setf (alist-get 'ormolu apheleia-formatters)
         '("ormolu" "-m" "stdout" "--stdin-input-file" filepath))
   (setf (alist-get 'haskell-mode apheleia-mode-alist) 'ormolu)
-  (setf (alist-get 'literate-haskell-mode apheleia-mode-alist) 'ormolu))
+  (setf (alist-get 'haskell-literate-mode apheleia-mode-alist) 'ormolu))
 
 ;; Haskell uses Apheleia/Ormolu for asynchronous save-time formatting.
 
 (with-eval-after-load 'apheleia
   (haskell/configure-apheleia))
+
+;; Define helpers before `use-package' so its hooks need no stub autoloads.
+;; Literate Haskell derives from `haskell-mode' and runs these hooks too.
+(use-package haskell-mode
+  :ensure nil
+  :mode (("\\.hs\\'" . haskell-mode)
+         ("\\.lhs\\'" . haskell-literate-mode)
+         ("\\.hsc\\'" . haskell-mode))
+  :hook ((haskell-mode . haskell/eglot-ensure)
+         (haskell-mode . haskell/setup-completion)
+         (haskell-mode . format/mode-maybe)))
 
 ;;; haskell.el ends here

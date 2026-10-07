@@ -2,6 +2,11 @@
 
 (require 'packages)
 
+(declare-function markdown-export-file-name "markdown-mode" (&optional extension))
+(declare-function markdown-export "markdown-mode" (&optional output-file))
+(declare-function markdown-export-and-preview "markdown-mode" ())
+(declare-function markdown-live-preview-get-filename "markdown-mode" ())
+
 ;; markdown-mode provides the editing mode and the preview commands:
 ;; `markdown-live-preview-mode' (C-c C-c l) renders the buffer in an Emacs
 ;; window, and `markdown-export-and-preview' (C-c C-c v) opens the exported
@@ -30,7 +35,7 @@ Defaults to /tmp/emacs/markdown-preview/ through
 The name keeps the source base name plus a hash of the source path so
 files that share a base name cannot collide.  Returns nil when the
 buffer does not visit a file."
-  (when-let ((file (markdown-export-file-name ".html")))
+  (when-let* ((file (markdown-export-file-name ".html")))
     (let ((dir (file-name-as-directory markdown/preview-directory)))
       (make-directory dir t)
       (expand-file-name
@@ -44,7 +49,7 @@ buffer does not visit a file."
 
 (defun markdown/export-and-preview (_orig)
   "Export to `markdown/preview-directory' and browse the result."
-  (if-let ((file (markdown/preview-file)))
+  (if-let* ((file (markdown/preview-file)))
       (browse-url-of-file (markdown-export file))
     (user-error "Buffer %s does not visit a file" (current-buffer))))
 

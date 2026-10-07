@@ -15,6 +15,10 @@
 (treesit/register-language 'typescript)
 (treesit/register-language 'tsx)
 
+(defun javascript/eglot-ensure ()
+  "Start Eglot for JavaScript and TypeScript buffers."
+  (eglot-ensure))
+
 ;; `js-mode' is built into Emacs.  The TypeScript fallback comes from MELPA;
 ;; the Tree-sitter modes are built into current Emacs releases.
 (packages/declare 'typescript-mode)
@@ -45,10 +49,6 @@
                                :includeCompletionsForImportStatements t
                                :includeAutomaticOptionalChainCompletions t
                                :includeAutomaticSuggest t))))
-
-(defun javascript/eglot-ensure ()
-  "Start Eglot for JavaScript and TypeScript buffers."
-  (eglot-ensure))
 
 (with-eval-after-load 'eglot
   ;; TypeScript Language Server handles JavaScript as well as TypeScript and
