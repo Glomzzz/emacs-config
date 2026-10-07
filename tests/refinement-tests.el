@@ -198,5 +198,22 @@
       (emacs-lisp-mode)
       (should-not smartparens-mode))))
 
+(ert-deftest config-test/lsp-resolution-ignores-other-jsonrpc-connections ()
+  (let ((item (list :data 1)))
+    (cl-letf (((symbol-function 'eglot-current-server) (lambda () 'eglot-server)))
+      (lsp/completion-resolve-command
+       (lambda (&rest _) '(:command (:command "other-command")))
+       'other-connection :completionItem/resolve item)
+      (should-not (plist-member item :command)))))
+
+(ert-deftest config-test/lsp-completion-bridge-can-be-disabled ()
+  (unwind-protect
+      (let ((lsp/completion-command-support nil))
+        (lsp/configure-completion-commands)
+        (should-not (advice-member-p #'lsp/completion-command-filter 'eglot-completion-at-point))
+        (should-not (advice-member-p #'lsp/completion-resolve-command 'jsonrpc-request)))
+    (lsp/configure-completion-commands))
+  (should-not (advice-member-p #'lsp/completion-resolve-command 'eglot--request)))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

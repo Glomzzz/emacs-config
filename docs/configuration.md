@@ -499,10 +499,14 @@ language file rather than changing `lsp.el`.
 
 `lsp.el` also advises `eglot-completion-at-point` so a server-provided
 `CompletionItem.command` runs after a completion is accepted and its edits
-have succeeded, in the originating buffer.  The `eglot--request` advice
-retains commands returned by `completionItem/resolve` on the original
-completion item, preserving Eglot's resolution cache without an extra
-request.  Property-less candidates from *Completions* are looked up in the
+have succeeded, in the originating buffer.  The public `jsonrpc-request`
+wrapper retains commands returned by `completionItem/resolve` from the
+current Eglot server on the original completion item, preserving Eglot's
+resolution cache without an extra request.  There is no private
+`eglot--request` advice or inspection of server mode slots.  The bridge
+still needs Eglot's candidate item property (no public equivalent exists);
+`lsp/completion-command-support` can disable it, including its advice, if
+an Eglot update supplies native handling.  Property-less candidates from *Completions* are looked up in the
 original completion table.  HLS uses this for `extend import`;
 `haskell.el` raises `maxCompletions` to `haskell/max-completions` (1000 by
 default) so unimported names are returned before the import command runs.

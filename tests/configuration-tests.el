@@ -32,10 +32,8 @@
                    (haskell-literate-mode . :haskell)))
     (with-temp-buffer
       (setq major-mode (car entry))
-      (cl-letf (((symbol-function 'eglot--major-modes)
-                 (lambda (_server) (list (car entry)))))
-        (should (plist-member (lsp/workspace-configuration 'server)
-                              (cdr entry)))))))
+      (should (plist-member (lsp/workspace-configuration 'server)
+                            (cdr entry))))))
 
 (ert-deftest config-test/direct-completion-command-runs-after-exit ()
   (with-temp-buffer
@@ -131,13 +129,16 @@
                  (lambda () 'server))
                 ((symbol-function 'eglot-current-server) (lambda () 'server))
                 ((symbol-function 'jsonrpc-request)
-                 (lambda (_server method &rest _args)
-                   (pcase method
-                     (:textDocument/completion (vector item))
-                     (:completionItem/resolve
-                      (cl-incf resolve-count)
-                      resolved)
-                     (_ (error "Unexpected request: %S" method)))))
+                 (lambda (&rest args)
+                   (apply #'lsp/completion-resolve-command
+                          (lambda (_server method &rest _args)
+                            (pcase method
+                              (:textDocument/completion (vector item))
+                              (:completionItem/resolve
+                               (cl-incf resolve-count)
+                               resolved)
+                              (_ (error "Unexpected request: %S" method))))
+                          args)))
                 ((symbol-function 'eglot--signal-textDocument/didChange) #'ignore)
                 ((symbol-function 'eglot-execute)
                  (lambda (_server action) (setq executed action))))

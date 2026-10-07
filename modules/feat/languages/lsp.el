@@ -5,7 +5,6 @@
 (declare-function eglot-format "eglot" (&optional beg end))
 (declare-function eglot-execute "eglot" (server action))
 (declare-function eglot-current-server "eglot" ())
-(declare-function eglot--major-modes "eglot" (server))
 (declare-function format/eglot-owns-p "format" (&optional region))
 (defvar eglot-workspace-configuration)
 
@@ -21,22 +20,39 @@ Eglot sends as workspace settings for that server.")
     (setf (alist-get mode lsp/workspace-configurations) function)))
 
 (defun lsp/workspace-configuration (server)
-  "Return the workspace configuration registered for SERVER's mode.
-Eglot evaluates `eglot-workspace-configuration' in a temporary buffer,
-so a buffer-local value would be ignored.  Language modules register
-their configuration functions here instead."
-  (when-let* ((mode (car (eglot--major-modes server)))
-              (function (cdr (assq mode lsp/workspace-configurations))))
+  "Return workspace settings for SERVER using Eglot's major-mode context.
+Eglot calls `eglot-workspace-configuration' in a temporary buffer whose
+major mode matches the server's language.  Use that public contract
+rather than inspecting private server slots."
+  (when-let* ((function (cdr (assq major-mode lsp/workspace-configurations))))
     (funcall function server)))
 
 ;;; completion commands
+(defgroup lsp-tools nil
+  "Language-server integration policies."
+  :group 'tools)
+
+(defcustom lsp/completion-command-support t
+  "Execute commands attached to accepted Eglot completion items.
+This compatibility bridge uses Eglot's candidate item property because
+there is no public command-execution hook.  Disable it if a future Eglot
+version handles completion commands itself."
+  :type 'boolean :group 'lsp-tools
+  :set (lambda (symbol value)
+         (set-default symbol value)
+         (when (fboundp 'lsp/configure-completion-commands)
+           (lsp/configure-completion-commands))))
+
 (defun lsp/completion-resolve-command (original server method &rest arguments)
   "Call ORIGINAL request and retain a resolved completion command.
 Eglot caches resolved items separately from the candidate's original
 item.  Copy just the command back to that item, so accepting a cached
 completion does not need a second resolve request."
   (let ((result (apply original server method arguments)))
-    (when (and (eq method :completionItem/resolve)
+    (when (and lsp/completion-command-support
+               (eq method :completionItem/resolve)
+               (fboundp 'eglot-current-server)
+               (eq server (eglot-current-server))
                (consp (car arguments))
                (plist-member result :command))
       (let* ((item (car arguments))
@@ -75,7 +91,8 @@ Only execute a command after Eglot has successfully applied its edits."
 
 (defun lsp/completion-command-filter (capf)
   "Wrap CAPF's exit function so `CompletionItem.command' is executed."
-  (if (and (consp capf)
+  (if (and lsp/completion-command-support
+           (consp capf)
            (functionp (plist-get (cdddr capf) :exit-function)))
       (let* ((buffer (current-buffer))
              (server (eglot-current-server))
@@ -88,6 +105,18 @@ Only execute a command after Eglot has successfully applied its edits."
                              (lsp/completion-command-execute
                               exit proxy status buffer server table)))))
     capf))
+
+(defun lsp/configure-completion-commands ()
+  "Install or remove the optional, narrowly scoped completion bridge."
+  (when (featurep 'eglot)
+    (advice-remove 'eglot-completion-at-point #'lsp/completion-command-filter)
+    (advice-remove 'jsonrpc-request #'lsp/completion-resolve-command)
+    (when lsp/completion-command-support
+      (advice-add 'eglot-completion-at-point :filter-return
+                  #'lsp/completion-command-filter)
+      ;; JSONRPC's public request API preserves Eglot's resolution cache.
+      ;; The wrapper only handles resolve replies from the current server.
+      (advice-add 'jsonrpc-request :around #'lsp/completion-resolve-command))))
 
 ;;; eglot
 (defun lsp/format-on-save ()
@@ -122,13 +151,6 @@ advertise whole-buffer formatting."
   (remove-hook 'prog-mode-hook #'eglot-ensure)
   (remove-hook 'before-save-hook #'eglot-format)
   :config
-  ;; Run server-provided completion commands (for example HLS's
-  ;; `extend import') after a completion is accepted.
-  (unless (advice-member-p #'lsp/completion-command-filter
-                           'eglot-completion-at-point)
-    (advice-add 'eglot-completion-at-point :filter-return
-                #'lsp/completion-command-filter))
-  (unless (advice-member-p #'lsp/completion-resolve-command 'eglot--request)
-    (advice-add 'eglot--request :around #'lsp/completion-resolve-command)))
+  (lsp/configure-completion-commands))
 
 ;;; lsp.el ends here
