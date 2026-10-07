@@ -61,5 +61,36 @@
     (should-not bidi-inhibit-bpa)
     (should-not sentence-end)))
 
+(ert-deftest config-test/javascript-runtime-follows-project-not-buffer-type ()
+  (config-test/with-directory
+    (with-temp-buffer
+      (setq major-mode 'typescript-mode)
+      (cl-letf (((symbol-function 'executable-find)
+                 (lambda (name) (concat "/bin/" name))))
+        (should (equal (javascript--runtime root) "/bin/node"))
+        (config-test/file root "bun.lock")
+        (should (equal (javascript--runtime root) "/bin/bun"))
+        (config-test/file root "deno.json" "{}")
+        (should (equal (javascript--runtime root) "/bin/deno"))
+        (let ((javascript/runtime 'node))
+          (should (equal (javascript--runtime root) "/bin/node")))))))
+
+(ert-deftest config-test/javascript-explicit-runtime-never-silently-falls-back ()
+  (let ((javascript/runtime 'bun))
+    (cl-letf (((symbol-function 'executable-find) (lambda (_name) nil)))
+      (should-error (javascript--runtime default-directory) :type 'user-error))))
+
+(ert-deftest config-test/javascript-project-commands-override-generated-commands ()
+  (let ((javascript/run-command "npm run dev")
+        (javascript/build-command "npm run build")
+        (javascript/check-command "npm test")
+        invoked)
+    (cl-letf (((symbol-function 'javascript/project-root) (lambda () default-directory))
+              ((symbol-function 'compile) (lambda (command) (push command invoked))))
+      (javascript/run)
+      (javascript/compile)
+      (javascript/check)
+      (should (equal (reverse invoked) '("npm run dev" "npm run build" "npm test"))))))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

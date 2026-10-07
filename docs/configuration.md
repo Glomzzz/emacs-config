@@ -375,8 +375,12 @@ with the same VC-aware project finder as Haskell.  Lockfiles are not markers
 on their own, so a stray `bun.lock` cannot claim unrelated trees.  Runtime
 and compiler commands explicitly use the nearest JavaScript manifest,
 even when another language's marker is closer.  `M-x
-javascript/run` chooses Deno for Deno projects, Bun for Bun or TypeScript
-projects when available, and Node otherwise.  `M-x javascript/compile` runs
+javascript/run` chooses Deno for Deno projects, Bun for Bun projects, and
+Node otherwise.  `javascript/runtime` can select node/bun/deno explicitly
+in `.dir-locals.el`; TypeScript alone no longer implies Bun.  Set
+`javascript/run-command`, `javascript/build-command`, or
+`javascript/check-command` for project scripts instead of generated commands.
+Shell command overrides require the usual directory-local approval.  `M-x javascript/compile` runs
 `tsc` for TypeScript or `node --check` for JavaScript; `M-x javascript/check`
 uses the same validation path without emitting TypeScript output.  Dape offers
 Node, Bun, Deno, attach, and Chrome configurations through the Nix-provided

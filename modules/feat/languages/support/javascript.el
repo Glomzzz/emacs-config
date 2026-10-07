@@ -10,6 +10,39 @@
 (defvar apheleia-formatters)
 (defvar apheleia-mode-alist)
 
+(defgroup javascript-tools nil
+  "JavaScript project tools and debugger settings."
+  :group 'tools)
+
+(defcustom javascript/runtime 'auto
+  "Runtime for the current project: auto, node, bun, or deno.
+Auto honors Deno manifests and Bun lockfiles, then prefers Node."
+  :type '(choice (const auto) (const node) (const bun) (const deno))
+  :group 'javascript-tools)
+(make-variable-buffer-local 'javascript/runtime)
+(put 'javascript/runtime 'safe-local-variable
+     (lambda (value) (memq value '(auto node bun deno))))
+
+(defcustom javascript/run-command nil
+  "Optional project-local shell command for `javascript/run'.
+Nil runs the current file with `javascript/runtime'.  Shell commands
+are intentionally not marked safe directory-local values."
+  :type '(choice (const nil) string)
+  :group 'javascript-tools)
+(make-variable-buffer-local 'javascript/run-command)
+
+(defcustom javascript/build-command nil
+  "Optional project-local shell command for `javascript/compile'."
+  :type '(choice (const nil) string)
+  :group 'javascript-tools)
+(make-variable-buffer-local 'javascript/build-command)
+
+(defcustom javascript/check-command nil
+  "Optional project-local shell command for `javascript/check'."
+  :type '(choice (const nil) string)
+  :group 'javascript-tools)
+(make-variable-buffer-local 'javascript/check-command)
+
 ;; `treesit-auto' supplies the grammar sources and remaps the fallback modes
 ;; when the JavaScript, TypeScript, and TSX grammars are installed.
 (treesit/register-language 'javascript)
@@ -124,13 +157,15 @@ repositories whose general project root belongs to another toolchain."
 (defun javascript--runtime (root)
   "Return the runtime executable appropriate for ROOT and the current buffer."
   (cond
+   ((not (eq javascript/runtime 'auto))
+    (or (executable-find (symbol-name javascript/runtime))
+        (user-error "Requested runtime `%s' is not installed" javascript/runtime)))
    ((javascript--deno-project-p root)
     (or (executable-find "deno")
         (user-error "Deno project detected but `deno' is not installed")))
-   ((and (executable-find "bun")
-         (or (javascript--bun-project-p root)
-             (javascript--typescript-p)))
-    (executable-find "bun"))
+   ((javascript--bun-project-p root)
+    (or (executable-find "bun")
+        (user-error "Bun project detected but `bun' is not installed")))
    ((executable-find "node")
     (executable-find "node"))
    ((executable-find "bun")
@@ -185,19 +220,19 @@ When CHECK-ONLY is non-nil, TypeScript does not emit files."
   "Run the current JavaScript or TypeScript file in a compilation buffer."
   (interactive)
   (let ((default-directory (javascript/project-root)))
-    (compile (javascript/runtime-command))))
+    (compile (or javascript/run-command (javascript/runtime-command)))))
 
 (defun javascript/compile ()
   "Compile the current TypeScript project or check JavaScript syntax."
   (interactive)
   (let ((default-directory (javascript/project-root)))
-    (compile (javascript--compile-command))))
+    (compile (or javascript/build-command (javascript--compile-command)))))
 
 (defun javascript/check ()
   "Type-check TypeScript without emitting files, or check JavaScript syntax."
   (interactive)
   (let ((default-directory (javascript/project-root)))
-    (compile (javascript--compile-command t))))
+    (compile (or javascript/check-command (javascript--compile-command t)))))
 
 (defun javascript/configure-apheleia ()
   "Use Prettier for JavaScript and TypeScript fallback formatting."
