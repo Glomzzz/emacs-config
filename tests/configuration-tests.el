@@ -36,5 +36,21 @@
         (should (plist-member (lsp/workspace-configuration 'server)
                               (cdr entry)))))))
 
+(ert-deftest config-test/trust-excludes-shared-tmp-and-downloads ()
+  (dolist (file (list (expand-file-name "config-test.el" temporary-file-directory)
+                      (expand-file-name "Downloads/config-test.el" "~/")))
+    (with-temp-buffer
+      (setq buffer-file-name file
+            buffer-file-truename file)
+      (should-not (trusted-content-p)))))
+
+(ert-deftest config-test/trust-includes-development-and-config ()
+  (dolist (file (list (expand-file-name "git/config-test.el" "~/")
+                      (expand-file-name "init.el" user-emacs-directory)))
+    (with-temp-buffer
+      (setq buffer-file-name file
+            buffer-file-truename file)
+      (should (trusted-content-p)))))
+
 (provide 'configuration-tests)
 ;;; configuration-tests.el ends here

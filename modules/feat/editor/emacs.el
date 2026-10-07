@@ -40,10 +40,15 @@ queries so this predicate is safe to call from timer and shutdown hooks."
       ;; for smoother redisplay when many fonts are configured.
       inhibit-compacting-font-caches t)
 
-;; Flymake refuses to start backends such as `eglot-flymake-backend' in files
-;; that are not trusted.  Trust the user's own code and scratch space so LSP
-;; diagnostics are shown; files elsewhere still need an explicit entry.
-(setq trusted-content '("~/" "/tmp/"))
+;; Trusted content may execute code automatically, not just show diagnostics.
+;; Limit the defaults to development trees; downloads and shared temporary
+;; files must be trusted explicitly.  Preserve an explicit Customize choice.
+(unless (get 'trusted-content 'saved-value)
+  (setq trusted-content
+        (list "~/git/"
+              (abbreviate-file-name
+               (file-name-as-directory
+                (expand-file-name user-emacs-directory))))))
 ;; Summarize the most severe diagnostic at the end of its line, in addition
 ;; to the fringe indicators and `M-g f' (`consult-flymake').
 (setq flymake-show-diagnostics-at-end-of-line 'short)

@@ -349,9 +349,13 @@ buffer-locally.  `format/inhibit-eglot` and `lsp/format-on-save` then skip
 HLS formatting is synchronous and can wait for a cradle load.
 
 Flymake only starts backends such as `eglot-flymake-backend` in buffers whose
-files are listed in `trusted-content` (`editor/emacs.el` trusts `~/` and
-`/tmp/`).  Without that entry Emacs silently disables the backend and no
-server diagnostics appear at all.  `flymake-show-diagnostics-at-end-of-line`
+files are listed in `trusted-content`.  The default trust list is `~/git/`
+and this Emacs configuration directory, not the whole home directory or
+`/tmp/`: trusting content can permit automatic code execution, not just
+diagnostics.  Add only reviewed directories with
+`M-x customize-variable RET trusted-content`; a saved Customize choice
+takes precedence over the defaults.  Untrusted files do not get these
+backends until explicitly trusted.  `flymake-show-diagnostics-at-end-of-line`
 is set to `short` so the most severe diagnostic is summarized at the end of
 its line, alongside the fringe indicators, `M-g f` (`consult-flymake`), and
 `M-x flymake-show-buffer-diagnostics`.
