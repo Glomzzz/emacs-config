@@ -135,6 +135,59 @@
         (completion/eldoc-show-at-point)
         (should requested)))))
 
+(ert-deftest config-test/completion-colors-follow-theme-changes ()
+  (require 'corfu-popupinfo)
+  (deftheme config-test-completion-palette "Temporary completion palette.")
+  (let ((original-background
+         (face-attribute 'corfu-default :background nil 'default)))
+    (unwind-protect
+        (dolist (palette '(("#181818" "#e4e4ef" "#282828" "#484848" "#101010")
+                           ("#ffffff" "#202020" "#eeeeee" "#cccccc" "#dddddd")))
+          (pcase-let ((`(,background ,foreground ,selection ,bar ,border) palette))
+            (custom-theme-set-faces
+             'config-test-completion-palette
+             `(default ((t (:background ,background :foreground ,foreground))))
+             `(highlight ((t (:background ,selection :foreground unspecified))))
+             `(region ((t (:background ,bar))))
+             `(fringe ((t (:background ,border))))))
+          (enable-theme 'config-test-completion-palette)
+          (dolist (entry '((corfu-default . default)
+                           (corfu-popupinfo . default)
+                           (corfu-current . highlight)
+                           (corfu-bar . region)
+                           (corfu-border . fringe)))
+            (should (equal (face-attribute (car entry) :background nil 'default)
+                           (face-attribute (cdr entry) :background nil 'default))))
+          (dolist (face '(corfu-default corfu-popupinfo corfu-current))
+            (should (equal (face-attribute face :foreground nil 'default)
+                           (face-attribute 'default :foreground))))
+          ;; Corfu's scrollbar renderer reads this attribute directly.
+          (should (equal (face-attribute 'corfu-bar :background)
+                         (face-background 'region nil t)))
+          (should (eq (face-attribute 'corfu-current :extend) t)))
+      (disable-theme 'config-test-completion-palette))
+    (should (equal (face-attribute 'corfu-default :background nil 'default)
+                   original-background))
+    (should (equal (face-attribute 'corfu-bar :background)
+                   (face-background 'region nil t)))))
+
+(ert-deftest config-test/completion-preserves-theme-specific-faces ()
+  (deftheme config-test-completion-native "Temporary native Corfu palette.")
+  (let ((fallback (face-attribute 'corfu-current :background nil 'default)))
+    (unwind-protect
+        (progn
+          (custom-theme-set-faces
+           'config-test-completion-native
+           '(corfu-current ((t (:background "#123456" :foreground "#abcdef"))))
+           '(corfu-popupinfo ((t (:background "#654321")))))
+          (enable-theme 'config-test-completion-native)
+          (should (equal (face-attribute 'corfu-current :background) "#123456"))
+          (should (equal (face-attribute 'corfu-current :foreground) "#abcdef"))
+          (should (equal (face-attribute 'corfu-popupinfo :background) "#654321")))
+      (disable-theme 'config-test-completion-native))
+    (should (equal (face-attribute 'corfu-current :background nil 'default)
+                   fallback))))
+
 (ert-deftest config-test/theme-workaround-is-scoped-and-restored ()
   (let ((original (symbol-function 'custom-theme-set-faces))
         received)

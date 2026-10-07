@@ -196,6 +196,12 @@ Gruber Darker's legacy nil face colors are normalized only while
 `theme/load-gruber-darker` loads that theme.  The original Emacs face API is
 restored even if loading fails; other themes and Customize are untouched.
 
+Corfu's fallback colors derive from the active theme's `default`, `highlight`,
+`region`, and `fringe` faces instead of a separate hard-coded palette.  Its
+completion and documentation popups follow theme changes automatically;
+theme-provided Corfu faces and Customize settings still take precedence.
+Vertico already inherits standard theme faces.
+
 ### Documentation at Point
 
 Programming buffers use automatic Eldoc.  Graphical frames enable the public

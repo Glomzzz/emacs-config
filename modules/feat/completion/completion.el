@@ -1,5 +1,16 @@
 ;;; completion.el --- Popup completion -*- lexical-binding: t; -*-
 
+(defun completion/sync-theme-faces (&rest _ignored)
+  "Use the active theme's palette for Corfu's fallback faces.
+Theme-provided Corfu faces and Customize settings take precedence."
+  ;; Corfu reads the scrollbar background without resolving inheritance,
+  ;; so that color needs copying when a theme is enabled or disabled.
+  (dolist (spec `((corfu-default ((t (:inherit default))))
+                  (corfu-current ((t (:inherit highlight :extend t))))
+                  (corfu-bar ((t (:background ,(face-background 'region nil t)))))
+                  (corfu-border ((t (:inherit fringe))))))
+    (face-spec-set (car spec) (cadr spec) 'face-defface-spec)))
+
 ;; Corfu presents the normal `completion-at-point' sources in a popup.  It is
 ;; intentionally enabled globally so Eglot, snippets, and Cape share one UI.
 (packages/declare 'corfu)
@@ -13,6 +24,10 @@
   (corfu-preselect 'prompt)
   (corfu-quit-no-match 'separator)
   :config
+  ;; `corfu-popupinfo' inherits the same palette through `corfu-default'.
+  (completion/sync-theme-faces)
+  (add-hook 'enable-theme-functions #'completion/sync-theme-faces)
+  (add-hook 'disable-theme-functions #'completion/sync-theme-faces)
   (global-corfu-mode 1)
   (require 'corfu-popupinfo)
   (corfu-popupinfo-mode 1))
