@@ -15,9 +15,10 @@
 (setq display-line-numbers-type 'relative)
 
 (defun appearance/line-numbers-maybe ()
-  "Enable line numbers for local programming and text buffers."
+  "Enable line numbers for local, reasonably-sized editable buffers."
   (when (and (not (file-remote-p default-directory))
-             (not (derived-mode-p 'special-mode)))
+             (not (derived-mode-p 'special-mode))
+             (buffers/small-p))
     (display-line-numbers-mode 1)))
 
 (add-hook 'prog-mode-hook #'appearance/line-numbers-maybe)

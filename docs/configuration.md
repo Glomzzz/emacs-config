@@ -217,6 +217,12 @@ cross-buffer candidates, or set it buffer-locally for a project.  These
 settings trade a slightly later popup and fewer fallback words for less
 background work; they do not add completion caches or private package advice.
 
+When Corfu is enabled, remote buffers and buffers at or above
+`buffers/feature-size-limit` get buffer-local `corfu-auto` set to nil before
+its timer hooks are installed.  Manual completion still works.  This check
+runs at activation, not on every keystroke; toggle Corfu off/on to recheck a
+buffer that grew past the limit.  Existing buffer-local opt-outs are preserved.
+
 ### Documentation at Point
 
 Programming buffers use automatic Eldoc.  Graphical frames enable the public
@@ -240,8 +246,9 @@ defaults rather than global handwritten regexes or forced left-to-right text.
 
 `modules/core/buffers.el` owns `buffers/feature-size-limit` (2 MiB-sized
 character count by default), used by pairing, whitespace cleanup, highlighting,
-and Git markers.  `buffers/color-preview-size-limit` defaults to 1 MiB-sized
-character count.  Customize either limit; nil removes the size restriction.
+line numbers, automatic completion, and Git markers.
+`buffers/color-preview-size-limit` defaults to 1 MiB-sized character count.
+Customize either limit; nil removes the size restriction.
 Other package-specific limits remain in their own package options.
 
 ### Pairing and Structural Editing

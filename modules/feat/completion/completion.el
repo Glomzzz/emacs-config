@@ -11,6 +11,18 @@ Theme-provided Corfu faces and Customize settings take precedence."
                   (corfu-border ((t (:inherit fringe))))))
     (face-spec-set (car spec) (cadr spec) 'face-defface-spec)))
 
+(defun completion/limit-auto (&optional argument)
+  "Limit automatic completion when enabling Corfu with ARGUMENT.
+Remote, large, and So Long buffers retain manual completion.  Run before
+Corfu installs timer hooks; preserve explicit buffer-local opt-outs."
+  (when (and (not (or (and (numberp argument) (<= argument 0))
+                     (and (eq argument 'toggle) (bound-and-true-p corfu-mode))))
+             (or (file-remote-p default-directory)
+                 (not (buffers/small-p))
+                 (derived-mode-p 'so-long-mode)
+                 (bound-and-true-p so-long-minor-mode)))
+    (setq-local corfu-auto nil)))
+
 ;; Corfu presents the normal `completion-at-point' sources in a popup.  It is
 ;; intentionally enabled globally so Eglot, snippets, and Cape share one UI.
 (packages/declare 'corfu)
@@ -29,6 +41,9 @@ Theme-provided Corfu faces and Customize settings take precedence."
   (completion/sync-theme-faces)
   (add-hook 'enable-theme-functions #'completion/sync-theme-faces)
   (add-hook 'disable-theme-functions #'completion/sync-theme-faces)
+  ;; The public mode must see this policy before choosing its timer hooks.
+  ;; Checking only on activation avoids extra work on every keystroke.
+  (advice-add 'corfu-mode :before #'completion/limit-auto)
   (global-corfu-mode 1)
   (require 'corfu-popupinfo)
   (corfu-popupinfo-mode 1))
