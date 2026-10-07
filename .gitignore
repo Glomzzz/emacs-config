@@ -2,3 +2,22 @@
 .cache/
 eln-cache/
 auto-save-list/
+
+# Compiled Lisp/native modules and editor recovery artifacts
+*.elc
+*.eln
+*.so
+*.dylib
+*~
+\#*\#
+.\#*
+*.swp
+*.swo
+.DS_Store
+
+# Private agent metadata and machine-local overrides (not loaded automatically)
+.claude/
+/local/
+*.local.el
+/local.el
+.dir-locals-2.el
