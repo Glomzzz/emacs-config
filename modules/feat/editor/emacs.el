@@ -89,13 +89,9 @@ queries so this predicate is safe to call from timer and shutdown hooks."
 
 
 ;; Cursor move
+;; Major modes own sentence boundaries, fill prefixes, and text direction.
+;; Keep single-space sentence endings without replacing those syntax rules.
 (setq sentence-end-double-space nil
-      sentence-end "\\([ \t]+\\|  \\|[.?!][]\"')}]*\\($\\|[ \t]\\)\\)[ \t\n]*"
-      adaptive-fill-regexp "[ \t]+|[ \t]*([0-9]+.|*+)[ \t]*"
-      adaptive-fill-first-line-regexp "^* *$"
-      bidi-inhibit-bpa t ;; im LTR user and never use RTL
-      bidi-display-reordering 'left-to-right
-      bidi-paragraph-direction 'left-to-right
       long-line-threshold 1000
       large-hscroll-threshold 1000
       truncate-partial-width-windows nil)

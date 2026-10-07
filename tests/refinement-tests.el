@@ -53,5 +53,13 @@
       (emacs/delete-trailing-whitespace-maybe)
       (should (equal (buffer-string) "text\n")))))
 
+(ert-deftest config-test/text-layout-keeps-upstream-defaults ()
+  (with-temp-buffer
+    (text-mode)
+    (should bidi-display-reordering)
+    (should-not bidi-paragraph-direction)
+    (should-not bidi-inhibit-bpa)
+    (should-not sentence-end)))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

@@ -168,6 +168,8 @@ Markdown, and Org keep meaningful trailing spaces.  Set
 `editor/trim-trailing-whitespace` to nil in `.dir-locals.el` to disable it
 for a project, or t to opt a text buffer in.  Remote/large buffers still skip
 cleanup.  Formatters continue to own their language's formatting rules.
+Sentence/fill patterns and bidirectional text layout use Emacs/major-mode
+defaults rather than global handwritten regexes or forced left-to-right text.
 
 ### Shared Resource Limits
 
