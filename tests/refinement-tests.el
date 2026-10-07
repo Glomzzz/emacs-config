@@ -123,6 +123,31 @@
         (should (= enabled 1))
         (should (equal eldoc-display-functions '(eldoc-display-in-echo-area)))))))
 
+(ert-deftest config-test/eldoc-request-follows-popup-motion-suppression ()
+  (require 'eldoc-box)
+  (with-temp-buffer
+    (emacs-lisp-mode)
+    (let ((eldoc-timer nil)
+          (eldoc-current-idle-delay eldoc-idle-delay)
+          (eldoc-box--inhibit-childframe nil)
+          scheduled)
+      (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) t))
+                ((symbol-function 'run-with-idle-timer)
+                 (lambda (delay _repeat function &rest arguments)
+                   (push (list delay function arguments) scheduled)
+                   nil)))
+        (completion/eldoc-popup-maybe)
+        (let ((this-command 'forward-char))
+          (run-hooks 'post-command-hook))
+        (let ((suppression
+               (car (cl-remove-if (lambda (entry) (eq (cadr entry) #'eldoc--update))
+                                 scheduled)))
+              (request (assq eldoc-idle-delay scheduled)))
+          (should suppression)
+          (should request)
+          (should (eq (cadr request) #'eldoc--update))
+          (should (> (car request) (car suppression))))))))
+
 (ert-deftest config-test/eldoc-terminal-keeps-built-in-display ()
   (with-temp-buffer
     (emacs-lisp-mode)

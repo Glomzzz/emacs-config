@@ -136,10 +136,9 @@ advertise whole-buffer formatting."
   :ensure nil
   :hook (eglot-managed-mode . lsp/format-on-save)
   :init
-  ;; Show hover/signature documentation after the cursor has rested briefly.
   ;; Eglot feeds server documentation through Eldoc's normal display.
-  (setq eldoc-idle-delay 0.3
-        eldoc-echo-area-use-multiline-p t
+  ;; The completion module owns the idle delay, including popup timing.
+  (setq eldoc-echo-area-use-multiline-p t
         eglot-autoshutdown t)
   ;; Eglot evaluates workspace configuration in a temporary buffer, so the
   ;; shared dispatcher must be the global value; languages register above.

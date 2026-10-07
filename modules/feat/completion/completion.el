@@ -70,7 +70,10 @@ Corfu installs timer hooks; preserve explicit buffer-local opt-outs."
 (use-package eldoc
   :ensure nil
   :custom
-  (eldoc-idle-delay 0.3))
+  ;; eldoc-box's at-point mode suppresses display for 0.5 seconds after
+  ;; motion.  A faster Eldoc reply is discarded, and the unchanged point
+  ;; prevents a retry.  Request only after that suppression has expired.
+  (eldoc-idle-delay 0.6))
 
 (packages/declare 'eldoc-box)
 
