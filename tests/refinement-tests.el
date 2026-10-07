@@ -92,5 +92,22 @@
       (javascript/check)
       (should (equal (reverse invoked) '("npm run dev" "npm run build" "npm test"))))))
 
+(ert-deftest config-test/javascript-debug-settings-are-evaluated-at-launch ()
+  (require 'dape)
+  (let ((javascript/inspector-port 9333)
+        (javascript/browser-url "http://localhost:8080")
+        (javascript/debug-adapter-command "custom-js-debug")
+        (javascript/deno-permissions '("--allow-read")))
+    (should (equal (javascript/deno-debug-arguments)
+                   ["run" "--inspect-wait=127.0.0.1:9333" "--allow-read"]))
+    (should (equal (dape-config-get (alist-get 'javascript-chrome dape-configs) :url)
+                   "http://localhost:8080"))
+    (should (equal (dape-config-get (alist-get 'javascript-node dape-configs) 'command)
+                   "custom-js-debug"))
+    (should (= (dape-config-get (alist-get 'typescript-deno dape-configs)
+                               :attachSimplePort) 9333)))
+  (let ((javascript/deno-permissions nil))
+    (should-not (member "--allow-all" (append (javascript/deno-debug-arguments) nil)))))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

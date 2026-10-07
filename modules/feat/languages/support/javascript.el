@@ -43,6 +43,32 @@ are intentionally not marked safe directory-local values."
   :group 'javascript-tools)
 (make-variable-buffer-local 'javascript/check-command)
 
+(defcustom javascript/debug-adapter-command "js-debug"
+  "DAP adapter executable, normally supplied by Nix."
+  :type 'string :group 'javascript-tools)
+(defcustom javascript/inspector-port 9229
+  "Node/Deno inspector port for the current project."
+  :type 'natnum :group 'javascript-tools)
+(defcustom javascript/browser-url "http://localhost:3000"
+  "URL launched by the Chrome debugger configuration."
+  :type 'string :group 'javascript-tools)
+(defcustom javascript/deno-permissions nil
+  "Deno permission flags for debugging, for example --allow-read.
+Nil grants no extra permissions; --allow-all requires explicit opt-in."
+  :type '(repeat string) :group 'javascript-tools)
+(dolist (variable '(javascript/debug-adapter-command javascript/inspector-port
+                    javascript/browser-url javascript/deno-permissions))
+  (make-variable-buffer-local variable))
+(put 'javascript/inspector-port 'safe-local-variable
+     (lambda (value) (and (integerp value) (< 0 value 65536))))
+(put 'javascript/browser-url 'safe-local-variable #'stringp)
+
+(defun javascript/deno-debug-arguments ()
+  "Build Deno debugger arguments from the current project's settings."
+  (vconcat (list "run" (format "--inspect-wait=127.0.0.1:%d"
+                              javascript/inspector-port))
+           javascript/deno-permissions))
+
 ;; `treesit-auto' supplies the grammar sources and remaps the fallback modes
 ;; when the JavaScript, TypeScript, and TSX grammars are installed.
 (treesit/register-language 'javascript)
@@ -269,7 +295,7 @@ When CHECK-ONLY is non-nil, TypeScript does not emit files."
  'javascript-node
  '(modes (js-mode js-ts-mode)
    ensure dape-ensure-command
-   command "js-debug"
+   command javascript/debug-adapter-command
    command-args (:autoport)
    port :autoport
    :type "pwa-node"
@@ -282,7 +308,7 @@ When CHECK-ONLY is non-nil, TypeScript does not emit files."
  'typescript-node
  '(modes (typescript-mode typescript-ts-mode)
    ensure dape-ensure-command
-   command "js-debug"
+   command javascript/debug-adapter-command
    command-args (:autoport)
    port :autoport
    :type "pwa-node"
@@ -297,7 +323,7 @@ When CHECK-ONLY is non-nil, TypeScript does not emit files."
  'typescript-bun
  '(modes (typescript-mode typescript-ts-mode tsx-ts-mode)
    ensure javascript/ensure-bun
-   command "js-debug"
+   command javascript/debug-adapter-command
    command-args (:autoport)
    port :autoport
    :type "pwa-node"
@@ -312,14 +338,14 @@ When CHECK-ONLY is non-nil, TypeScript does not emit files."
  'typescript-deno
  '(modes (js-mode js-ts-mode typescript-mode typescript-ts-mode tsx-ts-mode)
    ensure javascript/ensure-deno
-   command "js-debug"
+   command javascript/debug-adapter-command
    command-args (:autoport)
    port :autoport
    :type "pwa-node"
    :request "launch"
    :runtimeExecutable "deno"
-   :runtimeArgs ("run" "--inspect-wait" "--allow-all")
-   :attachSimplePort 9229
+   :runtimeArgs javascript/deno-debug-arguments
+   :attachSimplePort javascript/inspector-port
    :cwd dape-cwd
    :program dape-buffer-default
    :console "internalConsole"))
@@ -328,23 +354,23 @@ When CHECK-ONLY is non-nil, TypeScript does not emit files."
  'javascript-node-attach
  '(modes (js-mode js-ts-mode typescript-mode typescript-ts-mode tsx-ts-mode)
    ensure dape-ensure-command
-   command "js-debug"
+   command javascript/debug-adapter-command
    command-args (:autoport)
    port :autoport
    :type "pwa-node"
    :request "attach"
-   :port 9229))
+   :port javascript/inspector-port))
 
 (debug/register-config
  'javascript-chrome
  '(modes (js-mode js-ts-mode typescript-mode typescript-ts-mode tsx-ts-mode)
    ensure dape-ensure-command
-   command "js-debug"
+   command javascript/debug-adapter-command
    command-args (:autoport)
    port :autoport
    :type "pwa-chrome"
    :request "launch"
-   :url "http://localhost:3000"
+   :url javascript/browser-url
    :webRoot dape-cwd))
 
 ;;; javascript.el ends here

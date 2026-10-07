@@ -384,7 +384,12 @@ Shell command overrides require the usual directory-local approval.  `M-x javasc
 `tsc` for TypeScript or `node --check` for JavaScript; `M-x javascript/check`
 uses the same validation path without emitting TypeScript output.  Dape offers
 Node, Bun, Deno, attach, and Chrome configurations through the Nix-provided
-`vscode-js-debug` adapter exposed as `js-debug`.
+`vscode-js-debug` adapter exposed as `js-debug`.  The adapter command,
+inspector port, and browser URL are the project-local options
+`javascript/debug-adapter-command`, `javascript/inspector-port`, and
+`javascript/browser-url`.  Deno debug permissions default to none; opt into
+specific flags with `javascript/deno-permissions` (directory-local approval
+required), rather than granting `--allow-all` globally.
 
 `typst.el` owns `.typ` buffers through `typst-ts-mode`, registers the Typst
 Tree-sitter grammar, and starts `tinymist` for both the fallback and
