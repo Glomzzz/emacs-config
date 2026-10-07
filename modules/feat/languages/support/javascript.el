@@ -2,7 +2,6 @@
 
 (require 'compile)
 (require 'project)
-(require 'seq)
 (require 'packages)
 
 (declare-function dape-ensure-command "dape" (config))
@@ -62,12 +61,21 @@
    '(js-mode js-ts-mode typescript-mode typescript-ts-mode tsx-ts-mode)
    #'javascript/eglot-workspace-configuration))
 
+(defconst javascript--project-markers
+  '("deno.json" "deno.jsonc" "tsconfig.json" "package.json")
+  "Manifest files that identify a JavaScript project root.")
+
 (defun javascript--marker-root (directory)
-  "Return the JavaScript project root found above DIRECTORY."
-  (seq-some (lambda (marker)
-              (locate-dominating-file directory marker))
-            '("deno.json" "deno.jsonc" "bun.lock" "bun.lockb"
-              "tsconfig.json" "package.json")))
+  "Return the nearest JavaScript project root found above DIRECTORY.
+Only manifests count as markers, and the nearest one wins.  A bare
+lockfile such as `bun.lock' in the home directory must not claim every
+file below it and shadow more specific projects."
+  (let ((roots
+         (delq nil
+               (mapcar (lambda (marker)
+                         (locate-dominating-file directory marker))
+                       javascript--project-markers))))
+    (car (sort roots (lambda (a b) (> (length a) (length b)))))))
 
 (defun javascript/project-try (directory)
   "Return a project object for JavaScript projects without VCS metadata."
