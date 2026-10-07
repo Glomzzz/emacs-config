@@ -1,4 +1,6 @@
-;;; modules/core/basic.el  -*- lexical-binding: t; -*-
+;;; appearance.el --- Portable appearance defaults -*- lexical-binding: t; -*-
+
+(require 'seq)
 
 ;; Disable Stupid UI
 (setq inhibit-startup-message t)
@@ -30,7 +32,10 @@
 
 ;; Highlight the current line.
 (require 'hl-line)
-(set-face-background 'hl-line "#282828")
+;; A fallback spec follows theme changes; theme/Customize overrides win.
+;; Gruber Darker's highlight background is the existing #282828 default.
+(face-spec-set 'hl-line '((t (:inherit highlight :extend t)))
+               'face-defface-spec)
 
 (defun appearance/hl-line-maybe ()
   "Highlight the current line in local, reasonably-sized buffers."
@@ -82,21 +87,59 @@
 
 
 ;;; Fonts
-;; eng(default)
-(set-face-attribute 'default nil :family "Cascadia Mono NF" :height 160)
-;; unicode
-(set-fontset-font t 'unicode (font-spec :family "Noto Sans"))
-;; zh_cn.  No `:size' here: a fixed pixel size does not follow the frame's
-;; point size on a scaled display, so let the fontset inherit the face height.
-(dolist (CnFamily '(han cjk-misc bopomofo))
-  (set-fontset-font t CnFamily (font-spec :family "LXGW WenKai") nil 'prepend))
-;; symbol
-(set-fontset-font t 'symbol (font-spec :family "Noto Sans Symbols 2") nil 'prepend)
-;; emoji
-(set-fontset-font t 'emoji (font-spec :family "Noto Color Emoji") nil 'prepend)
-;; greek
-(set-fontset-font t '(#x0370 . #x03FF) "Cascadia Mono NF")
+(defgroup appearance nil
+  "Portable font preferences."
+  :group 'faces)
+
+(defcustom appearance/font-families
+  '("Cascadia Mono NF" "Cascadia Mono" "DejaVu Sans Mono" "Monospace")
+  "Preferred default fonts, first installed family wins.
+Nil leaves the frame's default font unchanged.  Run `appearance/apply-fonts'
+after changing preferences; new graphical frames pick them up automatically."
+  :type '(repeat string) :group 'appearance)
+
+(defcustom appearance/font-height 160
+  "Default font height in tenths of a point.  Nil keeps the frame default."
+  :type '(choice (const nil) integer) :group 'appearance)
+
+(defcustom appearance/script-font-families
+  '((unicode "Noto Sans")
+    (han "LXGW WenKai" "Noto Sans CJK SC")
+    (cjk-misc "LXGW WenKai" "Noto Sans CJK SC")
+    (bopomofo "LXGW WenKai" "Noto Sans CJK TC")
+    (symbol "Noto Sans Symbols 2")
+    (emoji "Noto Color Emoji")
+    ((#x0370 . #x03FF) "Cascadia Mono NF" "Cascadia Mono"))
+  "Preferred fonts per script or character range.
+Missing families leave Emacs' own font fallback intact."
+  :type '(alist :key-type sexp :value-type (repeat string))
+  :group 'appearance)
+
+(defun appearance--available-font (families frame)
+  "Return the first installed family in FAMILIES on FRAME."
+  (seq-find (lambda (family)
+              (find-font (font-spec :family family) frame))
+            families))
+
+(defun appearance/apply-fonts (&optional frame)
+  "Apply font preferences to graphical FRAME, or the selected frame.
+Do not query or change fonts on a terminal or display-less daemon frame."
+  (interactive)
+  (let ((frame (or frame (selected-frame))))
+    (when (display-graphic-p frame)
+      (when-let* ((family (appearance--available-font
+                          appearance/font-families frame)))
+        (set-face-attribute 'default frame :family family))
+      (when appearance/font-height
+        (set-face-attribute 'default frame :height appearance/font-height))
+      (dolist (entry appearance/script-font-families)
+        (when-let* ((family (appearance--available-font (cdr entry) frame)))
+          ;; No fixed pixel size: inherit the frame's face height on HiDPI.
+          (set-fontset-font nil (car entry) (font-spec :family family)
+                            frame 'prepend))))))
+
+(appearance/apply-fonts)
+(add-hook 'after-make-frame-functions #'appearance/apply-fonts)
 (setq-default line-spacing 0.11)
 
-
-;;; basic.el ends here
+;;; appearance.el ends here

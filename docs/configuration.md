@@ -220,6 +220,21 @@ completion and documentation popups follow theme changes automatically;
 theme-provided Corfu faces and Customize settings still take precedence.
 Vertico already inherits standard theme faces.
 
+### Portable Appearance
+
+`appearance/font-families` keeps Cascadia Mono NF first, then tries installed
+fallbacks.  `appearance/font-height` defaults to 160 (16 pt); nil leaves the
+frame height unchanged.  `appearance/script-font-families` configures Unicode,
+CJK, symbols, emoji, and Greek preferences.  Unavailable fonts leave Emacs'
+font fallback intact.  Customize these options and run
+`M-x appearance/apply-fonts`; new GUI frames apply them automatically, while
+TTY and display-less daemon frames do not query fonts.
+
+The hl-line fallback inherits the active theme's `highlight` face (still
+`#282828` with Gruber Darker).  Theme-specific hl-line faces and Customize
+settings override it normally; changing to a light theme does not retain a
+hard-coded dark stripe.
+
 ### Completion Responsiveness
 
 Corfu starts automatic completion after a two-character prefix and a 200 ms
