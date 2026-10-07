@@ -251,5 +251,50 @@
         (should-not (advice-member-p #'dirvish/track-yank 'dirvish-yank-default-handler)))
     (dirvish/configure-task-tracking)))
 
+(ert-deftest config-test/haskell-settings-use-directory-local-workspace-context ()
+  (config-test/with-directory
+    (config-test/file
+     root ".dir-locals.el"
+     "((haskell-mode . ((haskell/server-threads . 3) (haskell/max-completions . 123))))")
+    (with-temp-buffer
+      (setq major-mode 'haskell-mode)
+      (hack-dir-local-variables-non-file-buffer)
+      (should (equal (haskell/server-command)
+                     '("haskell-language-server-wrapper" "--lsp" "-j" "3")))
+      (should (equal (lsp/workspace-configuration 'unused-server)
+                     '(:haskell (:maxCompletions 123)))))))
+
+(ert-deftest config-test/dirvish-real-copy-retains-task-observation ()
+  (require 'dirvish-yank)
+  (require 'task-dashboard)
+  (config-test/with-directory
+    (let* ((source (config-test/file root "source.txt" "temporary test content"))
+           (destination (expand-file-name "destination/" root))
+           (task-dashboard--tasks nil)
+           (dirvish-yank-log-buffers nil)
+           process)
+      (make-directory destination)
+      (unwind-protect
+          (cl-letf (((symbol-function 'task-dashboard--notify) #'ignore))
+            (with-temp-buffer
+              (dirvish-yank-default-handler 'dired-copy-file (list source) destination)
+              (should (= (length task-dashboard--tasks) 1))
+              (let* ((task (car task-dashboard--tasks))
+                     (deadline (+ (float-time) 15)))
+                (setq process (task-dashboard-task-process task))
+                (while (and (process-live-p process) (< (float-time) deadline))
+                  (accept-process-output process 0.1))
+                (should-not (process-live-p process))
+                (should (= (process-exit-status process) 0))
+                (should (eq (task-dashboard-task-status task) 'completed))
+                (should (file-exists-p (expand-file-name "source.txt" destination))))))
+        (when (and process (process-live-p process)) (delete-process process))
+        (dolist (task task-dashboard--tasks)
+          (when-let* ((buffer (task-dashboard-task-output-buffer task))
+                      ((buffer-live-p buffer)))
+            (kill-buffer buffer)))
+        (dolist (buffer dirvish-yank-log-buffers)
+          (when (buffer-live-p buffer) (kill-buffer buffer)))))))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

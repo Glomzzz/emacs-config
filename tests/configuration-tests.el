@@ -4,6 +4,7 @@
 (require 'ert)
 (require 'eglot)
 (require 'project)
+(require 'apheleia)
 
 (defmacro config-test/with-directory (&rest body)
   "Run BODY with a temporary project ROOT, then remove it."

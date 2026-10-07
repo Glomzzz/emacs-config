@@ -564,6 +564,9 @@ packages, start language servers, or change the running daemon.  Tests cover
 trust boundaries, project roots and Git ignore rules, completion commands
 and resolution caching, formatter ownership, navigation bindings,
 stale-config detection, and interactive pairing/structural editing.
+`tests/refinement-tests.el` also exercises directory-local server settings,
+configurable commands/paths, and a real asynchronous copy between temporary
+files to verify Dirvish/dashboard integration.
 `tests/pairs-tests.el` types through the real command loop to check wrapping,
 closing-delimiter skipping, deletion, apostrophes, operators, and snippets.
 Install declared packages before running the suite.
