@@ -26,43 +26,127 @@
           :p95 (benchmark/percentile sorted 0.95)
           :max (car (last sorted)))))
 
-(defun benchmark/measure (name function iterations)
-  "Measure FUNCTION over ITERATIONS and print a summary labelled NAME.
-Warm up three times, then collect once before the measurement series.
-Do not collect between samples: allocation-related pauses must stay visible.
-FUNCTION must return a stable result, typically a candidate count or size."
-  (unless (and (integerp iterations) (> iterations 0))
-    (error "Iterations must be a positive integer"))
-  (let ((expected (funcall function)))
-    (dotimes (_ 2) (funcall function))
+(defun benchmark/sample (name function expected)
+  "Time FUNCTION, validate EXPECTED, and return [seconds GC-count GC-seconds].
+NAME labels failures.  GC counters cover the same interval as elapsed time;
+validation and recording occur outside it.  Do not subtract GC from wall time."
+  (let* ((gc-start gcs-done)
+         (gc-time-start gc-elapsed)
+         (start (current-time))
+         (result (funcall function))
+         (seconds (float-time (time-subtract (current-time) start)))
+         (gc-count (- gcs-done gc-start))
+         (gc-seconds (- gc-elapsed gc-time-start)))
+    (unless (equal result expected)
+      (error "%s workload result changed: %S != %S" name result expected))
+    (vector seconds gc-count gc-seconds)))
+
+(defun benchmark/summarize-records (records)
+  "Summarize sample RECORDS, separating those with and without measured GC."
+  (let ((gc-count 0) (gc-seconds 0.0) times free hit)
+    (mapc (lambda (record)
+            (push (aref record 0) times)
+            (if (zerop (aref record 1))
+                (push (aref record 0) free)
+              (push (aref record 0) hit))
+            (cl-incf gc-count (aref record 1))
+            (cl-incf gc-seconds (aref record 2)))
+          records)
+    (append (benchmark/summarize times)
+            (list :gc-count gc-count :gc-seconds gc-seconds
+                  :gc-free (and free (benchmark/summarize free))
+                  :gc-hit (and hit (benchmark/summarize hit))))))
+
+(defun benchmark/print-summary (name summary)
+  "Print NAME's overall SUMMARY and its GC-conditioned populations."
+  (princ (format "%-29s %5d %10.3f %10.3f %10.3f %5d %10.3f %S\n"
+                 name (plist-get summary :count)
+                 (* 1000 (plist-get summary :median))
+                 (* 1000 (plist-get summary :p95))
+                 (* 1000 (plist-get summary :max))
+                 (plist-get summary :gc-count)
+                 (* 1000 (plist-get summary :gc-seconds))
+                 (plist-get summary :result)))
+  (dolist (population '(:gc-free :gc-hit))
+    (let ((group (plist-get summary population)))
+      (if group
+          (princ (format "#   %-7s n=%d median=%.3f ms p95=%.3f ms max=%.3f ms\n"
+                         population (plist-get group :count)
+                         (* 1000 (plist-get group :median))
+                         (* 1000 (plist-get group :p95))
+                         (* 1000 (plist-get group :max))))
+        (princ (format "#   %-7s n=0 (no observed samples)\n" population))))))
+
+(defun benchmark/measure-many (workloads iterations)
+  "Measure WORKLOADS for ITERATIONS, alternating their order each round.
+WORKLOADS is an alist of names and functions returning stable results.
+Warm each function three times, then collect once before the entire series.
+Keep natural GC enabled; report collections between callbacks separately.
+Return summaries in WORKLOADS order.  Recording/reporting is not timed."
+  (unless (and workloads (integerp iterations) (> iterations 0))
+    (error "Expected workloads and a positive iteration count"))
+  (let ((entries
+         (mapcar (lambda (workload)
+                   (let* ((name (car workload))
+                          (function (cdr workload))
+                          (expected (funcall function)))
+                     (dotimes (_ 2)
+                       (unless (equal (funcall function) expected)
+                         (error "%s workload changed during warmup" name)))
+                     (list name function expected (make-vector iterations nil))))
+                 workloads)))
     (garbage-collect)
     (let ((gc-start gcs-done)
           (gc-time-start gc-elapsed)
-          samples)
-      (dotimes (_ iterations)
-        (let* ((start (current-time))
-               (result (funcall function))
-               (seconds (float-time (time-subtract (current-time) start))))
-          (unless (equal result expected)
-            (error "%s workload result changed: %S != %S" name result expected))
-          (push seconds samples)))
-      (let* ((gc-count (- gcs-done gc-start))
-             (gc-seconds (- gc-elapsed gc-time-start))
-             (summary (benchmark/summarize samples)))
-        (princ (format "%-27s %5d %10.3f %10.3f %10.3f %5d %10.3f %S\n"
-                       name iterations
-                       (* 1000 (plist-get summary :median))
-                       (* 1000 (plist-get summary :p95))
-                       (* 1000 (plist-get summary :max))
-                       gc-count (* 1000 gc-seconds) expected))
-        (append summary (list :gc-count gc-count :gc-seconds gc-seconds
-                              :result expected))))))
+          (reverse-entries (reverse entries)))
+      (dotimes (round iterations)
+        (dolist (entry (if (cl-evenp round) entries reverse-entries))
+          (aset (nth 3 entry) round
+                (benchmark/sample (nth 0 entry) (nth 1 entry) (nth 2 entry)))))
+      ;; Snapshot before summarizing/printing, which can itself allocate and GC.
+      (let* ((series-gcs (- gcs-done gc-start))
+             (series-gc-seconds (- gc-elapsed gc-time-start))
+             (summaries
+              (mapcar (lambda (entry)
+                        (append (benchmark/summarize-records (nth 3 entry))
+                                (list :name (car entry) :result (nth 2 entry))))
+                      entries))
+             (measured-gcs (cl-loop for s in summaries sum (plist-get s :gc-count)))
+             (measured-gc-seconds
+              (cl-loop for s in summaries sum (plist-get s :gc-seconds))))
+        (dolist (summary summaries)
+          (benchmark/print-summary (plist-get summary :name) summary))
+        (princ (format "# Between timed callbacks: GCs=%d GC-ms=%.3f (excluded from rows)\n"
+                       (- series-gcs measured-gcs)
+                       (* 1000 (max 0.0 (- series-gc-seconds measured-gc-seconds)))))
+        summaries))))
 
-(defun benchmark/dabbrev-count ()
-  "Return the number of fresh Cape Dabbrev candidates at point."
-  (pcase-let ((`(,beg ,end ,table . ,properties) (cape-dabbrev)))
-    (length (all-completions (buffer-substring-no-properties beg end)
+(defun benchmark/measure (name function iterations)
+  "Measure FUNCTION for ITERATIONS and return its summary labelled NAME."
+  (car (benchmark/measure-many (list (cons name function)) iterations)))
+
+(defun benchmark/dabbrev-count (&optional capf)
+  "Return Cape Dabbrev candidate count at point, optionally reusing CAPF.
+Use the current prefix rather than CAPF's original integer end position."
+  (pcase-let ((`(,beg ,_end ,table . ,properties) (or capf (cape-dabbrev))))
+    (length (all-completions (buffer-substring-no-properties beg (point))
                              table (plist-get properties :predicate)))))
+
+(defun benchmark/dabbrev-workload (scope &optional cached)
+  "Build a Dabbrev callback using SCOPE, optionally with a primed CACHED table.
+Creating and priming a table is untimed.  Fresh callbacks create one per call."
+  (let* ((cape-dabbrev-buffer-function scope)
+         (capf (and cached (cape-dabbrev))))
+    (when capf (benchmark/dabbrev-count capf))
+    (lambda ()
+      (let ((cape-dabbrev-buffer-function scope))
+        (benchmark/dabbrev-count capf)))))
+
+(defun benchmark/set-prefix (start prefix)
+  "Replace text from START to buffer end with PREFIX, outside measurement."
+  (delete-region start (point-max))
+  (goto-char start)
+  (insert prefix))
 
 (defun benchmark/run-workloads (directory iterations)
   "Run synthetic completion and file workloads in DIRECTORY for ITERATIONS."
@@ -87,11 +171,29 @@ FUNCTION must return a stable result, typically a candidate count or size."
           (with-temp-buffer
             (text-mode)
             (dotimes (i 2000) (insert (format "benchword%04d " i)))
-            (insert "\nbenchw")
-            (princ "# Dabbrev: 2000 local words, eight same-mode buffers of 5000 unrelated words.\n")
-            (benchmark/measure "dabbrev/configured" #'benchmark/dabbrev-count iterations)
-            (let ((cape-dabbrev-buffer-function #'cape-same-mode-buffers))
-              (benchmark/measure "dabbrev/same-mode-compare" #'benchmark/dabbrev-count iterations))))
+            (insert "\n")
+            (let ((start (point))
+                  (scope cape-dabbrev-buffer-function))
+              (princ "# Dabbrev: 2000 local words, eight same-mode buffers of 5000 unrelated words.\n")
+              (princ "# Paired scan scopes alternate A/B and B/A each round; no GC between samples.\n")
+              (dolist (prefix '("benchw" "benchword19"))
+                (benchmark/set-prefix start prefix)
+                (princ (format "# Fresh tables; prefix=%s\n" prefix))
+                (benchmark/measure-many
+                 (list (cons "dabbrev/fresh-configured"
+                             (benchmark/dabbrev-workload scope))
+                       (cons "dabbrev/fresh-same-mode"
+                             (benchmark/dabbrev-workload #'cape-same-mode-buffers)))
+                 iterations))
+              (benchmark/set-prefix start "benchw")
+              (let ((workloads
+                     (list (cons "dabbrev/cached-configured"
+                                 (benchmark/dabbrev-workload scope t))
+                           (cons "dabbrev/cached-same-mode"
+                                 (benchmark/dabbrev-workload #'cape-same-mode-buffers t)))))
+                (benchmark/set-prefix start "benchword19")
+                (princ "# Primed at benchw, extended to benchword19; repeated cached queries only.\n")
+                (benchmark/measure-many workloads iterations)))))
       (mapc #'kill-buffer buffers)))
   (dolist (fixture '(("small.el" . 2000) ("large.el" . 60000)))
     (let ((file (expand-file-name (car fixture) directory)))

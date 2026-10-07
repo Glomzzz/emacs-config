@@ -53,8 +53,9 @@
             (princ (format "# %s %s\n" package
                            (package-version-join (package-desc-version descriptor))))))
         (princ "# Warm synchronous workloads: no GUI redisplay, timers, LSP, or input latency.\n")
-        (princ "# Samples include natural GC; pre-series warmup and GC are excluded.\n")
-        (princ (format "%-27s %5s %10s %10s %10s %5s %10s %s\n"
+        (princ "# Natural GC retained; rows count GC only within timed callbacks.\n")
+        (princ "# GC-free/GC-hit groups are wall times, not GC-subtracted estimates.\n")
+        (princ (format "%-29s %5s %10s %10s %10s %5s %10s %s\n"
                        "workload" "n" "median-ms" "p95-ms" "max-ms" "GCs" "GC-ms" "result"))
         (benchmark/run-workloads state-directory (string-to-number raw-iterations)))
     (dolist (mode '(savehist-mode recentf-mode save-place-mode))

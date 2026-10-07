@@ -111,6 +111,69 @@
   (should (= (benchmark/percentile (number-sequence 1 100) 0.95) 95))
   (should-error (benchmark/summarize nil)))
 
+(ert-deftest config-test/benchmark-gc-populations ()
+  (let ((summary (benchmark/summarize-records
+                  '([0.01 0 0.0] [0.04 1 0.025]
+                    [0.02 0 0.0] [0.06 2 0.04]))))
+    (should (= (plist-get summary :count) 4))
+    (should (= (plist-get summary :gc-count) 3))
+    (should (= (plist-get summary :gc-seconds) 0.065))
+    (should (= (plist-get (plist-get summary :gc-free) :count) 2))
+    (should (= (plist-get (plist-get summary :gc-free) :median) 0.015))
+    ;; GC-hit timing is actual wall time, not wall time minus GC.
+    (should (= (plist-get (plist-get summary :gc-hit) :count) 2))
+    (should (= (plist-get (plist-get summary :gc-hit) :median) 0.05)))
+  (let ((summary (benchmark/summarize-records '([0.01 0 0.0]))))
+    (should-not (plist-get summary :gc-hit)))
+  (let ((summary (benchmark/summarize-records '([0.04 1 0.02]))))
+    (should-not (plist-get summary :gc-free))))
+
+(ert-deftest config-test/benchmark-counts-gc-only-in-timed-callback ()
+  (let ((gcs-done 10)
+        (gc-elapsed 1.0))
+    (let ((sample (benchmark/sample
+                   "gc" (lambda () (cl-incf gcs-done 2)
+                          (cl-incf gc-elapsed 0.5) 'stable)
+                   'stable)))
+      (should (= (aref sample 1) 2))
+      (should (= (aref sample 2) 0.5)))))
+
+(ert-deftest config-test/benchmark-pairs-alternate-order ()
+  (let (order summaries)
+    (with-temp-buffer
+      (let ((standard-output (current-buffer)))
+        (setq summaries
+              (benchmark/measure-many
+               (list (cons "a" (lambda () (push 'a order) 'result-a))
+                     (cons "b" (lambda () (push 'b order) 'result-b)))
+               4))))
+    ;; Three warmups per function precede four alternating paired rounds.
+    (should (equal (nreverse order) '(a a a b b b a b b a a b b a)))
+    (should (equal (mapcar (lambda (s) (plist-get s :name)) summaries)
+                   '("a" "b")))
+    (should (cl-every (lambda (s) (= (plist-get s :count) 4)) summaries))))
+
+(ert-deftest config-test/benchmark-dabbrev-cached-prefix-does-not-rescan ()
+  (require 'cape)
+  (with-temp-buffer
+    (text-mode)
+    (insert "benchword1900 benchword1901 benchword1800\n")
+    (let* ((start (point))
+           (scans 0)
+           (scope (lambda () (cl-incf scans) (current-buffer)))
+           cached)
+      (benchmark/set-prefix start "benchw")
+      (setq cached (benchmark/dabbrev-workload scope t))
+      (should (= scans 1))
+      (should (= (funcall cached) 3))
+      (benchmark/set-prefix start "benchword19")
+      (should (= (funcall cached) 2))
+      (should (= (funcall cached) 2))
+      (should (= scans 1))
+      ;; A fresh table at the narrower prefix must return the same count.
+      (should (= (funcall (benchmark/dabbrev-workload scope)) 2))
+      (should (= scans 2)))))
+
 (ert-deftest config-test/benchmark-detects-workload-drift ()
   (let ((calls 0))
     (should-error
@@ -118,6 +181,13 @@
        (unwind-protect
            (benchmark/measure "drift" (lambda () (cl-incf calls)) 2)
          (kill-buffer standard-output)))))
-  (should-error (benchmark/measure "invalid" #'ignore 0)))
+  (let ((calls 0))
+    (with-temp-buffer
+      (let ((standard-output (current-buffer)))
+        ;; Detect drift inside the timed series, not just during warmup.
+        (should-error
+         (benchmark/measure "drift" (lambda () (< (cl-incf calls) 4)) 2)))))
+  (should-error (benchmark/measure "invalid" #'ignore 0))
+  (should-error (benchmark/measure-many nil 1)))
 
 ;;; performance-tests.el ends here

@@ -625,18 +625,35 @@ installing packages, starting language servers, or touching the running daemon.
 Nothing in the normal configuration loads this harness.  It measures:
 
 - Orderless filtering of 10,000 synthetic candidate names;
-- fresh Cape Dabbrev tables with the configured scan scope and a same-mode
-  comparison using identical generated buffers;
+- fresh Cape Dabbrev tables at broad (`benchw`, 2000 candidates) and narrower
+  (`benchword19`, 100 candidates) prefixes, comparing the configured scan scope
+  against same-mode scanning in alternating A/B and B/A order each round;
+- cached Dabbrev queries after priming a table at the broad prefix and extending
+  the buffer's input to the narrower prefix.  Priming and the edit are untimed;
+  this measures repeated table queries, not a full typing sequence;
 - repeated local file visits with normal mode hooks, below and above the shared
   buffer-size limit.  The result includes whether line numbers were enabled.
 
-Each workload has three untimed warmups and one pre-series garbage collection.
-Timed samples include natural GC; the runner reports median, nearest-rank p95,
-maximum, GC count/time, and a stable result count or size.  It also prints Emacs
-build features, relevant package versions, and runtime settings.  The default is
-30 samples; set `EMACS_BENCHMARK_ITERATIONS` between 1 and 1000.  Small runs are
-smoke tests, not trustworthy tail estimates.  There are no machine-dependent
-pass/fail timing thresholds or claims of GUI/LSP/input-to-screen latency.
+Each workload has three untimed warmups.  A single GC precedes each series
+(including a paired comparison), not each sample.  Natural GC stays enabled.
+The runner reports median, nearest-rank p95, maximum, and GC count/time measured
+inside each timed callback, plus a stable result count or size.  Separate
+GC-free and GC-hit populations show their own sample counts and wall-time
+statistics; an empty population is explicitly reported, never replaced by zero.
+GC-hit times are not estimated by subtracting GC time, and a collection during
+one callback can reflect allocations from earlier callbacks.  Collections
+between callbacks are reported separately, outside the workload rows.
+
+Fresh-table timings represent repeated completion-session startup.  Cape can
+reuse its table when a prefix is extended, so do not interpret these as the
+cost of every keystroke.  The cached case verifies that reuse without changing
+runtime settings or adding a configuration-owned completion cache.
+
+The runner also prints Emacs build features, relevant package versions, and
+runtime settings.  The default is 30 samples; set `EMACS_BENCHMARK_ITERATIONS`
+between 1 and 1000.  Small runs and sparse GC-hit populations are smoke tests,
+not trustworthy tail estimates.  There are no machine-dependent pass/fail
+timing thresholds or claims of GUI/LSP/input-to-screen latency.
 
 Compare several alternating runs of identical fixtures on the same machine,
 Emacs build, and package versions; record the Git revision and working-tree
