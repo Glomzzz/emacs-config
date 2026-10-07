@@ -161,6 +161,14 @@ writing state into the repository.  The main paths currently include:
 before packages load, so native compilation does not fill the repository or
 the default Emacs cache with configuration-specific artifacts.
 
+### Project Editing Policies
+
+Save-time whitespace cleanup defaults to code/config buffers only; text,
+Markdown, and Org keep meaningful trailing spaces.  Set
+`editor/trim-trailing-whitespace` to nil in `.dir-locals.el` to disable it
+for a project, or t to opt a text buffer in.  Remote/large buffers still skip
+cleanup.  Formatters continue to own their language's formatting rules.
+
 ### Shared Resource Limits
 
 `modules/core/buffers.el` owns `buffers/feature-size-limit` (2 MiB-sized

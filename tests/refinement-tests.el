@@ -29,5 +29,29 @@
     (let ((buffers/feature-size-limit nil))
       (should (buffers/small-p)))))
 
+(ert-deftest config-test/whitespace-preserves-prose-and-markdown-breaks ()
+  (dolist (mode '(text-mode markdown-mode))
+    (with-temp-buffer
+      (funcall mode)
+      (insert "line  \n")
+      (emacs/delete-trailing-whitespace-maybe)
+      (should (equal (buffer-string) "line  \n")))))
+
+(ert-deftest config-test/whitespace-respects-project-policy ()
+  (with-temp-buffer
+    (emacs-lisp-mode)
+    (insert "code  \n")
+    (let ((editor/trim-trailing-whitespace nil))
+      (emacs/delete-trailing-whitespace-maybe)
+      (should (equal (buffer-string) "code  \n")))
+    (emacs/delete-trailing-whitespace-maybe)
+    (should (equal (buffer-string) "code\n")))
+  (with-temp-buffer
+    (text-mode)
+    (insert "text  \n")
+    (let ((editor/trim-trailing-whitespace t))
+      (emacs/delete-trailing-whitespace-maybe)
+      (should (equal (buffer-string) "text\n")))))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

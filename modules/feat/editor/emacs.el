@@ -129,10 +129,27 @@ queries so this predicate is safe to call from timer and shutdown hooks."
 ;; Del selection(replace things when write on selection)
 (delete-selection-mode t)
 
-;; Auto formatting.  Avoid scanning large or remote buffers on every save.
+(defgroup editor nil
+  "Shared editing policies."
+  :group 'editing)
+
+(defcustom editor/trim-trailing-whitespace 'code
+  "Save-time trailing whitespace cleanup policy.
+`code' cleans programming/config buffers but preserves prose and markup.
+T opts any buffer in; nil disables cleanup.  Set this directory-locally
+when a project's format has meaningful trailing spaces."
+  :type '(choice (const :tag "Code/config only" code)
+                 (const :tag "Always" t) (const :tag "Never" nil))
+  :group 'editor)
+(make-variable-buffer-local 'editor/trim-trailing-whitespace)
+(put 'editor/trim-trailing-whitespace 'safe-local-variable
+     (lambda (value) (memq value '(code t nil))))
+
 (defun emacs/delete-trailing-whitespace-maybe ()
-  "Delete trailing whitespace in local, reasonably-sized source buffers."
-  (when (and (derived-mode-p 'prog-mode 'text-mode 'conf-mode)
+  "Clean trailing whitespace according to the current project's policy."
+  (when (and editor/trim-trailing-whitespace
+             (or (eq editor/trim-trailing-whitespace t)
+                 (derived-mode-p 'prog-mode 'conf-mode))
              (not (file-remote-p default-directory))
              (buffers/small-p))
     (delete-trailing-whitespace)))
