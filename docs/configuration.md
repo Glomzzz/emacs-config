@@ -270,6 +270,22 @@ clang-format and rustfmt own the Apheleia side, and Dape's built-in
 mode-scoped configurations (`gdb` for C/C++, `lldb-dap` for Rust) cover
 debugging without a language-specific registration.
 
+`haskell.el` owns `.hs`, `.lhs`, and `.hsc` buffers through `haskell-mode`.
+Haskell cradles usually have no VCS metadata, so the module adds a
+transient project finder for `hie.yaml`, `stack.yaml`, `cabal.project`,
+`package.yaml`, and package `*.cabal` files.  It replaces Eglot's bundled
+`static-ls` candidate with `haskell-language-server-wrapper`, launched with
+`-j 2` so indexing cannot saturate every core, and the buffer sets
+`eglot-sync-connect` to nil so Emacs never blocks on HLS's slow cold start.
+HLS starts automatically for every Haskell buffer, using the nearest
+project cradle when the file belongs to one and its default plain-GHC
+session for standalone files.  Apheleia/Ormolu owns save-time formatting even while
+Eglot manages the buffer: the module sets `format/apheleia-owns` because
+HLS formatting is a synchronous request that can block a save while the
+server loads the cradle.  Completion candidates are ordered by proximity:
+bindings local to the current declaration first, then other definitions,
+then names imported from other modules.
+
 `markdown.el` is the editing-and-preview exception: `markdown-mode` owns
 `.md`/`.markdown`/`.mdx` buffers (with `gfm-mode` for README files), and
 preview uses markdown-mode's own commands — `markdown-live-preview-mode`
@@ -285,7 +301,10 @@ registered with treesit-auto because Emacs' `markdown-ts-mode` derives from
 `javascript`, `typescript`, and `tsx` Tree-sitter grammars, starts
 `typescript-language-server` for the fallback and Tree-sitter modes, and uses
 Prettier through Apheleia when Eglot is not managing the buffer; Prettier
-infers the parser from each buffer's filename, including JSX and TSX.  `M-x
+infers the parser from each buffer's filename, including JSX and TSX.  The
+project finder picks the nearest `package.json`, `deno.json`, or
+`tsconfig.json`; lockfiles are not markers on their own, so a stray
+`bun.lock` cannot claim unrelated trees.  `M-x
 javascript/run` chooses Deno for Deno projects, Bun for Bun or TypeScript
 projects when available, and Node otherwise.  `M-x javascript/compile` runs
 `tsc` for TypeScript or `node --check` for JavaScript; `M-x javascript/check`
@@ -323,10 +342,36 @@ manages a buffer, `lsp/format-on-save` enables Eglot formatting and disables
 Apheleia there.  In unmanaged buffers, `format/mode-maybe` keeps Apheleia
 available.  This prevents two formatters from racing on save.
 
+A language can keep Apheleia in charge by setting `format/apheleia-owns`
+buffer-locally.  `format/inhibit-eglot` and `lsp/format-on-save` then skip
+`eglot-format` and leave Apheleia enabled.  `haskell.el` uses this because
+HLS formatting is synchronous and can wait for a cradle load.
+
+Flymake only starts backends such as `eglot-flymake-backend` in buffers whose
+files are listed in `trusted-content` (`editor/emacs.el` trusts `~/` and
+`/tmp/`).  Without that entry Emacs silently disables the backend and no
+server diagnostics appear at all.  `flymake-show-diagnostics-at-end-of-line`
+is set to `short` so the most severe diagnostic is summarized at the end of
+its line, alongside the fringe indicators, `M-g f` (`consult-flymake`), and
+`M-x flymake-show-buffer-diagnostics`.
+
+Eglot enables LSP snippet completions only when Yasnippet is available.
+`completion/snippets.el` bridges that capability to Tempel with
+`eglot-tempel`, so servers that return snippets (HLS, TypeScript Server)
+expand them with editable fields.
+
 If a server needs language-specific initialization options, define a
-`foo/eglot-workspace-configuration` function in the language module and attach
-it through Eglot's workspace configuration.  Keep that function in the
+`foo/eglot-workspace-configuration' function in the language module and
+register it with `lsp/register-workspace-configuration'.  Eglot evaluates
+`eglot-workspace-configuration' in a temporary buffer, so a buffer-local
+value is ignored; the shared dispatcher in `lsp.el` looks the
+configuration up by the server's major mode.  Keep the function in the
 language file rather than changing `lsp.el`.
+
+`lsp.el` also advises `eglot-completion-at-point' so a server-provided
+`CompletionItem.command' runs after a completion is accepted.  HLS uses
+this for `extend import'; `haskell.el` raises `maxCompletions' to 1000 so
+unimported names are actually returned before the import command runs.
 
 ### Debugging with Dape
 
