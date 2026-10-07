@@ -1,0 +1,38 @@
+#!/bin/sh
+# Portable, on-demand client for a dedicated daemon.  Bootstrap separately.
+set -eu
+
+emacs=${EMACS:-emacs}
+client=${EMACSCLIENT:-emacsclient}
+config=${EMC_CONFIG_DIR:-${XDG_CONFIG_HOME:-"$HOME/.config"}/emacs}
+server=${EMC_SERVER_NAME:-emc}
+
+for executable in "$emacs" "$client"; do
+  command -v "$executable" >/dev/null 2>&1 || {
+    echo "emc: executable not found: $executable" >&2
+    exit 1
+  }
+done
+[ -r "$config/init.el" ] || {
+  echo "emc: configuration not found: $config/init.el" >&2
+  exit 1
+}
+
+# Never let emacsclient spawn an unconfigured fallback editor.  Do not restart
+# an existing daemon automatically: that could discard buffers or busy work.
+if ! "$client" --socket-name="$server" --timeout=5 \
+     --alternate-editor=false --eval t >/dev/null 2>&1; then
+  "$emacs" --init-directory="$config" --daemon="$server" || {
+    echo "emc: daemon unavailable; run scripts/bootstrap.el first and check startup errors" >&2
+    exit 1
+  }
+fi
+
+if [ "$#" -eq 0 ]; then
+  if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+    set -- --create-frame
+  else
+    set -- --tty
+  fi
+fi
+exec "$client" --socket-name="$server" --alternate-editor=false "$@"

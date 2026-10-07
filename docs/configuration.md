@@ -3,7 +3,8 @@
 This configuration is a small, source-based Emacs distribution.  `init.el`
 is the entry point, package declarations live beside the feature that uses
 them, and mutable Emacs data is kept below the cache root instead of in the
-repository.
+repository.  For first-run commands, prerequisites, and separate NixOS and
+non-NixOS launcher installation, see [Install `emc`](emc-installation.md).
 
 ## 1. How the Configuration Works
 
@@ -98,11 +99,20 @@ During normal startup, `packages/declare` only records the package in
 `packages/declared`; it does not install anything.  Missing packages are
 installed in one of two bootstrap paths:
 
-- Run `M-x packages/bootstrap` after the configuration has loaded.
-- The managed systemd service runs a batch preflight with
-  `packages/bootstrap-mode` set to `t`.  In that mode declarations install
-  missing packages as they are evaluated, and `packages/save-selection`
-  persists the resulting `package-selected-packages` value.
+- **First run:** `emacs --batch -Q -l /path/to/emacs/scripts/bootstrap.el`.
+  The script sets `packages/bootstrap-mode` to `t` before loading `init.el`.
+  In that mode declarations install missing packages as they are evaluated,
+  and `packages/save-selection` persists `package-selected-packages` and
+  refreshes quickstart metadata.  This was tested with an isolated empty
+  cache and network installation, followed by a normal batch load.
+- On an already working installation, run `M-x packages/bootstrap` after
+  loading to install newly added declarations.  This is **not** a reliable
+  cold-start procedure: eager dependencies such as `colorful-mode` can fail
+  before that command is available.
+
+The author's managed systemd preflight is external to this repository.
+Neither it nor a service is required; the standalone batch entry point and
+portable `scripts/emc` launcher are shipped here.
 
 The configured package archives are GNU ELPA, NonGNU ELPA, and MELPA.  Archive
 metadata is refreshed at most once during a bootstrap pass.  A package that is
@@ -133,6 +143,14 @@ $XDG_CACHE_HOME/emacs/     when XDG_CACHE_HOME is set
 
 To inspect the expanded path from a running Emacs, evaluate `cache/root`;
 `(cache/tree-sitter)` and `(cache/eln)` show the two specialized directories.
+
+**Despite its name, this root is not entirely disposable.**  Customize,
+history, project lists, backups, and recovery files below it are meaningful
+state.  Whole-cache cleanup deletes them along with packages and grammars.
+Back up the root, preserve recovery data, and remove only known regenerable
+subdirectories (`eln/`, package quickstart, or reinstallable grammars/packages)
+when troubleshooting.  `XDG_STATE_HOME` is not used yet; changing
+`XDG_CACHE_HOME` starts with a different set of state as well as packages.
 
 Use `cache/folder` and `cache/file` instead of hard-coding `~/.cache` or
 writing state into the repository.  The main paths currently include:
@@ -598,8 +616,15 @@ emacs --batch -Q -l tests/run.el
 ```
 
 The runner loads the complete configuration, reuses installed packages, and
-redirects persistent state to a temporary directory.  It does not install
-packages, start language servers, or change the running daemon.  Tests cover
+redirects persistent state to a temporary directory.  It reuses installed
+grammars for actual `.ts`/`.tsx`/`.typ` file-opening tests, suppresses grammar
+installation prompts, and tests grammar-free fallbacks.  It does not install
+packages, start language servers, or change the running daemon.
+Set `EMACS_TEST_REQUIRE_GRAMMARS=1` to fail rather than skip parser tests when
+the TypeScript, TSX, or Typst grammar is missing.  For an isolated network
+installation plus normal offline startup, run `sh tests/cold-bootstrap.sh`.
+`sh tests/launcher-tests.sh` checks launcher argument forwarding with mocked
+binaries, without starting a real daemon.  Tests cover
 trust boundaries, project roots and Git ignore rules, completion commands
 and resolution caching, formatter ownership, navigation bindings,
 stale-config detection, and interactive pairing/structural editing.
