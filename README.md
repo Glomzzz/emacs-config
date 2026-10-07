@@ -22,6 +22,13 @@ No external systemd setup is required; `scripts/emc` is included for on-demand
 daemon/client use.  Installation needs network access.  Read the guide before
 clearing the cache: it currently also holds backups, recovery files, and state.
 
+## Daily dashboard
+
+An empty startup or `emc` frame shows daily actions with their normal key
+sequences, plus editing-key reminders.  Click a button or use `TAB` / `RET`;
+reopen with **`C-c D`**.  Explicit file requests remain focused on the file.
+See [dashboard shortcuts](docs/configuration.md#daily-dashboard-and-shortcut-memory-aid).
+
 ## License
 
 Original code and documentation in this repository are licensed under
