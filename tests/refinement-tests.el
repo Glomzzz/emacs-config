@@ -152,5 +152,24 @@
         (should (eq (symbol-function 'custom-theme-set-faces) before))))
     (should (eq (symbol-function 'custom-theme-set-faces) original))))
 
+(ert-deftest config-test/mount-path-policy-follows-current-customization ()
+  (let ((mounts/android-mount-directory "/tmp/example-phone/")
+        (mounts/mac-mini-mount-directory "/tmp/example-share/")
+        (locations/additional-unreliable-directories nil))
+    (cl-letf (((symbol-function 'file-truename)
+               (lambda (&rest _) (ert-fail "Mount predicate performed filesystem I/O"))))
+      (should (locations/unreliable-path-p "/tmp/example-phone"))
+      (should (locations/unreliable-path-p "/tmp/example-share/book.epub"))
+      (should-not (locations/unreliable-path-p "/tmp/example-share-other/file"))
+      (should (memq #'locations/unreliable-path-p recentf-exclude)))))
+
+(ert-deftest config-test/mount-destination-uses-remote-home-not-local-expansion ()
+  (let ((mounts/mac-mini-host "other-host")
+        (mounts/mac-mini-remote-home-directory "~/"))
+    (cl-letf (((symbol-function 'mounts/mac-mini-relative-path)
+               (lambda (_path) "docs")))
+      (should (equal (mounts/mac-mini-rsync-destination "ignored")
+                     "/ssh:other-host:~/docs/")))))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

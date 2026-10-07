@@ -161,6 +161,19 @@ writing state into the repository.  The main paths currently include:
 before packages load, so native compilation does not fill the repository or
 the default Emacs cache with configuration-specific artifacts.
 
+### Machine-Specific Locations
+
+`modules/core/locations.el` is the single source for project/Desktop paths,
+Android/Mac-mini mount paths, and the Mac-mini SSH host/remote home.  Customize
+these options rather than editing file commands, Recentf exclusions, and
+Auto Revert separately.  `locations/unreliable-path-p` derives exclusions
+from current mount settings without probing the filesystem; add extra risky
+mounts through `locations/additional-unreliable-directories`.
+The remote home defaults to `~/`, resolved by TRAMP on the remote host, not
+`/Users/glom/` or the local user's home.  Trust defaults derive from
+`locations/projects-directory`, but explicit `trusted-content` Customize
+choices still take precedence.
+
 ### Theme Compatibility
 
 Gruber Darker's legacy nil face colors are normalized only while

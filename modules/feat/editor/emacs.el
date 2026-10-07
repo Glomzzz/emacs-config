@@ -2,27 +2,11 @@
 
 (require 'seq)
 
-;; FUSE-backed removable/network mounts can remain mounted after their
-;; connection has failed.  A synchronous stat on one of these paths can then
-;; block Emacs for the duration of the FUSE/network timeout (including while
-;; the daemon is shutting down).  Keep this check purely lexical: resolving a
-;; path with `file-truename' would perform the very I/O we are avoiding.
-(defconst emacs/unreliable-path-prefixes
-  (mapcar #'file-name-as-directory
-          (list (expand-file-name "~/mnt/mac-mini/")
-                (expand-file-name "~/mnt/android/")))
-  "Path prefixes backed by FUSE mounts that may become unresponsive.")
+(require 'locations)
 
-(defun emacs/unreliable-path-p (path)
-  "Return non-nil when PATH is below a known unreliable mount.
-
-The comparison intentionally uses expanded strings rather than filesystem
-queries so this predicate is safe to call from timer and shutdown hooks."
-  (when path
-    (let ((expanded (expand-file-name path)))
-      (seq-some (lambda (prefix)
-                  (string-prefix-p prefix expanded))
-                emacs/unreliable-path-prefixes))))
+;; The shared mount predicate is lexical: never stat a disconnected FUSE
+;; mount from timer/shutdown hooks or resolve it with `file-truename'.
+(defalias 'emacs/unreliable-path-p #'locations/unreliable-path-p)
 
 (defun emacs/disable-auto-revert-on-unreliable-path ()
   "Disable auto-revert for buffers below an unreliable FUSE mount."
@@ -45,7 +29,9 @@ queries so this predicate is safe to call from timer and shutdown hooks."
 ;; files must be trusted explicitly.  Preserve an explicit Customize choice.
 (unless (get 'trusted-content 'saved-value)
   (setq trusted-content
-        (list "~/git/"
+        (list (abbreviate-file-name
+               (file-name-as-directory
+                (expand-file-name locations/projects-directory)))
               (abbreviate-file-name
                (file-name-as-directory
                 (expand-file-name user-emacs-directory))))))

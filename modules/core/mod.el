@@ -3,6 +3,7 @@
 (mod/import
  '("packages.el"
    "buffers.el"
+   "locations.el"
    "emc.el"))
 
 ;;; mod.el ends here

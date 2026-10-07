@@ -195,9 +195,9 @@
   (dirvish-quick-access-function #'mounts/visit-place)
   (dirvish-quick-access-entries
    `(("h" "~/" "Home")
-     ("d" "~/Desktop/" "Desktop")
+     ("d" ,locations/desktop-directory "Desktop")
      ("e" ,user-emacs-directory "Emacs config")
-     ("g" "~/git/" "Git repositories")
+     ("g" ,locations/projects-directory "Git repositories")
      ("m" ,mounts/mac-mini-mount-directory "mac-mini (SMB)")
      ("a" ,mounts/android-mount-directory "Android phone")))
   :bind (:map dirvish-mode-map ("o" . dirvish-quick-access)))

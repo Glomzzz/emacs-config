@@ -6,8 +6,7 @@
   (recentf-save-file (cache/file "recentf"))
   (recentf-max-saved-items 200)
   ;; Do not make recent-file cleanup probe a disconnected FUSE mount.
-  ;; `recentf-exclude' entries are regexps and match the stored `~/...' form.
-  (recentf-exclude '("/mnt/mac-mini/" "/mnt/android/"))
+  (recentf-exclude '(locations/unreliable-path-p))
   :init
   (recentf-mode 1))
 

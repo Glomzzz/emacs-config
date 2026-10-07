@@ -1,6 +1,7 @@
 ;;; mounts.el --- Android and Mac-mini mount helpers -*- lexical-binding: t; -*-
 
 (require 'subr-x)
+(require 'locations)
 
 (declare-function dired-dwim-target-directory "dired" ())
 (declare-function dired-get-marked-files "dired"
@@ -11,17 +12,6 @@
                   (process &rest arguments))
 (declare-function task-dashboard-cancel-process "task-dashboard" (process))
 (defvar dirvish-yank-sources)
-
-(defconst mounts/android-mount-directory
-  (expand-file-name "~/mnt/android/")
-  "Mount point for the connected Android phone.")
-
-(defconst mounts/mac-mini-mount-directory
-  (expand-file-name "~/mnt/mac-mini/")
-  "Mount point for the Mac-mini SMB share.")
-
-(defconst mounts/mac-mini-remote-home-directory "/Users/glom/"
-  "Remote home directory corresponding to the Mac-mini mount.")
 
 (defvar mounts/android-phone-process nil)
 (defvar mounts/mac-mini-connect-process nil)
@@ -211,10 +201,10 @@
   (let ((normalized-path (directory-file-name (expand-file-name path))))
     (cond
      ((equal normalized-path
-             (directory-file-name mounts/mac-mini-mount-directory))
+             (directory-file-name (expand-file-name mounts/mac-mini-mount-directory)))
       (mounts--connect-mac-mini))
      ((equal normalized-path
-             (directory-file-name mounts/android-mount-directory))
+             (directory-file-name (expand-file-name mounts/android-mount-directory)))
       (mounts--run-android-phone "mount"))
      (t
       (dirvish-dwim path)))))
@@ -252,15 +242,15 @@ classified as a Mac-mini destination, while avoiding TRAMP network I/O."
   (when-let* ((program (executable-find "mountpoint")))
     (condition-case nil
         (zerop (call-process program nil nil nil "-q"
-                             mounts/mac-mini-mount-directory))
+                             (expand-file-name mounts/mac-mini-mount-directory)))
       (file-error nil))))
 
 (defun mounts/mac-mini-rsync-destination (path)
   "Convert local Mac-mini PATH to its SSH TRAMP directory."
   (when-let* ((relative (mounts/mac-mini-relative-path path)))
-    (concat "/ssh:mac-mini:"
-            (file-name-as-directory
-             (expand-file-name relative mounts/mac-mini-remote-home-directory)))))
+    (concat "/ssh:" mounts/mac-mini-host ":"
+            (file-name-as-directory mounts/mac-mini-remote-home-directory)
+            (if (string-empty-p relative) "" (file-name-as-directory relative)))))
 
 (defun mounts/rsync-to-mac-mini (&optional destination)
   "Rsync marked files to Mac-mini DESTINATION."
