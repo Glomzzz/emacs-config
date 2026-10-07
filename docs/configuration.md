@@ -181,6 +181,15 @@ passed as separate process arguments, not interpolated into shell commands.
 Missing tools report the configured executable, without assuming NixOS is
 how every machine must install it.
 
+### File-Operation Observers
+
+Dirvish task tracking observes its public yank handler and rsync command,
+not the private process constructor or positional process `details` payload.
+Progress uses the package's `dirvish-prop` accessor.  Disable observers with
+`dirvish/task-tracking`; their removal does not alter Dirvish file operations.
+`dirvish/selected-window-redisplay-only` controls the existing selected-window
+redisplay workaround without changing package internals.
+
 ### Theme Compatibility
 
 Gruber Darker's legacy nil face colors are normalized only while

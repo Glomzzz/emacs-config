@@ -215,5 +215,41 @@
     (lsp/configure-completion-commands))
   (should-not (advice-member-p #'lsp/completion-resolve-command 'eglot--request)))
 
+(ert-deftest config-test/dirvish-observer-uses-public-handler-and-filter ()
+  (require 'dirvish-yank)
+  (require 'task-dashboard)
+  (let ((processes '(existing)) tracked)
+    (cl-letf (((symbol-function 'process-list) (lambda () processes))
+              ((symbol-function 'process-filter)
+               (lambda (process) (if (eq process 'new-dirvish)
+                                    #'dirvish-yank-proc-filter #'ignore)))
+              ((symbol-function 'task-dashboard-track-process)
+               (lambda (process &rest _args) (push process tracked))))
+      (should (eq (dirvish/track-yank
+                   (lambda (&rest _args)
+                     (setq processes '(new-dirvish unrelated existing)) 'original-result)
+                   'copy '("file") "/tmp/")
+                  'original-result))
+      (should (equal tracked '(new-dirvish))))
+    (should-not (advice-member-p 'dirvish/track-yank-start 'dirvish-yank--start-proc))))
+
+(ert-deftest config-test/dirvish-progress-uses-package-property-accessor ()
+  (let ((buffer (generate-new-buffer " *dirvish progress test*")))
+    (unwind-protect
+        (progn
+          (with-current-buffer buffer (dirvish-prop :yank-percent "42%"))
+          (cl-letf (((symbol-function 'task-dashboard-task-process) (lambda (_task) 'process))
+                    ((symbol-function 'process-buffer) (lambda (_process) buffer)))
+            (should (= (dirvish--yank-progress 'task) 42))))
+      (kill-buffer buffer))))
+
+(ert-deftest config-test/dirvish-task-observers-can-be-disabled ()
+  (require 'dirvish-yank)
+  (unwind-protect
+      (let ((dirvish/task-tracking nil))
+        (dirvish/configure-task-tracking)
+        (should-not (advice-member-p #'dirvish/track-yank 'dirvish-yank-default-handler)))
+    (dirvish/configure-task-tracking)))
+
 (provide 'refinement-tests)
 ;;; refinement-tests.el ends here

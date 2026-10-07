@@ -10,7 +10,7 @@
 (declare-function task-dashboard-track-process "task-dashboard"
                   (process &rest arguments))
 (declare-function task-dashboard-task-process "task-dashboard" (task))
-(declare-function dirvish-yank--start-proc "dirvish-yank" (cmd details))
+(declare-function dirvish-yank-default-handler "dirvish-yank" (method srcs dest))
 (declare-function mounts/cancel-background-operation "mounts" ())
 (declare-function mounts/mount-android "mounts" ())
 (declare-function mounts/rsync-to-mac-mini "mounts" (&optional destination))
@@ -19,7 +19,6 @@
 
 (defvar mounts/android-mount-directory)
 (defvar mounts/mac-mini-mount-directory)
-(defvar dirvish--props)
 
 (packages/declare 'dirvish)
 
@@ -32,6 +31,18 @@
 (defcustom dirvish/file-manager-command '("thunar")
   "Desktop file manager command, followed by the marked files."
   :type '(repeat string) :group 'file-desktop)
+(defcustom dirvish/task-tracking t
+  "Track processes started by public Dirvish yank/rsync commands."
+  :type 'boolean :group 'file-desktop
+  :set (lambda (symbol value)
+         (set-default symbol value)
+         (when (fboundp 'dirvish/configure-task-tracking)
+           (dirvish/configure-task-tracking))))
+(defcustom dirvish/selected-window-redisplay-only t
+  "Limit the Dirvish redisplay hook to the selected window.
+This preserves the existing multi-window workaround; nil uses upstream
+redisplay behavior without restricting which window triggers it."
+  :type 'boolean :group 'file-desktop)
 
 (defun dirvish/desktop-action (command)
   "Launch desktop COMMAND with marked local files as separate arguments."
@@ -80,49 +91,52 @@
 
 (add-to-list 'command-switch-alist '("--dirvish" . dirvish/command-line))
 
-(defun dirvish--process-label (process)
-  "Return a readable task label for a Dirvish PROCESS."
-  (let* ((details (process-get process 'details))
-         (sources (and (listp details) (nth 1 details)))
-         (method (and (listp details) (nth 3 details))))
-    (if (and (listp sources) (symbolp method))
-        (format "Dirvish %s %d file%s"
-                (capitalize (replace-regexp-in-string
-                            "-" " " (symbol-name method)))
-                (length sources)
-                (if (= (length sources) 1) "" "s"))
-      "Dirvish file operation")))
-
 (defun dirvish--yank-progress (task)
   "Return the percentage reported by a Dirvish yank TASK."
   (when-let* ((process (task-dashboard-task-process task))
               (buffer (process-buffer process))
               ((buffer-live-p buffer)))
     (with-current-buffer buffer
-      (let ((progress (alist-get :yank-percent dirvish--props)))
+      (let ((progress (dirvish-prop :yank-percent)))
         (when progress
           (if (numberp progress)
               progress
             (string-to-number (format "%s" progress))))))))
 
-(defun dirvish/track-yank-start (orig &rest arguments)
-  "Register Dirvish's newly-created processes in the task dashboard."
-  (let ((before (process-list)))
-    (prog1 (apply orig arguments)
-      (require 'task-dashboard)
-      (dolist (process (seq-remove (lambda (candidate)
-                                     (memq candidate before))
-                                   (process-list)))
-        (when (process-get process 'details)
-          (condition-case error
-              (task-dashboard-track-process
-               process
-               :label (dirvish--process-label process)
-               :directory default-directory
-               :progress-function #'dirvish--yank-progress)
-            (error
-             (message "Could not track Dirvish task: %s"
-                      (error-message-string error)))))))))
+(defun dirvish--track-new-processes (before label directory)
+  "Track new Dirvish processes absent from BEFORE, with LABEL/DIRECTORY."
+  (require 'task-dashboard)
+  (dolist (process (process-list))
+    (when (and (not (memq process before))
+               (eq (process-filter process) #'dirvish-yank-proc-filter))
+      (condition-case error
+          (task-dashboard-track-process
+           process :label label :directory directory
+           :progress-function #'dirvish--yank-progress)
+        (error
+         (message "Could not track Dirvish task: %s" (error-message-string error)))))))
+
+(defun dirvish/track-yank (original method sources destination)
+  "Observe public yank handler ORIGINAL for METHOD/SOURCES/DESTINATION."
+  (let ((before (process-list)) (directory default-directory))
+    (prog1 (funcall original method sources destination)
+      (dirvish--track-new-processes
+       before (format "Dirvish %s (%d files)" method (length sources)) directory))))
+
+(defun dirvish/track-rsync (original &rest arguments)
+  "Observe processes started by the public rsync command ORIGINAL."
+  (let ((before (process-list)) (directory default-directory))
+    (prog1 (apply original arguments)
+      (dirvish--track-new-processes before "Dirvish rsync" directory))))
+
+(defun dirvish/configure-task-tracking ()
+  "Apply optional task observers using public command entry points."
+  (dolist (entry '((dirvish-yank dirvish-yank-default-handler dirvish/track-yank)
+                   (dirvish-rsync dirvish-rsync dirvish/track-rsync)))
+    (when (featurep (nth 0 entry))
+      (advice-remove (nth 1 entry) (nth 2 entry))
+      (when dirvish/task-tracking
+        (advice-add (nth 1 entry) :around (nth 2 entry))))))
 
 (defun dirvish/list-tasks ()
   "Show the task dashboard in a bottom pane beside the Dirvish session."
@@ -138,7 +152,8 @@
 
 (defun dirvish--pre-redisplay-selected-window (orig window)
   "Run Dirvish's redisplay handler only for the selected WINDOW."
-  (when (eq (frame-selected-window) window)
+  (when (or (not dirvish/selected-window-redisplay-only)
+            (eq (frame-selected-window) window))
     (funcall orig window)))
 
 (use-package dirvish
@@ -156,8 +171,10 @@
    '(:left (sort symlink) :right (omit yank index)))
   :config
   (dirvish-override-dired-mode)
-  (advice-add #'dirvish-pre-redisplay-h
-              :around #'dirvish--pre-redisplay-selected-window)
+  (unless (advice-member-p #'dirvish--pre-redisplay-selected-window
+                           'dirvish-pre-redisplay-h)
+    (advice-add 'dirvish-pre-redisplay-h
+                :around #'dirvish--pre-redisplay-selected-window))
   :bind
   (("C-x d" . dirvish-dwim)
    :map dirvish-mode-map
@@ -244,8 +261,9 @@
   :bind (:map dirvish-mode-map ("y" . dirvish-yank-menu)))
 
 (with-eval-after-load 'dirvish-yank
-  (advice-add #'dirvish-yank--start-proc
-              :around #'dirvish/track-yank-start))
+  (dirvish/configure-task-tracking))
+(with-eval-after-load 'dirvish-rsync
+  (dirvish/configure-task-tracking))
 
 ;; Keep PostScript documents useful after routing them through Emacs.
 (use-package doc-view
