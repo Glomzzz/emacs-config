@@ -3,6 +3,7 @@
 (mod/import
  '("theme.el"
    "ui.el"
-   "appearance.el"))
+   "appearance.el"
+   "dashboard.el"))
 
 ;;; mod.el ends here
