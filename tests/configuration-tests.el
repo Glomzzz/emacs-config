@@ -348,6 +348,11 @@
     (let ((default-directory (expand-file-name "haskell/" root)))
       (should (equal (javascript/project-root) root)))))
 
+(ert-deftest config-test/navigation-bindings-are-reachable ()
+  (should (eq (key-binding (kbd "C-c i")) 'consult-info))
+  (should (eq (key-binding (kbd "M-g i")) 'consult-imenu))
+  (should-not (key-binding (kbd "C-c i m"))))
+
 (ert-deftest config-test/stale-check-includes-local-packages ()
   (config-test/with-directory
     (let* ((user-emacs-directory root)

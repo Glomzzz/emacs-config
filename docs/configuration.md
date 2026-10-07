@@ -446,6 +446,9 @@ daemon stale, just like module changes.  Test fixtures and Customize state
 are excluded.  Restart the daemon to apply configuration changes; batch
 validation alone does not update a running session.
 
+`C-c i` opens `consult-info`, and `M-g i` opens `consult-imenu`.  Do not
+install a longer binding below `C-c i`: it is a command, not a prefix.
+
 ## 4. Function Naming
 
 Custom functions use the feature alias as their namespace.  Do not introduce

@@ -10,7 +10,7 @@
 (global-set-key (kbd "C-c f") #'funcs/format-buffer)
 (global-set-key (kbd "C-S-v") 'yank)
 (global-set-key (kbd "C-S-c") 'kill-ring-save)
-(global-set-key (kbd "C-c i m") 'imenu)
+;; `M-g i' is provided by Consult; leave `C-c i' free for `consult-info'.
 (global-set-key (kbd "C-z") 'set-mark-command)
 (global-set-key (kbd "C-M-z") 'rectangle-mark-mode)
 (global-set-key (kbd "C-x C-b") #'ibuffer)
