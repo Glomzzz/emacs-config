@@ -48,9 +48,7 @@
                                :includeAutomaticSuggest t))))
 
 (defun javascript/eglot-ensure ()
-  "Start Eglot with the TypeScript Language Server project settings."
-  (setq-local eglot-workspace-configuration
-              #'javascript/eglot-workspace-configuration)
+  "Start Eglot for JavaScript and TypeScript buffers."
   (eglot-ensure))
 
 (with-eval-after-load 'eglot
@@ -59,7 +57,10 @@
   (dolist (mode '(js-mode js-ts-mode
                   typescript-mode typescript-ts-mode tsx-ts-mode))
     (setf (alist-get mode eglot-server-programs)
-          '("typescript-language-server" "--stdio"))))
+          '("typescript-language-server" "--stdio")))
+  (lsp/register-workspace-configuration
+   '(js-mode js-ts-mode typescript-mode typescript-ts-mode tsx-ts-mode)
+   #'javascript/eglot-workspace-configuration))
 
 (defun javascript--marker-root (directory)
   "Return the JavaScript project root found above DIRECTORY."

@@ -21,8 +21,8 @@
   ;; installed, and handle both the Tree-sitter and fallback modes.
   (add-to-list 'eglot-server-programs '(nix-ts-mode . ("nixd")))
   (add-to-list 'eglot-server-programs '(nix-mode . ("nixd")))
-  (setq-default eglot-workspace-configuration
-                #'nix/eglot-workspace-configuration))
+  (lsp/register-workspace-configuration '(nix-ts-mode nix-mode)
+                                        #'nix/eglot-workspace-configuration))
 
 (defun nix/configure-apheleia ()
   "Use Alejandra for Nix buffers when Eglot is not formatting them."

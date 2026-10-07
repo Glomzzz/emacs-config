@@ -24,16 +24,16 @@
   '(:tinymist (:formatterMode "typstyle")))
 
 (defun typst/eglot-ensure ()
-  "Start Tinymist with Typst-specific workspace configuration."
-  (setq-local eglot-workspace-configuration
-              #'typst/eglot-workspace-configuration)
+  "Start Tinymist for Typst buffers."
   (eglot-ensure))
 
 (with-eval-after-load 'eglot
   ;; Tinymist is the language server for both the fallback and Tree-sitter
   ;; modes.  The explicit `lsp' subcommand is unnecessary; it is the default.
   (add-to-list 'eglot-server-programs '(typst-mode . ("tinymist")))
-  (add-to-list 'eglot-server-programs '(typst-ts-mode . ("tinymist"))))
+  (add-to-list 'eglot-server-programs '(typst-ts-mode . ("tinymist")))
+  (lsp/register-workspace-configuration '(typst-mode typst-ts-mode)
+                                        #'typst/eglot-workspace-configuration))
 
 (defun typst/configure-apheleia ()
   "Use Typstyle for Typst buffers when Eglot is not formatting them."
