@@ -111,7 +111,9 @@ after changing preferences; new graphical frames pick them up automatically."
     (emoji "Noto Color Emoji")
     ((#x0370 . #x03FF) "Cascadia Mono NF" "Cascadia Mono"))
   "Preferred fonts per script or character range.
-Missing families leave Emacs' own font fallback intact."
+The `unicode' entry is a fallback for otherwise unspecified characters,
+not an override for ASCII.  Script preferences update the shared default
+fontset.  Missing families leave Emacs' fallback intact."
   :type '(alist :key-type sexp :value-type (repeat string))
   :group 'appearance)
 
@@ -127,16 +129,33 @@ Do not query or change fonts on a terminal or display-less daemon frame."
   (interactive)
   (let ((frame (or frame (selected-frame))))
     (when (display-graphic-p frame)
-      (when-let* ((family (appearance--available-font
-                          appearance/font-families frame)))
-        (set-face-attribute 'default frame :family family))
-      (when appearance/font-height
-        (set-face-attribute 'default frame :height appearance/font-height))
-      (dolist (entry appearance/script-font-families)
-        (when-let* ((family (appearance--available-font (cdr entry) frame)))
-          ;; No fixed pixel size: inherit the frame's face height on HiDPI.
-          (set-fontset-font nil (car entry) (font-spec :family family)
-                            frame 'prepend))))))
+      (let* ((family (appearance--available-font appearance/font-families frame))
+             (height (or appearance/font-height
+                         (face-attribute 'default :height frame)))
+             (original-family (face-attribute 'default :family frame))
+             (scripts-changed nil))
+        ;; Establish the primary font before configuring shared fallbacks.
+        (when family
+          (set-face-attribute 'default frame :family family :height height))
+        (dolist (entry appearance/script-font-families)
+          (when-let* ((script-family (appearance--available-font (cdr entry) frame)))
+            ;; `unicode' includes ASCII and would replace the primary font.
+            ;; Nil instead supplies a fallback for unspecified characters.
+            (let ((fallback (eq (car entry) 'unicode)))
+              ;; Use the shared fallback fontset, not this frame's ASCII
+              ;; fontset: changing the latter can rewrite its primary font
+              ;; and point height again when a fallback glyph is resolved.
+              (set-fontset-font t (unless fallback (car entry))
+                                (font-spec :family script-family)
+                                frame (if fallback 'append 'prepend)))
+            (setq scripts-changed t)))
+        ;; Apply the primary family and exact point height last, keeping
+        ;; fallback configuration from replacing them with pixel-rounded
+        ;; font metadata (for example, height 160 -> 158).
+        (when (or family appearance/font-height scripts-changed)
+          (set-face-attribute 'default frame
+                              :family (or family original-family)
+                              :height height))))))
 
 (appearance/apply-fonts)
 (add-hook 'after-make-frame-functions #'appearance/apply-fonts)
