@@ -321,6 +321,14 @@ terminals.  The package owns its display hooks and cursor-following behavior;
 this configuration does not advise private Eldoc update functions, suppress
 comments globally, or install a private Eldoc Box renderer.
 
+The popup's text matches the source frame's default font family and size,
+including the source buffer's `text-scale-mode` zoom.  A public
+`eldoc-box-buffer-setup-hook` applies the doc-buffer face remap before the
+package measures popup geometry; reused popups replace the old scale rather
+than accumulating zoom.  Documentation colors and Markdown styling remain
+owned by Eldoc Box and the active theme.  Ordinary and zoomed font sizes
+were checked against the source text in a real GUI.
+
 ### Project Editing Policies
 
 Save-time whitespace cleanup defaults to code/config buffers only; text,
