@@ -575,7 +575,13 @@ entering `typst-ts-mode`; declining installation leaves a usable text buffer.
 With the grammar installed it remaps to `typst-ts-mode`.  Reopen or revert
 a fallback buffer after manually installing the grammar.  Both modes start
 `tinymist`, configured to use Typstyle for Eglot-managed formatting, while
-`typstyle` is registered as the Apheleia fallback.
+`typstyle` is registered as the Apheleia fallback.  Place an empty
+`.typst-root` file in the document's root directory to make it an Eglot/Tinymist
+workspace root, including for files in subdirectories and projects without Git.
+The marker is registered with `project-vc-extra-root-markers`, so nested roots
+retain Git-aware file listing and ignore rules.  As with Haskell and JavaScript,
+project.el chooses the nearest registered marker; without `.typst-root`, normal
+project discovery still applies.
 
 ### Tree-sitter grammar
 

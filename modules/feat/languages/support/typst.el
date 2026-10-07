@@ -1,6 +1,11 @@
 ;;; typst.el --- Typst language support -*- lexical-binding: t; -*-
 
 (require 'packages)
+(require 'project)
+
+;; Eglot uses project.el's root for Tinymist.  Recognize marker-only projects
+;; and nested Typst roots without losing Git file listing and ignore rules.
+(add-to-list 'project-vc-extra-root-markers ".typst-root" t)
 
 (defvar eglot-server-programs)
 (defvar apheleia-formatters)

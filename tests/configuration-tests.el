@@ -342,6 +342,44 @@
                     (project-current nil (expand-file-name "src/" root)))
                    root))))
 
+(ert-deftest config-test/typst-root-without-vcs ()
+  (config-test/with-directory
+    (config-test/file root ".typst-root")
+    (config-test/file root "chapters/intro.typ" "= Introduction\n")
+    (let ((project (project-current nil (expand-file-name "chapters/" root))))
+      (should project)
+      (should (equal (project-root project) root)))))
+
+(ert-deftest config-test/typst-root-prefers-nearest-marker ()
+  (config-test/with-directory
+    (config-test/file root ".typst-root")
+    (config-test/file root "book/.typst-root")
+    (config-test/file root "book/chapters/intro.typ" "= Introduction\n")
+    (should (equal
+             (project-root
+              (project-current nil (expand-file-name "book/chapters/" root)))
+             (expand-file-name "book/" root)))))
+
+(ert-deftest config-test/typst-root-inside-git-preserves-ignores ()
+  (config-test/with-directory
+    (should (zerop (call-process "git" nil nil nil "init" "--quiet" root)))
+    (config-test/file root "package.json" "{}")
+    (config-test/file root ".gitignore" "ignored.typ\n")
+    (config-test/file root "docs/.typst-root")
+    (config-test/file root "docs/chapters/kept.typ" "= Kept\n")
+    (config-test/file root "docs/chapters/ignored.typ" "= Ignored\n")
+    (config-test/file root "outside.typ" "= Outside\n")
+    (let ((project (project-current nil (expand-file-name "docs/chapters/" root))))
+      (should (equal (project-root project) (expand-file-name "docs/" root)))
+      (should (eq (car project) 'vc))
+      (should (eq (cadr project) 'Git))
+      (should (member (expand-file-name "docs/chapters/kept.typ" root)
+                      (project-files project)))
+      (should-not (member (expand-file-name "docs/chapters/ignored.typ" root)
+                          (project-files project)))
+      (should-not (member (expand-file-name "outside.typ" root)
+                          (project-files project))))))
+
 (ert-deftest config-test/javascript-selects-nearest-manifest ()
   (config-test/with-directory
     (config-test/file root "deno.json" "{}")
