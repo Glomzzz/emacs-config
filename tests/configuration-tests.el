@@ -348,6 +348,28 @@
     (let ((default-directory (expand-file-name "haskell/" root)))
       (should (equal (javascript/project-root) root)))))
 
+(ert-deftest config-test/stale-check-includes-local-packages ()
+  (config-test/with-directory
+    (let* ((user-emacs-directory root)
+           (custom-file (expand-file-name "custom.el" root))
+           (old (seconds-to-time 1000000000))
+           (new (seconds-to-time 1100000000)))
+      (set-file-times (config-test/file root "init.el") old)
+      (set-file-times (config-test/file root "pkgs/example.el") new)
+      (set-file-times (config-test/file root "custom.el") (current-time))
+      (set-file-times (config-test/file root "tests/fixture.el") (current-time))
+      (should (equal (emc/config-newest-mtime) new)))))
+
+(ert-deftest config-test/stale-check-includes-modules-without-custom-file ()
+  (config-test/with-directory
+    (let* ((user-emacs-directory root)
+           (custom-file nil)
+           (old (seconds-to-time 1000000000))
+           (new (seconds-to-time 1100000000)))
+      (set-file-times (config-test/file root "init.el") old)
+      (set-file-times (config-test/file root "modules/example.el") new)
+      (should (equal (emc/config-newest-mtime) new)))))
+
 (ert-deftest config-test/trust-excludes-shared-tmp-and-downloads ()
   (dolist (file (list (expand-file-name "config-test.el" temporary-file-directory)
                       (expand-file-name "Downloads/config-test.el" "~/")))

@@ -425,7 +425,7 @@ buffer is displayed; remote buffers remain excluded by the feature hook.
 - Check `*Warnings*`, `*Messages*`, and the user service journal after a clean
   restart.
 
-## 3. Validation
+## 3. Validation and Daemon Refresh
 
 Run the regression suite from the configuration root:
 
@@ -439,6 +439,12 @@ packages, start language servers, or change the running daemon.  Tests cover
 trust boundaries, project roots and Git ignore rules, completion commands
 and resolution caching, formatter ownership, navigation bindings, and
 stale-config detection.  Install declared packages before running the suite.
+
+`emc/config-stale-p` includes top-level Elisp, `modules/`, and `pkgs/` in
+its modification-time check.  Changes to a local package therefore mark the
+daemon stale, just like module changes.  Test fixtures and Customize state
+are excluded.  Restart the daemon to apply configuration changes; batch
+validation alone does not update a running session.
 
 ## 4. Function Naming
 

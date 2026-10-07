@@ -12,16 +12,22 @@ client frame."
 
 (defun emc/config-newest-mtime ()
   "Return the newest modification time in the hand-written config.
+Include modules and local packages, but not test fixtures.
 Ignore `custom-file' because Emacs can rewrite it while the daemon is
 running, which would otherwise make the config permanently stale."
-  (let ((modules-dir (expand-file-name "modules/" user-emacs-directory))
-        (newest nil))
+  (let ((newest nil))
     (dolist (file (append
                    (directory-files user-emacs-directory t "\\.el\\'")
-                   (when (file-directory-p modules-dir)
-                     (directory-files-recursively modules-dir "\\.el\\'"))))
-      (unless (string-equal (file-truename file)
-                            (file-truename custom-file))
+                   (seq-mapcat
+                    (lambda (path)
+                      (let ((directory (expand-file-name
+                                        path user-emacs-directory)))
+                        (when (file-directory-p directory)
+                          (directory-files-recursively directory "\\.el\\'"))))
+                    '("modules/" "pkgs/"))))
+      (unless (and custom-file
+                   (string-equal (file-truename file)
+                                 (file-truename custom-file)))
         (let ((mtime (file-attribute-modification-time
                       (file-attributes file))))
           (when (and mtime
