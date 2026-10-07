@@ -225,10 +225,14 @@ Vertico already inherits standard theme faces.
 `appearance/font-families` keeps Cascadia Mono NF first, then tries installed
 fallbacks.  `appearance/font-height` defaults to 160 (16 pt); nil leaves the
 frame height unchanged.  `appearance/script-font-families` configures Unicode,
-CJK, symbols, emoji, and Greek preferences.  Unavailable fonts leave Emacs'
-font fallback intact.  The `unicode` entry supplies a fallback for otherwise
-unspecified characters, not an override for ASCII; the primary family and
-exact point height are restored after fontset updates.  On NixOS install
+CJK, symbols, emoji, and Greek preferences.  Explicit script choices update
+each graphical frame's own fontset, so a cached system fallback cannot override
+them.  Chinese text and punctuation use LXGW WenKai, with Noto Sans CJK SC as
+the fallback; these render `。`, `，`, and `、` at the bottom rather than using
+centered Noto Serif CJK TC glyphs.  Unavailable fonts leave Emacs'
+font fallback intact.  The `unicode` entry supplies a shared fallback for
+otherwise unspecified characters, not an override for ASCII; the primary
+family and exact point height are restored after fontset updates.  On NixOS install
 `pkgs.cascadia-code` for the family named `Cascadia Mono NF` (the separately
 named Caskaydia Nerd Font package is not the same family).
 Customize these options and run

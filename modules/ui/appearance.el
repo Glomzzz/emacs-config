@@ -112,8 +112,11 @@ after changing preferences; new graphical frames pick them up automatically."
     ((#x0370 . #x03FF) "Cascadia Mono NF" "Cascadia Mono"))
   "Preferred fonts per script or character range.
 The `unicode' entry is a fallback for otherwise unspecified characters,
-not an override for ASCII.  Script preferences update the shared default
-fontset.  Missing families leave Emacs' fallback intact."
+not an override for ASCII.  Explicit script preferences update each
+frame's own fontset so cached system fallbacks cannot take precedence.
+LXGW WenKai and the SC fallback use bottom-aligned Chinese punctuation
+such as `。' and `，', unlike centered TC glyphs.
+Missing families leave Emacs' fallback intact."
   :type '(alist :key-type sexp :value-type (repeat string))
   :group 'appearance)
 
@@ -142,10 +145,12 @@ Do not query or change fonts on a terminal or display-less daemon frame."
             ;; `unicode' includes ASCII and would replace the primary font.
             ;; Nil instead supplies a fallback for unspecified characters.
             (let ((fallback (eq (car entry) 'unicode)))
-              ;; Use the shared fallback fontset, not this frame's ASCII
-              ;; fontset: changing the latter can rewrite its primary font
-              ;; and point height again when a fallback glyph is resolved.
-              (set-fontset-font t (unless fallback (car entry))
+              ;; Use the shared default only for the unspecified fallback.
+              ;; Explicit scripts must update the frame's fontset: shared
+              ;; defaults alone can leave a cached TC font for `。' and `，'.
+              ;; Never assign `unicode' to the frame's ASCII fontset.
+              (set-fontset-font (if fallback t nil)
+                                (unless fallback (car entry))
                                 (font-spec :family script-family)
                                 frame (if fallback 'append 'prepend)))
             (setq scripts-changed t)))
