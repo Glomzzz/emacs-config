@@ -63,12 +63,18 @@ let
 in {
   environment.systemPackages = [ emacs pkgs.git pkgs.gcc ];
   fonts.packages = with pkgs; [
-    nerd-fonts.caskaydia-mono noto-fonts lxgw-wenkai
+    cascadia-code noto-fonts lxgw-wenkai
     noto-fonts-color-emoji
   ];
   # Fonts and language tools can instead be managed in Home Manager.
 }
 ```
+
+`cascadia-code` includes the exact `Cascadia Mono NF` family used by the
+configuration.  `nerd-fonts.caskaydia-mono` is a separately named font family,
+not a drop-in installation for that setting.  Activate the font declaration
+before starting Emacs; a running process may need restarting to discover
+newly installed font families.
 
 Package attribute names depend on your pinned nixpkgs.  If your pin lacks
 Emacs 31, update/select an appropriate pin rather than silently substituting

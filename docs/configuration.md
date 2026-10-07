@@ -226,7 +226,12 @@ Vertico already inherits standard theme faces.
 fallbacks.  `appearance/font-height` defaults to 160 (16 pt); nil leaves the
 frame height unchanged.  `appearance/script-font-families` configures Unicode,
 CJK, symbols, emoji, and Greek preferences.  Unavailable fonts leave Emacs'
-font fallback intact.  Customize these options and run
+font fallback intact.  The `unicode` entry supplies a fallback for otherwise
+unspecified characters, not an override for ASCII; the primary family and
+exact point height are restored after fontset updates.  On NixOS install
+`pkgs.cascadia-code` for the family named `Cascadia Mono NF` (the separately
+named Caskaydia Nerd Font package is not the same family).
+Customize these options and run
 `M-x appearance/apply-fonts`; new GUI frames apply them automatically, while
 TTY and display-less daemon frames do not query fonts.
 
