@@ -329,7 +329,9 @@ Eglot code-action suggestions do not contribute text to Eldoc: the public
 `eglot-code-action-indications` option keeps only fringe/margin indicators,
 not `eldoc-hint`.  Undocumented symbols and empty space therefore do not show
 an action-hint popup.  Server hover documentation, signatures, and Flymake
-diagnostics keep their normal display; `M-x eglot-code-actions` still works.
+diagnostics keep their normal display.  **`C-c a`** runs `eglot-code-actions`
+in Eglot-managed buffers, offering actions at point or for the active region;
+`M-x eglot-code-actions` remains available.  `C-.` still runs Embark.
 
 While the Eldoc popup is visible, **`M-n`** scrolls down three lines and
 **`M-p`** scrolls up three lines without moving the source cursor or switching

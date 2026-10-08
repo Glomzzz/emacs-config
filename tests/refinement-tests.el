@@ -109,6 +109,15 @@
   (let ((javascript/deno-permissions nil))
     (should-not (member "--allow-all" (append (javascript/deno-debug-arguments) nil)))))
 
+(ert-deftest config-test/code-action-shortcut-is-local-to-eglot-buffers ()
+  (require 'eglot)
+  (with-temp-buffer
+    (let ((eglot--managed-mode t))
+      (should (eq (key-binding (kbd "C-c a")) #'eglot-code-actions))
+      (should (eq (key-binding (kbd "C-.")) #'embark-act)))
+    (let ((eglot--managed-mode nil))
+      (should-not (eq (key-binding (kbd "C-c a")) #'eglot-code-actions)))))
+
 (ert-deftest config-test/eldoc-code-actions-do-not-replace-documentation ()
   (require 'eglot)
   (should-not (memq 'eldoc-hint eglot-code-action-indications))

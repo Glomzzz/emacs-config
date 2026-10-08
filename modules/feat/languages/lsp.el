@@ -138,6 +138,8 @@ advertise whole-buffer formatting."
   ;; Code actions are not documentation; keep their visual indicators without
   ;; filling Eldoc popups with action suggestions on undocumented/empty text.
   (eglot-code-action-indications '(left-fringe margin))
+  :bind (:map eglot-mode-map
+              ("C-c a" . eglot-code-actions))
   :hook (eglot-managed-mode . lsp/format-on-save)
   :init
   ;; Eglot feeds server documentation through Eldoc's normal display.
