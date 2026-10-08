@@ -134,6 +134,10 @@ advertise whole-buffer formatting."
 
 (use-package eglot
   :ensure nil
+  :custom
+  ;; Code actions are not documentation; keep their visual indicators without
+  ;; filling Eldoc popups with action suggestions on undocumented/empty text.
+  (eglot-code-action-indications '(left-fringe margin))
   :hook (eglot-managed-mode . lsp/format-on-save)
   :init
   ;; Eglot feeds server documentation through Eldoc's normal display.

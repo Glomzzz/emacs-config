@@ -109,6 +109,57 @@
   (let ((javascript/deno-permissions nil))
     (should-not (member "--allow-all" (append (javascript/deno-debug-arguments) nil)))))
 
+(ert-deftest config-test/eldoc-code-actions-do-not-replace-documentation ()
+  (require 'eglot)
+  (should-not (memq 'eldoc-hint eglot-code-action-indications))
+  (dolist (fixture '(("Token" nil nil)
+                     ("Token\n\n" nil nil)
+                     ("Token" "Token documentation" "fn tokenize() -> Token")))
+    (pcase-let ((`(,text ,hover ,signature) fixture))
+      (with-temp-buffer
+        (setq buffer-file-name "/tmp/emacs-config-eldoc-test.rs")
+        (insert text)
+        (let* ((eldoc-documentation-functions
+                '(eglot-signature-eldoc-function eglot-hover-eldoc-function
+                  eglot-code-action-suggestion))
+               (eldoc-documentation-strategy #'eldoc-documentation-compose)
+               (eglot--suggestion-overlay (make-overlay (point) (point)))
+               (actions [(:title "Generate impl for Token" :kind "refactor")
+                         (:title "Generate another impl" :kind "refactor")])
+               (docs :not-called)
+               (eldoc-display-functions
+                (list (lambda (result _interactive) (setq docs result)))))
+          (cl-letf (((symbol-function 'eglot-server-capable)
+                     (lambda (&rest _) t))
+                    ((symbol-function 'eglot--current-server-or-lose)
+                     (lambda () 'server))
+                    ((symbol-function 'eglot--async-request)
+                     (lambda (_server method _params &rest options)
+                       (funcall
+                        (plist-get options :success-fn)
+                        (pcase method
+                          (:textDocument/signatureHelp
+                           (list :signatures
+                                 (if signature (vector (list :label signature)) [])))
+                          (:textDocument/hover
+                           (when hover
+                             (list :contents (list :kind "plaintext" :value hover))))
+                          (:textDocument/codeAction actions)
+                          (_ (ert-fail (format "Unexpected request: %S" method))))))))
+            ;; Use Eldoc's real composition and Eglot's real providers, with
+            ;; only server replies mocked.  Empty/undocumented text stays empty.
+            (eldoc-print-current-symbol-info t)
+            (should (equal (mapcar #'car docs) (delq nil (list signature hover))))
+            ;; Non-textual indicators and the manual action command still work.
+            (should (equal (overlay-get eglot--suggestion-overlay 'eglot--actions)
+                           actions))
+            (cl-letf (((symbol-function 'eglot--request)
+                       (lambda (_server method _params &rest _)
+                         (should (eq method :textDocument/codeAction))
+                         actions)))
+              (should (equal (eglot-code-actions (point) (point))
+                             (append actions nil))))))))))
+
 (ert-deftest config-test/eldoc-uses-public-hover-mode ()
   (require 'eldoc-box)
   (with-temp-buffer
