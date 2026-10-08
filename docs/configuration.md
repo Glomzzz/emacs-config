@@ -378,7 +378,10 @@ minibuffers, terminals, or special/read-only buffers.  Buffers of 2 MiB or
 more skip activation; So Long also disables Smartparens on very long lines.
 
 The upstream `smartparens-config` supplies language rules, including Lisp
-quote prefixes, Haskell primes, Rust lifetimes, and Markdown/Org markup.
+quote prefixes, Haskell primes, and Markdown/Org markup.  The Rust module
+overrides single quotes to stay literal in both `rust-mode` and
+`rust-ts-mode`: `'` never automatically pairs, wraps, or skips.  This avoids
+misreading lifetimes and labels; character literals need both quotes typed.
 Normal deletion, kill/yank, and temporarily unbalanced code are allowed:
 strict mode is not enabled and no bulk replacement of Emacs keybindings is
 installed.  Typing an opener wraps an active selection rather than replacing

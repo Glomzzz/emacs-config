@@ -27,8 +27,10 @@
 
 (with-eval-after-load 'smartparens-config
   (require 'smartparens-rust)
-  ;; Preserve upstream lifetime/character rules, but make angle-bracket
-  ;; insertion explicit so compact comparisons such as `a<b` stay literal.
+  ;; Lifetimes and labels use apostrophes too: leave all single quotes literal,
+  ;; including character-literal delimiters, rather than guessing their intent.
+  (sp-local-pair '(rust-mode rust-ts-mode) "'" "'" :actions nil)
+  ;; Make angle-bracket insertion explicit so comparisons like `a<b` stay literal.
   (unless pairs/automatic-angle-pairing
     (sp-local-pair '(rust-mode rust-ts-mode) "<" ">" :actions '(wrap))))
 

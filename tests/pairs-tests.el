@@ -144,15 +144,33 @@ including delete-selection integration, rather than calling pair helpers."
     (config-test/pair-type "'a'")
     (should (equal (buffer-string) "'a'"))))
 
-(ert-deftest config-test/pairs-rust-lifetimes-and-character-literals ()
-  (dolist (context '("&" "fn f<"))
-    (config-test/with-pair-buffer #'rust-mode
-      (insert context)
-      (config-test/pair-type "'a")
-      (should (equal (buffer-string) (concat context "'a")))))
-  (config-test/with-pair-buffer #'rust-mode
-    (config-test/pair-type "'x'")
-    (should (equal (buffer-string) "'x'"))))
+(ert-deftest config-test/pairs-rust-single-quote-policy-includes-both-modes ()
+  (dolist (mode '(rust-mode rust-ts-mode))
+    (should-not (sp-get-pair-definition "'" mode :actions))))
+
+(ert-deftest config-test/pairs-rust-single-quotes-stay-literal ()
+  (dolist (mode (append '(rust-mode)
+                       (when (treesit-ready-p 'rust t) '(rust-ts-mode))))
+    (dolist (text '("'" "'a" "'static" "'outer: loop {}" "&'a"
+                    "fn f<'a" "Box<'a" "'x'" "let c = 'x'"))
+      (config-test/with-pair-buffer mode
+        (config-test/pair-type text)
+        (should (equal (buffer-string) text))
+        (should (= (point) (point-max)))))))
+
+(ert-deftest config-test/pairs-rust-do-not-skip-quotes-or-disable-other-pairs ()
+  (dolist (mode (append '(rust-mode)
+                       (when (treesit-ready-p 'rust t) '(rust-ts-mode))))
+    (config-test/with-pair-buffer mode
+      (insert "'x'")
+      (goto-char 3)
+      (config-test/pair-type "'")
+      (should (equal (buffer-string) "'x''")))
+    (dolist (pair '(("(" . "()") ("\"" . "\"\"")))
+      (config-test/with-pair-buffer mode
+        (config-test/pair-type (car pair))
+        (should (equal (buffer-string) (cdr pair)))
+        (should (= (point) 2))))))
 
 (ert-deftest config-test/pairs-comments-and-markdown-apostrophes ()
   (config-test/with-pair-buffer #'js-mode

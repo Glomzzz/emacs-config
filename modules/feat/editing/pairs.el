@@ -76,9 +76,10 @@ or very large buffers.  Plain prose and process buffers do not opt in."
               ("C-c p t" . smartparens-mode)
               ("C-c p ?" . sp-cheat-sheet))
   :config
-  ;; Let upstream own syntax/context rules, including Lisp quotes, Haskell
-  ;; primes, Rust lifetimes, and Markdown code spans.  Strict mode stays off:
-  ;; normal deletion, kill/yank, and temporarily unbalanced code remain valid.
+  ;; Use upstream syntax/context rules, including Lisp quotes, Haskell primes,
+  ;; and Markdown code spans; language modules add their local policy overrides.
+  ;; Strict mode stays off: normal deletion, kill/yank, and temporarily unbalanced
+  ;; code remain valid.
   (require 'smartparens-config)
   ;; An escaped quote inside a string is content, not a nested string.  The
   ;; upstream escaped-quote pair otherwise inserts a second escape as well.
