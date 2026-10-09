@@ -532,6 +532,23 @@ clang-format and rustfmt own the Apheleia side, and Dape's built-in
 mode-scoped configurations (`gdb` for C/C++, `lldb-dap` for Rust) cover
 debugging without a language-specific registration.
 
+Rust uses a single **push diagnostic stream**.  Rust Analyzer's pull reports
+contain native diagnostics, while compiler warnings such as `unused_variables`
+arrive separately on save.  Eglot's pull refresh can clear the older compiler
+warnings after any edit, even when the native report is empty.  The Rust module
+uses Eglot's public server subclass/capability API to omit client pull support,
+so Rust Analyzer pushes native diagnostics and compiler warnings together, and
+ignores `:diagnosticProvider` buffer-locally in both Rust modes.  Other languages
+retain their diagnostic negotiation.  Merely ignoring the server capability is
+not enough: the server must also know to push native diagnostics.  Reconnect an
+existing Rust server after changing this policy.  Native diagnostics still
+update on edits; compiler warnings remain visible but may be stale until the
+next save runs `cargo check`.  No automatic saves or extra compiler runs are
+added.  Actual type/parameter inlay hints remain disabled; end-of-line warning
+text is Flymake's diagnostic display, not an inlay hint.  An isolated real-server
+smoke test verified warning retention after unsaved edits, live native syntax
+diagnostics, removal after saving a fix, and absence of pull requests.
+
 `haskell.el` owns `.hs`, `.lhs`, and `.hsc` buffers through `haskell-mode`.
 It registers `hie.yaml`, `stack.yaml`, `cabal.project`, `package.yaml`, and
 package `*.cabal` files in `project-vc-extra-root-markers`.  Emacs' built-in
@@ -777,6 +794,9 @@ closing-delimiter skipping, deletion, apostrophes, operators, and snippets.
 `tests/snippets-tests.el` checks Rust argument-field cleanup through the command
 loop in both Rust modes, plus field navigation, editable boundaries, nested
 snippets, normal finalization, and buffer-local hook setup.
+`tests/rust-tests.el` checks push-only capability negotiation, Rust-only buffer
+policies, and real Flymake overlays surviving unsaved edits then clearing on a
+fresh diagnostic report, without starting a language server.
 Install declared packages before running the suite.
 
 `emc/config-stale-p` includes top-level Elisp, `modules/`, and `pkgs/` in

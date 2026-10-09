@@ -43,6 +43,8 @@
               nil 'nomessage)
         (load (expand-file-name "tests/snippets-tests.el" user-emacs-directory)
               nil 'nomessage)
+        (load (expand-file-name "tests/rust-tests.el" user-emacs-directory)
+              nil 'nomessage)
         (load (expand-file-name "tests/refinement-tests.el" user-emacs-directory)
               nil 'nomessage)
         (load (expand-file-name "tests/performance-tests.el" user-emacs-directory)

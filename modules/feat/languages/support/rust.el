@@ -4,6 +4,7 @@
 
 (declare-function sp-local-pair "smartparens" (modes open close &rest arguments))
 (defvar eglot-server-programs)
+(defvar eglot-ignored-server-capabilities)
 (defvar apheleia-formatters)
 (defvar apheleia-mode-alist)
 
@@ -11,19 +12,43 @@
 ;; fallback and comes from MELPA.
 (treesit/register-language 'rust)
 
+(defun rust/eglot-ensure ()
+  "Start Rust Analyzer with push-only diagnostics in this buffer.
+Keep saved compiler warnings visible while editing.  Rust Analyzer's
+pull reports contain only native diagnostics, so an empty pull report
+can otherwise clear compiler warnings until the next save."
+  (require 'eglot)
+  (setq-local eglot-ignored-server-capabilities
+              (cons :diagnosticProvider
+                    (remq :diagnosticProvider eglot-ignored-server-capabilities)))
+  (eglot-ensure))
+
 (packages/declare 'rust-mode)
 (use-package rust-mode
   :ensure nil
   :mode "\\.rs\\'"
-  :hook (rust-mode . eglot-ensure))
+  :hook (rust-mode . rust/eglot-ensure))
 
+;; Replace the old direct hooks too when reloading an existing session.
+(remove-hook 'rust-mode-hook #'eglot-ensure)
+(remove-hook 'rust-ts-mode-hook #'eglot-ensure)
 ;; rust-ts-mode is built into Emacs, so no package is declared.
-(add-hook 'rust-ts-mode-hook #'eglot-ensure)
+(add-hook 'rust-ts-mode-hook #'rust/eglot-ensure)
 
 (with-eval-after-load 'eglot
-  ;; Keep the server choice deterministic: rust-analyzer for both modes.
-  (add-to-list 'eglot-server-programs '(rust-mode . ("rust-analyzer")))
-  (add-to-list 'eglot-server-programs '(rust-ts-mode . ("rust-analyzer"))))
+  (defclass rust/eglot-server (eglot-lsp-server) ()
+    :documentation "Rust Analyzer using a single push diagnostic stream.")
+  (cl-defmethod eglot-client-capabilities ((server rust/eglot-server))
+    ;; Ignoring :diagnosticProvider alone is insufficient: Rust Analyzer must
+    ;; also know to push its native diagnostics instead of expecting pulls.
+    ;; Use Eglot's public server specialization API, not private report advice.
+    (let ((capabilities (copy-tree (cl-call-next-method))))
+      (cl-remf (plist-get capabilities :textDocument) :diagnostic)
+      capabilities))
+  ;; Keep the server choice and diagnostic negotiation scoped to both Rust modes.
+  (dolist (mode '(rust-mode rust-ts-mode))
+    (setf (alist-get mode eglot-server-programs)
+          '(rust/eglot-server "rust-analyzer"))))
 
 (with-eval-after-load 'smartparens-config
   (require 'smartparens-rust)
