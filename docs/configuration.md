@@ -261,7 +261,7 @@ unbound commands show their `M-x` name.  `q` leaves the dashboard.
 
 | Daily action | Shortcut |
 | --- | --- |
-| Open file / recent files | `C-x C-f` / `C-c r` |
+| Open file / recent files | `C-x C-f` / `C-c R` |
 | Switch buffer | `C-x b` |
 | Switch project / find project file | `C-x p p` / `C-x p f` |
 | Browse directory | `C-x d` |
@@ -531,6 +531,8 @@ rust-analyzer are registered for both the Tree-sitter and fallback modes,
 clang-format and rustfmt own the Apheleia side, and Dape's built-in
 mode-scoped configurations (`gdb` for C/C++, `lldb-dap` for Rust) cover
 debugging without a language-specific registration.
+In Rust buffers, **`C-c r`** runs `rust/rename` (`eglot-rename`); recent files
+remain available globally as **`C-c R`**.
 
 Rust uses a single **push diagnostic stream**.  Rust Analyzer's pull reports
 contain native diagnostics, while compiler warnings such as `unused_variables`
@@ -794,9 +796,10 @@ closing-delimiter skipping, deletion, apostrophes, operators, and snippets.
 `tests/snippets-tests.el` checks Rust argument-field cleanup through the command
 loop in both Rust modes, plus field navigation, editable boundaries, nested
 snippets, normal finalization, and buffer-local hook setup.
-`tests/rust-tests.el` checks push-only capability negotiation, Rust-only buffer
-policies, and real Flymake overlays surviving unsaved edits then clearing on a
-fresh diagnostic report, without starting a language server.
+`tests/rust-tests.el` checks push-only capability negotiation, the Rust rename
+shortcut, Rust-only buffer policies, and real Flymake overlays surviving unsaved
+edits then clearing on a fresh diagnostic report, without starting a language
+server.
 Install declared packages before running the suite.
 
 `emc/config-stale-p` includes top-level Elisp, `modules/`, and `pkgs/` in

@@ -3,6 +3,7 @@
 (require 'packages)
 
 (declare-function sp-local-pair "smartparens" (modes open close &rest arguments))
+(declare-function eglot-rename "eglot" ())
 (defvar eglot-server-programs)
 (defvar eglot-ignored-server-capabilities)
 (defvar apheleia-formatters)
@@ -11,6 +12,11 @@
 ;; rust-ts-mode is built into Emacs; rust-mode is the non-Tree-sitter
 ;; fallback and comes from MELPA.
 (treesit/register-language 'rust)
+
+(defun rust/rename ()
+  "Rename the identifier at point through Eglot."
+  (interactive)
+  (call-interactively #'eglot-rename))
 
 (defun rust/eglot-ensure ()
   "Start Rust Analyzer with push-only diagnostics in this buffer.
@@ -27,7 +33,14 @@ can otherwise clear compiler warnings until the next save."
 (use-package rust-mode
   :ensure nil
   :mode "\\.rs\\'"
-  :hook (rust-mode . rust/eglot-ensure))
+  :hook (rust-mode . rust/eglot-ensure)
+  :bind (:map rust-mode-map
+              ("C-c r" . rust/rename)))
+
+(use-package rust-ts-mode
+  :ensure nil
+  :bind (:map rust-ts-mode-map
+              ("C-c r" . rust/rename)))
 
 ;; Replace the old direct hooks too when reloading an existing session.
 (remove-hook 'rust-mode-hook #'eglot-ensure)

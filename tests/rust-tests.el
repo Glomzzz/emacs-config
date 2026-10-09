@@ -34,6 +34,22 @@
         (js-mode))
       (should-not (memq :diagnosticProvider eglot-ignored-server-capabilities)))))
 
+(ert-deftest config-test/rust-rename-is-local-and-recent-files-stay-global ()
+  (should (eq (key-binding (kbd "C-c R")) #'consult-recent-file))
+  (should-not (eq (key-binding (kbd "C-c r")) #'consult-recent-file))
+  (dolist (mode (append '(rust-mode)
+                       (when (treesit-ready-p 'rust t) '(rust-ts-mode))))
+    (with-temp-buffer
+      (cl-letf (((symbol-function 'eglot-ensure) #'ignore))
+        (funcall mode))
+      (should (eq (key-binding (kbd "C-c r")) #'rust/rename))
+      (should (eq (key-binding (kbd "C-c R")) #'consult-recent-file))))
+  (with-temp-buffer
+    (cl-letf (((symbol-function 'eglot-ensure) #'ignore))
+      (js-mode))
+    (should-not (eq (key-binding (kbd "C-c r")) #'rust/rename))
+    (should (eq (key-binding (kbd "C-c R")) #'consult-recent-file))))
+
 (ert-deftest config-test/rust-server-contact-negotiates-push-only-for-both-modes ()
   (dolist (mode '(rust-mode rust-ts-mode))
     (should (equal (alist-get mode eglot-server-programs)

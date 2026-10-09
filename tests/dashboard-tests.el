@@ -90,7 +90,7 @@
 
 (ert-deftest config-test/dashboard-global-open-and-recent-file-bindings ()
   (should (eq (key-binding (kbd "C-c D")) #'dashboard/open))
-  (should (eq (key-binding (kbd "C-c r")) #'consult-recent-file)))
+  (should (eq (key-binding (kbd "C-c R")) #'consult-recent-file)))
 
 (ert-deftest config-test/dashboard-startup-opens-only-idle-scratch ()
   (save-window-excursion

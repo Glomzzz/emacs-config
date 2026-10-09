@@ -18,7 +18,7 @@ Emacs after changing this option; `dashboard/open' is always available."
 (defconst dashboard--actions
   '(("Files and projects"
      ("Open file" find-file "C-x C-f")
-     ("Recent files" consult-recent-file "C-c r")
+     ("Recent files" consult-recent-file "C-c R")
      ("Switch buffer" consult-buffer "C-x b")
      ("Switch project" project-switch-project "C-x p p")
      ("Find project file" project-find-file "C-x p f")
