@@ -1,14 +1,34 @@
 ;;; snippets.el --- Tempel snippet completion -*- lexical-binding: t; -*-
 
 (require 'packages)
+(require 'seq)
+
+(declare-function tempel-done "tempel" (&optional all))
+(defvar tempel--active)
 
 (packages/declare 'tempel 'tempel-collection)
 
+(defun snippets/finish-outside ()
+  "Finish active Tempel snippets when point leaves all their ranges.
+Keep fields editable at either boundary and inside enclosing snippets."
+  (when (and (bound-and-true-p tempel--active)
+             ;; Tempel has no public range API.  Only inspect its range overlays;
+             ;; let the public finish command run post actions and remove fields.
+             (not (seq-some
+                   (lambda (state)
+                     (let ((range (caar state)))
+                       (and (overlayp range)
+                            (eq (overlay-buffer range) (current-buffer))
+                            (<= (overlay-start range) (point) (overlay-end range)))))
+                   tempel--active)))
+    (tempel-done t)))
+
 (defun snippets/setup-capf ()
-  "Add Tempel expansion to the current buffer's completion sources."
+  "Add Tempel completion and snippet cleanup to the current buffer."
   (setq-local completion-at-point-functions
               (cons #'tempel-expand
-                    (remove #'tempel-expand completion-at-point-functions))))
+                    (remove #'tempel-expand completion-at-point-functions)))
+  (add-hook 'post-command-hook #'snippets/finish-outside nil t))
 
 (use-package tempel
   :ensure nil

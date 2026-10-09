@@ -679,8 +679,16 @@ its line, alongside the fringe indicators, `M-g f` (`consult-flymake`), and
 
 Eglot enables LSP snippet completions only when Yasnippet is available.
 `completion/snippets.el` bridges that capability to Tempel with
-`eglot-tempel`, so servers that return snippets (HLS, TypeScript Server)
-expand them with editable fields.
+`eglot-tempel`, so servers that return snippets (Rust Analyzer, HLS,
+TypeScript Server) expand them with editable fields.  Tempel's purple argument
+fields now finish automatically when the cursor leaves the whole snippet,
+removing their highlights without deleting inserted text.  Moving within the
+call, between arguments, or inside an enclosing snippet keeps the fields active;
+both range boundaries remain editable.  This buffer-local cleanup reads Tempel's
+range overlays because no public range API exists, then uses `tempel-done` to
+finalize normally.  **`M-}`** / **`M-{`** move to the next/previous field;
+**`M-RET`** finishes manually while inside the snippet, and
+`C-u M-x tempel-done` clears all active snippets even from outside them.
 
 If a server needs language-specific initialization options, define a
 `foo/eglot-workspace-configuration` function in the language module and
@@ -766,6 +774,9 @@ shortcut labels, startup safeguards, and Emacs' real server selection path
 for empty and explicit-file requests.
 `tests/pairs-tests.el` types through the real command loop to check wrapping,
 closing-delimiter skipping, deletion, apostrophes, operators, and snippets.
+`tests/snippets-tests.el` checks Rust argument-field cleanup through the command
+loop in both Rust modes, plus field navigation, editable boundaries, nested
+snippets, normal finalization, and buffer-local hook setup.
 Install declared packages before running the suite.
 
 `emc/config-stale-p` includes top-level Elisp, `modules/`, and `pkgs/` in
