@@ -77,13 +77,19 @@
   (unless (advice-member-p #'consult-register-window #'register-preview)
     (advice-add #'register-preview :override #'consult-register-window))
 
-  ;; Expensive commands wait slightly longer before previewing than local
-  ;; candidate lists such as buffers and lines.
+  ;; Theme/manual rendering stays automatic but waits for selection to settle.
+  ;; File-backed previews are explicit: moving through results must not visit
+  ;; each file, including virtual file candidates in `consult-buffer'.
   (consult-customize
-   consult-theme
-   consult-ripgrep consult-git-grep consult-grep consult-man
+   consult-theme consult-man
+   :preview-key '(:debounce 0.4 any)
+   consult-ripgrep consult-git-grep consult-grep
    consult-bookmark consult-recent-file consult-xref
-   :preview-key '(:debounce 0.4 any))
+   consult-source-bookmark consult-source-file-register
+   consult-source-recent-file consult-source-project-recent-file
+   ;; This source is a separate plist copied from the visible project source.
+   consult-source-project-recent-file-hidden
+   :preview-key "M-.")
 
   ;; `< ?' displays available narrowing keys through Embark.
   (keymap-set consult-narrow-map

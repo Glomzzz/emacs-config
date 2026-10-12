@@ -299,6 +299,23 @@ package is installed.  Savehist stores its history at `(cache/file "history")`.
 The extension's default filters omit empty input and M-x sessions.  Repetition reruns the command in the current context; it is not
 an exact snapshot of files, buffers, or an old working directory.
 
+### Consult Preview Policy
+
+Press **`M-.`** in Consult's file-oriented prompts to preview the selected
+candidate.  Ripgrep/Grep, recent files, bookmarks, and Xref use manual
+previews.  File registers, recent files, project recent files (including
+`< p` / `< F` narrowing), and bookmarks also require `M-.` when offered
+as sources in `C-x b` or the other Consult buffer-switching commands.
+Selecting a candidate with RET still opens it normally.
+
+Already-open buffers, `consult-line`, and Imenu keep automatic previews
+after 200 ms; theme and manual previews wait 400 ms.  Consult still owns
+preview cleanup, permitted hooks, and its exclusions for remote/encrypted
+files.  Manual preview does not bypass those exclusions and no private
+preview advice is installed.  Customize the public `consult-preview-key`
+and `consult-customize` settings in `modules/feat/workspace/navigation.el`
+if you prefer another trade-off.
+
 ### Completion Responsiveness
 
 Corfu starts automatic completion after a two-character prefix and a 200 ms
