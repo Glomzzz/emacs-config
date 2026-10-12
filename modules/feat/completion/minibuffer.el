@@ -46,7 +46,8 @@
    '(extended-command-history
      file-name-history
      buffer-name-history
-     minibuffer-history))
+     minibuffer-history
+     vertico-repeat-history))
   (savehist-autosave-interval 60))
 
 
@@ -104,5 +105,15 @@
   ;; Run after Vertico installs its per-minibuffer map.
   (add-hook 'minibuffer-setup-hook #'completion/vertico-rename-bindings 90)
   (add-hook 'rfn-eshadow-update-overlay-hook #'vertico-directory-tidy))
+
+;; Session repetition ships with Vertico; keep its recording and replay in
+;; the public extension instead of maintaining completion state ourselves.
+(use-package vertico-repeat
+  :ensure nil
+  :after vertico
+  :hook (minibuffer-setup . vertico-repeat-save)
+  :bind (("M-R" . vertico-repeat)
+         :map vertico-map
+         ("C-r" . vertico-repeat-select)))
 
 ;;; minibuffer.el ends here

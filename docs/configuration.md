@@ -286,6 +286,19 @@ startup and dedicated daemon/client TTY frames (empty and explicit-file
 requests) were smoke-tested; graphical mouse interaction still needs manual
 validation.
 
+### Completion Session History
+
+**`M-R`** (`vertico-repeat`) reopens the last recorded completion command
+with its previous input; **`C-u M-R`** selects an older session.  Inside a
+Vertico prompt, **`C-r`** (`vertico-repeat-select`) offers only sessions for
+the current command.  **`M-r`** still inserts ordinary minibuffer history
+through Consult, and directory navigation keeps its existing keys.
+
+The public `vertico-repeat` extension ships with Vertico, so no additional
+package is installed.  Savehist stores its history at `(cache/file "history")`.
+The extension's default filters omit empty input and M-x sessions.  Repetition reruns the command in the current context; it is not
+an exact snapshot of files, buffers, or an old working directory.
+
 ### Completion Responsiveness
 
 Corfu starts automatic completion after a two-character prefix and a 200 ms
