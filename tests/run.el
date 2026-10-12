@@ -39,6 +39,8 @@
               nil 'nomessage)
         (load (expand-file-name "tests/navigation-tests.el" user-emacs-directory)
               nil 'nomessage)
+        (load (expand-file-name "tests/help-tests.el" user-emacs-directory)
+              nil 'nomessage)
         (load (expand-file-name "tests/language-selection-tests.el" user-emacs-directory)
               nil 'nomessage)
         (load (expand-file-name "tests/typst-completion-tests.el" user-emacs-directory)

@@ -30,7 +30,7 @@ Emacs after changing this option; `dashboard/open' is always available."
      ("Process tasks" task-dashboard "C-c T"))
     ("Learn the keys"
      ("Run any command" execute-extended-command "M-x")
-     ("Describe a key" describe-key "C-h k")
+     ("Describe a key" helpful-key "C-h k")
      ("List current bindings" describe-bindings "C-h b")
      ("Read manuals" consult-info "C-c i")))
   "Button labels, commands, and preferred existing global shortcuts.

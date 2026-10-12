@@ -3,6 +3,7 @@
 (mod/import
  '("so-long.el"
    "emacs.el"
+   "help.el"
    "persistence.el"
    "reading.el"))
 

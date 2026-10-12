@@ -72,7 +72,7 @@
           (should called))))))
 
 (ert-deftest config-test/dashboard-render-does-not-load-lazy-tools ()
-  (let* ((commands '(magit-status vterm-other-window task-dashboard))
+  (let* ((commands '(magit-status vterm-other-window task-dashboard helpful-key))
          (definitions (mapcar #'symbol-function commands)))
     (config-test/with-dashboard
       (should (equal definitions (mapcar #'symbol-function commands))))))

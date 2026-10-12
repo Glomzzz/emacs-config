@@ -340,6 +340,27 @@ buffer that grew past the limit.  Existing buffer-local opt-outs are preserved.
 So Long disables Corfu along with Font Lock and line numbers for minified
 files; `so-long-revert` restores the modes it disabled.
 
+### Emacs Lisp Help
+
+`modules/feat/editor/help.el` declares Helpful without loading it at startup.
+The normal help keys load it on first use:
+
+| Key | Helpful command |
+| --- | --- |
+| `C-h f` | `helpful-callable` — function, macro, or special form |
+| `C-h v` | `helpful-variable` |
+| `C-h k` | `helpful-key` — also used by the dashboard button |
+| `C-h x` | `helpful-command` — interactive commands only |
+| `C-h C-.` | `helpful-at-point` — inspect the current Elisp symbol |
+
+Helpful shows source, references, symbol properties, and debugging actions.
+`q` uses the package's normal special-buffer behavior.  The original
+`describe-function`, `describe-variable`, `describe-key`, and
+`describe-command` remain available through M-x; `C-h o` still runs
+built-in `describe-symbol`.  Manual search (`C-c i`) and automatic Eldoc
+are unchanged.  No private Helpful advice or symbol-table mutation is
+installed.  Run the package bootstrap before using Helpful on a new machine.
+
 ### Documentation at Point
 
 Programming buffers use automatic Eldoc after **600 ms of idle time** at
