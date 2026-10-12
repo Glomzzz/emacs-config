@@ -316,6 +316,23 @@ preview advice is installed.  Customize the public `consult-preview-key`
 and `consult-customize` settings in `modules/feat/workspace/navigation.el`
 if you prefer another trade-off.
 
+### Visible Text Jumps
+
+**`C-'`** (`avy-goto-char-timer`) jumps to visible text in any ordinary
+window of the selected frame.  Type a short query, then pause for 500 ms
+or press RET; if several matches remain, type the label shown beside the
+one you want.  A single match jumps immediately after query entry.
+`C-g` cancels, and `M-x avy-pop-mark` returns to the previous location.
+This is separate from Consult's buffer/project searches.
+
+Avy is declared in `modules/feat/workspace/navigation.el` and loads only
+on first use.  It has no background mode or timer; the delay applies only
+while entering a jump query.  `C-;` remains `embark-dwim`, `M-'` remains
+`consult-register-store`, and Isearch keeps its existing bindings.  No
+Pinyin extension or `avy-setup-default` key remapping is enabled.  Some
+terminals cannot transmit `C-'`; use M-x or a GUI frame in that case.
+Run the package bootstrap before using Avy on a new machine.
+
 ### Completion Responsiveness
 
 Corfu starts automatic completion after a two-character prefix and a 200 ms

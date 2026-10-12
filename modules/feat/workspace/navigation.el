@@ -109,4 +109,14 @@
               ("C-x C-d" . consult-dir)
               ("C-x C-j" . consult-dir-jump-file)))
 
+;; Jump to visible text without opening a completion prompt.  Keep Avy's
+;; optional default-key setup off so Embark, Consult, and Isearch retain keys.
+(packages/declare 'avy)
+(use-package avy
+  :ensure nil
+  :bind (("C-'" . avy-goto-char-timer))
+  :custom
+  (avy-all-windows t)
+  (avy-timeout-seconds 0.5))
+
 ;;; navigation.el ends here
