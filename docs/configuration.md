@@ -715,6 +715,20 @@ unmatched quote.  Without the grammar, basic Emacs string/comment syntax is
 used instead; it cannot fully distinguish markup quotes from code strings.
 No new package installation is needed because Cape is already declared.
 
+In both Typst modes, **`M-.`** on a string such as `"algebra/lemma"` looks for
+`<typst-root>/algebra/lemma.typ` first, then
+`<typst-root>/statements/algebra/lemma.typ`.  The `.typ` suffix is appended
+unless already present.  All paths, including those starting with `./` or
+`/`, use the Typst root rather than the current source directory.  The root
+is the nearest `.typst-root`, then the normal project root, then the source
+directory if no project exists.  This lookup policy is separate from file
+completion above.  Spaces, Chinese filenames, and escaped quotes/backslashes
+work here too.  **`M-,`** returns to the original location through normal Xref
+history.  Symbols, unmatched paths, URLs, and `@` package imports keep normal
+definition lookup through Xref/Tinymist; **`C-u M-.`** always requests normal
+definition lookup.  String detection has the same grammar-free limitations
+described above.
+
 ### Tree-sitter grammar
 
 `treesit-auto` is enabled globally for languages registered by their feature
@@ -853,6 +867,8 @@ stale-config detection, and interactive pairing/structural editing.
 `tests/typst-completion-tests.el` exercises the real Cape file tables and
 completion insertion in both Typst modes, plus context rejection and Eglot
 completion-source ordering without starting a language server.
+`tests/typst-navigation-tests.el` checks string file jumps, path resolution,
+Xref return history, and normal-lookup fallbacks in both Typst modes.
 `tests/refinement-tests.el` also exercises directory-local server settings,
 configurable commands/paths, and a real asynchronous copy between temporary
 files to verify Dirvish/dashboard integration.

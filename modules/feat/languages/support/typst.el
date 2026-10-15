@@ -3,6 +3,7 @@
 (require 'packages)
 (require 'project)
 (require 'text-mode)
+(require 'xref)
 
 (declare-function cape-file "cape" (&optional interactive))
 (declare-function cape-wrap-properties "cape" (capf &rest properties))
@@ -52,6 +53,10 @@ or revert the buffer for syntax-aware `typst-ts-mode'."
          (typst-mode . format/mode-maybe)
          (typst-ts-mode . typst/setup-completion)
          (typst-mode . typst/setup-completion))
+  :bind (:map typst-mode-map
+              ([remap xref-find-definitions] . typst/find-definition)
+         :map typst-ts-mode-map
+              ([remap xref-find-definitions] . typst/find-definition))
   :config
   ;; The package also adds a direct association when loaded.  Keep the safe
   ;; fallback first even if the grammar disappears later in this session.
@@ -97,6 +102,60 @@ For unfinished strings, let Emacs parse only the grammar's error node."
                  (substring (typst--path-unquote path) 0 position)))
         #'typst--path-quote))
 
+(defun typst--path-directory (path)
+  "Return the source or document directory against which PATH resolves.
+A leading slash uses `.typst-root', then the normal project root,
+then the source directory.  Other paths use the source directory."
+  (let* ((non-essential t)
+         (source-directory (if buffer-file-name
+                               (file-name-directory buffer-file-name)
+                             default-directory)))
+    (if (string-prefix-p "/" path)
+        (or (locate-dominating-file source-directory ".typst-root")
+            (when-let* ((project (project-current nil source-directory)))
+              (project-root project))
+            source-directory)
+      source-directory)))
+
+(defun typst--definition-file (path)
+  "Find PATH as a .typ file under the Typst root, then its statements/.
+Append .typ unless already present.  A leading slash stays root-relative."
+  (let* ((root (typst--path-directory "/"))
+         ;; Keep ~ literal and / document-relative, not OS-relative.
+         (relative (concat "./" (string-remove-prefix "/" path)))
+         (name (if (string-suffix-p ".typ" relative)
+                   relative
+                 (concat relative ".typ")))
+         (direct (expand-file-name name root))
+         (statement (expand-file-name name (expand-file-name "statements/" root))))
+    (cond ((file-regular-p direct) direct)
+          ((file-regular-p statement) statement))))
+
+(defun typst/find-definition ()
+  "Visit the .typ file named by the Typst string at point.
+Search the Typst root first, then its statements/ directory, appending
+.typ unless already present.  Record the jump for `xref-go-back' (M-,).
+With a prefix argument, or when neither file exists, use normal
+definition lookup."
+  (interactive)
+  (if-let* (((not current-prefix-arg))
+            (bounds (or (typst--path-string-bounds)
+                        ;; Accept point on the opening quote as well.
+                        (when (eq (char-after) ?\")
+                          (save-excursion
+                            (forward-char)
+                            (typst--path-string-bounds)))))
+            (path (typst--path-unquote
+                   (buffer-substring-no-properties (car bounds) (cdr bounds))))
+            ((not (or (equal path "")
+                      (string-prefix-p "@" path)
+                      (string-match-p "\\`[[:alpha:]][[:alnum:]+.-]*:" path))))
+            (file (typst--definition-file path)))
+      (progn
+        (xref-push-marker-stack)
+        (find-file file))
+    (call-interactively #'xref-find-definitions)))
+
 (defun typst/path-completion-at-point ()
   "Complete path-like Typst strings using Cape's file completion.
 Relative paths start at the source file's directory.  A leading slash
@@ -111,17 +170,8 @@ root, then the source directory.  Cape owns file listing and metadata."
     (require 'cape)
     (require 'comint)
     (let* ((non-essential t)
-           (source-directory (if buffer-file-name
-                                 (file-name-directory buffer-file-name)
-                               default-directory))
            (rooted (string-prefix-p "/" path))
-           (cape-file-directory
-            (if rooted
-                (or (locate-dominating-file source-directory ".typst-root")
-                    (when-let* ((project (project-current nil source-directory)))
-                      (project-root project))
-                    source-directory)
-              source-directory))
+           (cape-file-directory (typst--path-directory path))
            (cape-file-prefix nil)
            ;; Context is already checked; even bare `..' and `/' can complete.
            (cape-file-directory-must-exist nil)
