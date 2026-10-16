@@ -194,5 +194,101 @@
           (when isearch-mode (isearch-done)))
         (kill-buffer buffer)))))
 
+(ert-deftest config-test/isearch-browser-keys-preserve-meta-prefix ()
+  (let ((overriding-terminal-local-map isearch-mode-map))
+    (dolist (key '("RET" "<return>"))
+      (should (eq (key-binding (kbd key)) #'emacs/isearch-repeat)))
+    (dolist (key '("<escape>" "M-RET" "M-<return>"))
+      (should (eq (key-binding (kbd key)) #'emacs/isearch-exit)))
+    (should (eq (key-binding (kbd "C-s")) #'isearch-repeat-forward))
+    (should (eq (key-binding (kbd "C-r")) #'isearch-repeat-backward))
+    (should (keymapp (lookup-key isearch-mode-map (kbd "ESC"))))
+    (should (eq (key-binding (kbd "C-g")) #'isearch-abort))))
+
+(defmacro config-test/with-browser-isearch (&rest body)
+  "Run BODY in a displayed search buffer with isolated search history."
+  (declare (indent 0) (debug t))
+  `(let ((buffer (generate-new-buffer " *browser isearch test*"))
+         (isearch-mode-map (copy-keymap isearch-mode-map))
+         (search-ring nil)
+         (regexp-search-ring nil))
+     (unwind-protect
+         (save-window-excursion
+           (switch-to-buffer buffer)
+           (insert "foo foo foo foo\n")
+           (goto-char (point-min))
+           ,@body)
+       (when (buffer-live-p buffer)
+         (with-current-buffer buffer
+           (when isearch-mode (isearch-done)))
+         (kill-buffer buffer)))))
+
+(ert-deftest config-test/isearch-enter-follows-initial-and-reversed-direction ()
+  (dolist (fixture '(("C-s foo RET <f12> <escape>" 8 t)
+                     ("C-s foo <return> <f12> <escape>" 8 t)
+                     ("C-r foo RET <f12> <escape>" 9 nil)
+                     ("C-s foo RET C-r RET <f12> <escape>" 1 nil)
+                     ("C-r foo RET C-s RET <f12> <escape>" 16 t)
+                     ;; The next session must use its own initial direction.
+                     ("C-r foo <escape> C-a C-s foo RET <f12> <escape>" 8 t)))
+    (pcase-let ((`(,keys ,expected-point ,forward) fixture))
+      (config-test/with-browser-isearch
+        (when (string-prefix-p "C-r" keys) (goto-char (point-max)))
+        (let (snapshot)
+          (define-key isearch-mode-map (kbd "<f12>")
+                      (lambda ()
+                        (interactive)
+                        (setq snapshot (list (point) isearch-forward isearch-string
+                                             (and isearch-mode t)))))
+          (execute-kbd-macro (kbd keys))
+          (should (equal snapshot (list expected-point forward "foo" t)))
+          (should (= (point) expected-point))
+          (should-not isearch-mode)
+          (should (equal (buffer-string) "foo foo foo foo\n")))))))
+
+(ert-deftest config-test/isearch-enter-keeps-numeric-prefix-behavior ()
+  (dolist (forward '(t nil))
+    (config-test/with-browser-isearch
+      (unless forward (goto-char (point-max)))
+      (let ((isearch-mode-hook
+             (cons (lambda () (setq-local isearch-allow-prefix t))
+                   isearch-mode-hook)))
+        (execute-kbd-macro
+         (vconcat (kbd (if forward "C-s" "C-r"))
+                  "foo" (kbd "C-u 2 RET <escape>")))
+        (should (= (point) (if forward 12 5)))
+        (should-not isearch-mode)))))
+
+(ert-deftest config-test/isearch-escape-exits-empty-query-without-prompting ()
+  (dolist (key '("<escape>" "M-RET" "M-<return>"))
+    (config-test/with-browser-isearch
+      (let ((search-nonincremental-instead t))
+        (cl-letf (((symbol-function 'isearch-edit-string)
+                   (lambda () (ert-fail "Exit opened a search prompt"))))
+          (execute-kbd-macro (vconcat (kbd "C-s") (kbd key)))
+          (should-not isearch-mode)
+          (should (= (point) (point-min)))
+          (should search-nonincremental-instead))))))
+
+(ert-deftest config-test/isearch-meta-enter-finishes-at-current-match ()
+  (config-test/with-browser-isearch
+    (execute-kbd-macro (kbd "C-s foo RET M-RET"))
+    (should (= (point) 8))
+    (should-not isearch-mode)))
+
+(ert-deftest config-test/isearch-enter-retains-empty-query-history-and-wrap ()
+  (config-test/with-browser-isearch
+    (let ((search-ring '("foo")))
+      (execute-kbd-macro (kbd "C-s RET <escape>"))
+      (should (= (point) 4))
+      (should-not isearch-mode)))
+  (config-test/with-browser-isearch
+    ;; With the existing wrap pause, the first repeat fails at end of buffer;
+    ;; another Enter wraps to the first match, just as another C-s would.
+    (goto-char 13)
+    (execute-kbd-macro (kbd "C-s foo RET RET <escape>"))
+    (should (= (point) 4))
+    (should-not isearch-mode)))
+
 (provide 'navigation-tests)
 ;;; navigation-tests.el ends here

@@ -317,11 +317,27 @@ an exact snapshot of files, buffers, or an old working directory.
 
 ### Incremental Search
 
-`C-s` / `C-r` keep built-in Isearch.  Backspace deletes the last character
-of the search query (`isearch-del-char`), even after repeating a search,
-instead of undoing the last search/navigation state.  The prompt shows the
-current/total match count, such as `2/5`, using Isearch's lazy highlighting.
-Extra match highlights are still cleared when the search ends.
+`C-s` / `C-r` start built-in Isearch forward/backward.  **Enter** (`RET` or
+graphical Return) repeats in the current direction without ending the search;
+`C-s` / `C-r` during search retain their normal direction-switching behavior,
+and subsequent Enter presses follow that direction.  The wrapper uses
+Isearch's own direction state, not an extra variable or advice.  Numeric
+prefixes follow the built-in repeat commands when `isearch-allow-prefix`
+is enabled; this configuration does not change that option.  The existing
+wrap pause remains: after reaching the last match, repeat again to wrap.
+
+**Esc** (the graphical `<escape>` event) finishes at the current match,
+including when the query is empty.  `C-g` retains normal Isearch cancellation
+behavior.  The terminal `ESC` character remains a Meta prefix so `M-e` and
+`M-s` still work; terminals that send only this character for Escape can use
+`M-RET` to finish at the current match instead.  Empty-query Enter uses search
+history just like `C-s`, rather than opening a nonincremental search prompt.
+
+Backspace deletes the last character of the search query (`isearch-del-char`),
+even after repeating a search, instead of undoing the last search/navigation
+state.  The prompt shows the current/total match count, such as `2/5`, using
+Isearch's lazy highlighting.  Extra match highlights are still cleared when
+the search ends.
 
 These settings live together in `modules/feat/editor/emacs.el`.  Consult's
 Isearch history (`M-e`) and result-list search (`M-s l` / `M-s L`) bindings

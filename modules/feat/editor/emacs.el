@@ -164,11 +164,35 @@ when a project's format has meaningful trailing spaces."
 
 ;; Search/Replace
 (setq query-replace-highlight t)
+
+(defun emacs/isearch-repeat (&optional arg)
+  "Repeat Isearch in its current direction, with optional prefix ARG."
+  (interactive "P")
+  ;; Isearch already tracks direction, including the initial C-s/C-r and
+  ;; subsequent reversals.  Do not maintain a second state via advice.
+  (if isearch-forward
+      (isearch-repeat-forward arg)
+    (isearch-repeat-backward arg)))
+
+(defun emacs/isearch-exit ()
+  "Finish Isearch at the current match, even when the query is empty."
+  (interactive)
+  ;; Esc should close search, not open a nonincremental search prompt.
+  (let ((search-nonincremental-instead nil))
+    (isearch-exit)))
+
 (use-package isearch
   :ensure nil
-  ;; Backspace edits the query instead of undoing search navigation states.
+  ;; Backspace edits the query; Enter repeats rather than ending the search.
+  ;; Bind both terminal RET and graphical Return.  Leave ESC as a Meta prefix
+  ;; so Consult's M-e and M-s bindings keep working.
   :bind (:map isearch-mode-map
-              ([remap isearch-delete-char] . isearch-del-char))
+              ([remap isearch-delete-char] . isearch-del-char)
+              ("RET" . emacs/isearch-repeat)
+              ("<return>" . emacs/isearch-repeat)
+              ("<escape>" . emacs/isearch-exit)
+              ("M-RET" . emacs/isearch-exit)
+              ("M-<return>" . emacs/isearch-exit))
   :custom
   (isearch-lazy-highlight t)
   (lazy-highlight-cleanup t)
