@@ -20,6 +20,25 @@
   (add-hook 'text-mode-hook #'ui/colorful-maybe)
   (add-hook 'conf-mode-hook #'ui/colorful-maybe))
 
+;;; Delimiter nesting colors complement Show Paren and Fingertip.
+(packages/declare 'rainbow-delimiters)
+
+(defun ui/rainbow-delimiters-maybe ()
+  "Color delimiter nesting in local, reasonably-sized source buffers."
+  (when (and (not (minibufferp))
+             (not (file-remote-p default-directory))
+             (not (derived-mode-p 'special-mode))
+             (buffers/small-p))
+    (rainbow-delimiters-mode 1)))
+
+(use-package rainbow-delimiters
+  :ensure nil
+  :commands (rainbow-delimiters-mode)
+  :hook ((prog-mode conf-mode yaml-mode yaml-ts-mode)
+         . ui/rainbow-delimiters-maybe)
+  :custom
+  (rainbow-delimiters-max-face-count 5))
+
 ;;; auto-dim-other-buffers
 (packages/declare 'auto-dim-other-buffers)
 (use-package auto-dim-other-buffers

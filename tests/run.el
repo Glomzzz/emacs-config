@@ -57,6 +57,8 @@
               nil 'nomessage)
         (load (expand-file-name "tests/refinement-tests.el" user-emacs-directory)
               nil 'nomessage)
+        (load (expand-file-name "tests/rainbow-delimiters-tests.el" user-emacs-directory)
+              nil 'nomessage)
         (load (expand-file-name "tests/performance-tests.el" user-emacs-directory)
               nil 'nomessage)
         (load (expand-file-name "tests/task-dashboard-tests.el" user-emacs-directory)

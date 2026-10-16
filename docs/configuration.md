@@ -455,6 +455,23 @@ line numbers, automatic completion, and Git markers.
 Customize either limit; nil removes the size restriction.
 Other package-specific limits remain in their own package options.
 
+### Delimiter Nesting Colors
+
+`modules/ui/ui.el` declares Rainbow Delimiters through the normal package
+bootstrap.  It loads on first eligible programming/config buffer, with
+explicit hooks for `yaml-mode` and `yaml-ts-mode` as well.  Five depth colors
+cycle for deeper nesting; theme/package faces choose the actual colors.
+No Tree-sitter parser is required, so Emacs Lisp buffers benefit too.
+YAML colors apply to inline brackets/braces, not indentation levels.
+
+Automatic activation skips remote, large, special, and minibuffer buffers,
+using `buffers/feature-size-limit`.  So Long disables the mode for very long
+lines and restores it on revert.  Show Paren continues to highlight the
+matching delimiter, while Fingertip retains ownership of structural editing;
+neither one's settings or shortcuts are changed.  Toggle the colors with
+`M-x rainbow-delimiters-mode` and customize
+`rainbow-delimiters-max-face-count` to change the color cycle length.
+
 ### Pairing and Structural Editing
 
 `modules/feat/editing/pairs.el` uses
