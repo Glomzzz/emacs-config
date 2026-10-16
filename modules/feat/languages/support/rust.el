@@ -2,7 +2,6 @@
 
 (require 'packages)
 
-(declare-function sp-local-pair "smartparens" (modes open close &rest arguments))
 (declare-function eglot-rename "eglot" ())
 (defvar eglot-server-programs)
 (defvar eglot-ignored-server-capabilities)
@@ -62,15 +61,6 @@ can otherwise clear compiler warnings until the next save."
   (dolist (mode '(rust-mode rust-ts-mode))
     (setf (alist-get mode eglot-server-programs)
           '(rust/eglot-server "rust-analyzer"))))
-
-(with-eval-after-load 'smartparens-config
-  (require 'smartparens-rust)
-  ;; Lifetimes and labels use apostrophes too: leave all single quotes literal,
-  ;; including character-literal delimiters, rather than guessing their intent.
-  (sp-local-pair '(rust-mode rust-ts-mode) "'" "'" :actions nil)
-  ;; Make angle-bracket insertion explicit so comparisons like `a<b` stay literal.
-  (unless pairs/automatic-angle-pairing
-    (sp-local-pair '(rust-mode rust-ts-mode) "<" ">" :actions '(wrap))))
 
 (defun rust/configure-apheleia ()
   "Use rustfmt for Rust buffers when Eglot is not formatting them."

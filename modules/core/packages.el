@@ -6,6 +6,9 @@
 (defvar packages/declared nil
   "Packages declared by the loaded configuration modules.")
 
+(defvar packages/vc-sources nil
+  "Source specifications for packages declared with `packages/declare-vc'.")
+
 (defvar packages/bootstrap-mode nil
   "When non-nil, install declarations as they are evaluated.
 Set this before loading the configuration for a one-shot bootstrap pass.")
@@ -32,10 +35,6 @@ Set this before loading the configuration for a one-shot bootstrap pass.")
       use-package-always-ensure nil
       use-package-expand-minimally t)
 
-;; Pins must precede `package-initialize', which reads cached archive metadata.
-;; NonGNU's old Smartparens build lacks its dependency and Tree-sitter rules.
-(add-to-list 'package-pinned-packages '(smartparens . "melpa"))
-
 (make-directory package-user-dir t)
 (package-initialize)
 (require 'use-package)
@@ -55,11 +54,15 @@ Set this before loading the configuration for a one-shot bootstrap pass.")
     (setq packages--archives-refreshed t)))
 
 (defun packages--install (package)
-  "Install PACKAGE without changing the selected list immediately."
+  "Install missing PACKAGE from its declared VC source or package archive."
   (unless (package-installed-p package)
-    (unless (assq package package-archive-contents)
-      (packages--refresh-archives))
-    (package-install package 'dont-select)
+    (if-let* ((source (assq package packages/vc-sources)))
+        (progn
+          (require 'package-vc)
+          (package-vc-install source))
+      (unless (assq package package-archive-contents)
+        (packages--refresh-archives))
+      (package-install package 'dont-select))
     (setq packages--installed-count (1+ packages--installed-count))))
 
 (defun packages/declare (&rest package-arguments)
@@ -74,6 +77,13 @@ as the declarations are evaluated."
     (when packages/bootstrap-mode
       (packages--install package)))
   packages/declared)
+
+(defun packages/declare-vc (package specification)
+  "Declare PACKAGE with a package-vc source SPECIFICATION plist.
+Like `packages/declare', this only installs during an explicit bootstrap.
+The checkout and generated autoloads live in the normal package cache."
+  (setf (alist-get package packages/vc-sources) specification)
+  (packages/declare package))
 
 (defun packages/save-selection ()
   "Persist declared packages in `package-selected-packages'."

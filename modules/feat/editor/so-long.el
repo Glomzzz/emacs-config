@@ -18,7 +18,8 @@
 
   ;; This is a disable list: removing modes would keep them running.
   ;; Corfu's timer hooks must also stop when So Long handles minified files.
-  (dolist (mode '(font-lock-mode display-line-numbers-mode corfu-mode))
+  (dolist (mode '(font-lock-mode display-line-numbers-mode corfu-mode
+                 fingertip-mode))
     (add-to-list 'so-long-minor-modes mode))
 
   ;; Don't make huge buffers read-only

@@ -25,7 +25,7 @@ emacs_batch() {
 emacs_batch -l "$root/scripts/bootstrap.el"
 # A second process must load normally without any installation/network calls.
 emacs_batch \
-  --eval '(progn (require (quote package)) (advice-add (quote package-install) :before (lambda (&rest _) (error "Normal startup attempted package installation"))) (advice-add (quote package-refresh-contents) :before (lambda (&rest _) (error "Normal startup attempted archive refresh"))))' \
+  --eval '(progn (require (quote package)) (require (quote package-vc)) (advice-add (quote package-vc-install) :before (lambda (&rest _) (error "Normal startup attempted VC package installation"))) (advice-add (quote package-install) :before (lambda (&rest _) (error "Normal startup attempted package installation"))) (advice-add (quote package-refresh-contents) :before (lambda (&rest _) (error "Normal startup attempted archive refresh"))))' \
   --eval '(setq user-emacs-directory (file-name-as-directory (getenv "EMC_TEST_CONFIG_DIR")))' \
   -l "$root/init.el" \
   --eval '(progn (dolist (package packages/declared) (unless (package-installed-p package) (error "Missing declared package: %s" package))) (unless (and (file-readable-p package-quickstart-file) (file-readable-p custom-file)) (error "Bootstrap did not persist selection/quickstart")) (message "Cold bootstrap and offline startup passed"))'

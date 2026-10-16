@@ -14,8 +14,9 @@ install packages implicitly, or restart a live daemon behind your back.
   patch is not required.  Emacs 29/30 are not currently supported/tested by
   this configuration (it uses newer APIs such as `trusted-content`).
 - **Essential:** Git, HTTPS access with working CA certificates to GNU ELPA,
-  NonGNU ELPA (currently the Tsinghua mirror), and MELPA, plus writable cache
-  storage.  Emacs Lisp packages are installed by `package.el`, not Nix.
+  NonGNU ELPA (currently the Tsinghua mirror), MELPA, and GitHub for Fingertip's
+  source checkout, plus writable cache storage.  Emacs Lisp packages are
+  installed by `package.el` (including `package-vc` for Git sources), not Nix.
 - **For Tree-sitter grammar installation:** Git and working C/C++ compilers
   (`cc`/`c++`).  Emacs must be built with Tree-sitter.  Grammars are downloaded
   separately, on demand; bootstrap does not install them.

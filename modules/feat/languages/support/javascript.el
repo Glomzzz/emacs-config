@@ -5,7 +5,6 @@
 (require 'packages)
 
 (declare-function dape-ensure-command "dape" (config))
-(declare-function sp-local-pair "smartparens" (modes open close &rest arguments))
 (defvar eglot-server-programs)
 (defvar apheleia-formatters)
 (defvar apheleia-mode-alist)
@@ -126,15 +125,6 @@ Install the TSX grammar for JSX-aware parsing and highlighting.")
   (lsp/register-workspace-configuration
    '(js-mode js-ts-mode typescript-mode typescript-ts-mode tsx-ts-mode)
    #'javascript/eglot-workspace-configuration))
-
-(with-eval-after-load 'smartparens-config
-  (require 'smartparens-javascript)
-  ;; `<` and `>` are also comparisons, shifts, and arrows.  Do not guess:
-  ;; keep angle brackets for explicit wrapping via `C-c p <` only.
-  (unless pairs/automatic-angle-pairing
-    (sp-local-pair '(js-mode js-ts-mode typescript-mode
-                     typescript-ts-mode tsx-ts-mode)
-                   "<" ">" :actions '(wrap))))
 
 (defconst javascript--project-markers
   '("deno.json" "deno.jsonc" "tsconfig.json" "package.json")

@@ -114,6 +114,22 @@ The author's managed systemd preflight is external to this repository.
 Neither it nor a service is required; the standalone batch entry point and
 portable `scripts/emc` launcher are shipped here.
 
+For a package distributed from a Git repository rather than an archive, use
+`packages/declare-vc` before the same `use-package ... :ensure nil` form:
+
+```elisp
+(packages/declare-vc 'fingertip
+                    '(:url "https://github.com/manateelazycat/fingertip"
+                      :vc-backend Git))
+```
+
+This records the package and its source in `packages/declared` and
+`packages/vc-sources` without fetching during normal startup.  Both bootstrap
+paths install missing source packages with Emacs' built-in `package-vc-install`
+under `(cache/folder "elpa")`, alongside archive packages.  Git and HTTPS access
+to the source host are required.  Bootstrap reuses installed checkouts; use
+`M-x package-vc-upgrade` to update an installed source package explicitly.
+
 The configured package archives are GNU ELPA, NonGNU ELPA, and MELPA.  Archive
 metadata is refreshed at most once during a bootstrap pass.  A package that is
 already provided by Emacs can still be expressed with `packages/declare` when
@@ -441,54 +457,61 @@ Other package-specific limits remain in their own package options.
 
 ### Pairing and Structural Editing
 
-`modules/feat/editing/pairs.el` uses non-strict Smartparens instead of
-`electric-pair-mode`.  Only one engine owns pairing.  Automatic pairing is
-opted into programming/config modes and Markdown/Org, not ordinary prose,
-minibuffers, terminals, or special/read-only buffers.  Buffers of 2 MiB or
-more skip activation; So Long also disables Smartparens on very long lines.
+`modules/feat/editing/pairs.el` uses
+[Fingertip](https://github.com/manateelazycat/fingertip), installed from Git
+through `packages/declare-vc`.  Smartparens and its language rules have been
+removed; `electric-pair-mode` stays disabled so only one engine owns pairing.
+Run the package bootstrap, then restart Emacs to apply this replacement.
+Already installed Smartparens files are left untouched but are no longer used.
 
-The upstream `smartparens-config` supplies language rules, including Lisp
-quote prefixes, Haskell primes, and Markdown/Org markup.  The Rust module
-overrides single quotes to stay literal in both `rust-mode` and
-`rust-ts-mode`: `'` never automatically pairs, wraps, or skips.  This avoids
-misreading lifetimes and labels; character literals need both quotes typed.
-Normal deletion, kill/yank, and temporarily unbalanced code are allowed:
-strict mode is not enabled and no bulk replacement of Emacs keybindings is
-installed.  Typing an opener wraps an active selection rather than replacing
-it; Backspace inside an empty pair removes both delimiters.  Matching closers
-are skipped only at the end of an expression, never by jumping over its
-contents.  Manually escaped quotes inside strings remain literal rather than
-inserting a second escaped quote.
+Automatic activation requires **an active Tree-sitter parser** and a mode in
+`pairs/enabled-modes` (programming/config modes, Markdown/Org, and
+`typst-ts-mode` by default).  This covers the configured Tree-sitter language
+modes, including TSX and Typst.  Emacs Lisp, Org, Markdown, Haskell, and other
+parser-free/fallback buffers keep ordinary insertion, **without automatic
+pairing**.  No compatibility layer or second pairing engine is installed.
+Minibuffers, terminals, special/read-only buffers, and buffers of 2 MiB or more
+skip activation.  So Long also disables Fingertip for very long lines.
+If you manually create a parser after entering a mode, run `M-: (pairs/enable)`
+to recheck eligibility; no grammar is installed just to enable pairing.
 
-JavaScript/TypeScript and Rust do not automatically pair or skip `<`/`>`:
-these characters are ambiguous comparisons, shifts, arrows, and type syntax.
-Their language modules keep angle brackets for explicit wrapping only.
-This deliberate policy avoids trying to infer intent with fragile regexes.
-`pairs/automatic-angle-pairing` and `pairs/pair-escaped-quotes` can opt back
-into upstream behavior; restart after changing these load-time policies.
-`pairs/enabled-modes` controls automatic activation without editing hooks.
-Use Smartparens' own options for skipping, deletion, and wrapping preferences.
+Fingertip owns `()` / `[]` / `{}`, their Chinese equivalents `（）` / `「」` /
+`【】`, and quotes.  `<`, `>`, `%`, and `=` stay literal.  Upstream leaves Rust
+apostrophes literal, so lifetimes and labels do not acquire extra quotes.
+Space inside empty braces/brackets adds padding; RET splits empty pairs and
+indents.  Backspace removes an empty pair, while Backspace/`C-d` protect
+nonempty delimiters; `C-k` uses Fingertip's structural kill.  Closing brackets
+can jump out across the remaining contents of a pair.  These are upstream
+Fingertip semantics, not the previous non-strict Smartparens policies.
 
-Smartparens commands live under a buffer-local `C-c p` prefix:
+A double quote typed **inside a string inserts an escaped quote** instead of
+skipping the closing quote; move right to leave the string.  Use the explicit
+wrapping commands below to choose delimiters around a selection.  Ordinary
+selection replacement and programmatic snippet insertion remain unchanged.
+`C-q` inserts a literal character; disable the mode temporarily for ordinary
+delimiter deletion or other unstructured editing.
+
+Structural commands keep a buffer-local `C-c p` prefix rather than adopting
+upstream's suggested Meta bindings, which conflict with snippets, registers,
+and Eldoc scrolling:
 
 | Key | Action |
 | --- | --- |
-| `C-c p (` / `[` / `{` | Wrap the selection or next expression |
-| `C-c p <` | Explicit angle wrapping in supported modes |
-| `C-c p s` / `S` | Slurp the next/previous expression into the pair |
-| `C-c p b` / `B` | Barf the last/first expression out of the pair |
-| `C-c p u` | Remove the enclosing delimiters (splice) |
-| `C-c p r` | Raise an expression out of its parent |
-| `C-c p n` / `p` | Move forward/backward by expression |
+| `C-c p (` / `[` / `{` | Wrap the selection or syntax node |
+| `C-c p "` / `'` | Wrap with double/single quotes |
+| `C-c p u` | Remove the enclosing delimiters (unwrap) |
+| `C-c p n` / `p` | Jump right/left by syntax node |
+| `C-c p m` | Jump to the matching delimiter |
+| `C-c p j` | Leave the pair and insert a newline |
+| `C-c p a` | Jump to the beginning of a definition |
 | `C-c p q` | Insert the next character literally (also `C-q`) |
-| `C-c p t` | Disable Smartparens in this buffer |
-| `C-c p ?` | Open the Smartparens cheat sheet |
+| `C-c p t` | Disable Fingertip in this buffer |
+| `C-c p ?` | Describe Fingertip and its active bindings |
 
-After disabling the mode, use `M-x smartparens-mode` to enable it again.
-Smartparens is declared through the normal package workflow and pinned to
-MELPA: the old NonGNU build lacks its Dash dependency and current Tree-sitter
-integration.  Dash is installed as a dependency, not configured separately.
-Run `M-x packages/bootstrap` before using the integration on a new machine.
+After disabling it, use `M-x fingertip-mode` to enable it again only in a
+buffer with an active parser.  The old Smartparens slurp/barf, raise, and angle
+wrapping shortcuts are not retained: Fingertip has no direct equivalents.
+`pairs/enabled-modes` controls eligibility, not the parser requirement.
 
 ## 2. Adding Language Support
 
@@ -875,8 +898,13 @@ files to verify Dirvish/dashboard integration.
 `tests/dashboard-tests.el` verifies button dispatch and TAB/RET navigation,
 shortcut labels, startup safeguards, and Emacs' real server selection path
 for empty and explicit-file requests.
-`tests/pairs-tests.el` types through the real command loop to check wrapping,
-closing-delimiter skipping, deletion, apostrophes, operators, and snippets.
+`tests/packages-tests.el` checks offline VC declarations and both bootstrap
+installation paths without network requests.
+`tests/pairs-tests.el` types through the real command loop with installed
+Tree-sitter parsers to check Fingertip pairing, wrapping, deletion, quotes,
+Rust apostrophes, operators, snippets, and So Long restoration.  It also checks
+parser-free fallbacks and activation exclusions; parser-dependent tests skip
+when their grammar is unavailable.
 `tests/snippets-tests.el` checks Rust argument-field cleanup through the command
 loop in both Rust modes, plus field navigation, editable boundaries, nested
 snippets, normal finalization, and buffer-local hook setup.

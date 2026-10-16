@@ -1,90 +1,89 @@
-;;; pairs.el --- Language-aware pairing and structural editing -*- lexical-binding: t; -*-
+;;; pairs.el --- Tree-sitter pairing and structural editing -*- lexical-binding: t; -*-
 
 (require 'packages)
+(require 'treesit)
 
-;; Only one engine may own insertion, skipping, and pair deletion.  This also
-;; disables the old global engine when this module is reloaded in a session.
+;; Fingertip is the sole pairing engine.  Parser-free buffers keep ordinary
+;; Emacs insertion; Fingertip's node-based commands cannot safely run there.
 (use-package elec-pair
   :ensure nil
   :init
   (electric-pair-mode -1))
 
-;; The MELPA pin lives in core/packages.el, before archive metadata is read.
-(packages/declare 'smartparens)
+(packages/declare-vc 'fingertip
+                    '(:url "https://github.com/manateelazycat/fingertip"
+                      :vc-backend Git))
 
-(declare-function smartparens-mode "smartparens" (&optional arg))
-(declare-function sp-wrap-with-pair "smartparens" (pair))
-(declare-function sp-pair "smartparens" (open close &rest arguments))
-(declare-function sp-get-pair "smartparens" (id &optional prop))
+(declare-function fingertip-mode "fingertip" (&optional arg))
 
 (defgroup pairs nil
-  "Optional policies on top of Smartparens' language rules."
+  "Automatic activation of Fingertip in structured editing buffers."
   :group 'editing)
 
-(defcustom pairs/enabled-modes '(prog-mode conf-mode markdown-mode org-mode)
-  "Parent/major modes that opt into automatic Smartparens activation."
+(defcustom pairs/enabled-modes
+  '(prog-mode conf-mode markdown-mode org-mode typst-ts-mode)
+  "Parent/major modes eligible for automatic Fingertip activation.
+An active Tree-sitter parser is also required, regardless of this list."
   :type '(repeat symbol) :group 'pairs)
-(defcustom pairs/automatic-angle-pairing nil
-  "Use upstream automatic angle-bracket rules in JavaScript/TypeScript/Rust.
-Nil keeps ambiguous operators literal and allows explicit wrapping only.
-This policy is applied when language rules load; restart after changing it."
-  :type 'boolean :group 'pairs)
-(defcustom pairs/pair-escaped-quotes nil
-  "Automatically insert a second escaped quote using upstream rules.
-Nil leaves manual escapes literal.  Restart after changing this policy."
-  :type 'boolean :group 'pairs)
-
-(defun pairs/wrap-angle ()
-  "Wrap the region or next expression in angle brackets when supported."
-  (interactive "*")
-  (unless (memq 'wrap (sp-get-pair "<" :actions))
-    (user-error "Angle wrapping is not defined for %s" major-mode))
-  (sp-wrap-with-pair "<"))
 
 (defun pairs/enable ()
-  "Enable non-strict Smartparens in ordinary structured editing buffers.
-Do not install pairing hooks in minibuffers, special/read-only buffers,
-or very large buffers.  Plain prose and process buffers do not opt in."
+  "Enable Fingertip in small, writable buffers with an active parser.
+Leave minibuffers, prose, process buffers, and special buffers alone.
+Run this again after manually creating a parser in an existing buffer."
   (when (and (apply #'derived-mode-p pairs/enabled-modes)
              (not (minibufferp))
              (not buffer-read-only)
              (not (derived-mode-p 'special-mode 'comint-mode))
-             (buffers/small-p))
-    (smartparens-mode 1)))
+             (buffers/small-p)
+             (treesit-parser-list))
+    (fingertip-mode 1)))
 
-(use-package smartparens
+(defun pairs/help ()
+  "Describe the active Fingertip bindings."
+  (interactive)
+  (describe-minor-mode 'fingertip-mode))
+
+(use-package fingertip
   :ensure nil
-  :commands (smartparens-mode sp-cheat-sheet)
+  :commands (fingertip-mode)
   :hook (after-change-major-mode . pairs/enable)
-  :custom
-  ;; Skip at the actual end of an expression, never jump across its contents.
-  (sp-autoskip-closing-pair 'always-end)
-  :bind (:map smartparens-mode-map
-              ("C-c p (" . sp-wrap-round)
-              ("C-c p [" . sp-wrap-square)
-              ("C-c p {" . sp-wrap-curly)
-              ("C-c p <" . pairs/wrap-angle)
-              ("C-c p s" . sp-forward-slurp-sexp)
-              ("C-c p S" . sp-backward-slurp-sexp)
-              ("C-c p b" . sp-forward-barf-sexp)
-              ("C-c p B" . sp-backward-barf-sexp)
-              ("C-c p u" . sp-splice-sexp)
-              ("C-c p r" . sp-raise-sexp)
-              ("C-c p n" . sp-forward-sexp)
-              ("C-c p p" . sp-backward-sexp)
+  ;; Keep upstream's insertion, deletion, and newline behavior.  Navigation
+  ;; lives under C-c p instead of stealing Tempel's M-{ / M-} or Eldoc's M-n
+  ;; / M-p.  Percent and equals remain literal, and M-' still stores registers.
+  :bind (:map fingertip-mode-map
+              ("(" . fingertip-open-round)
+              ("[" . fingertip-open-bracket)
+              ("{" . fingertip-open-curly)
+              (")" . fingertip-close-round)
+              ("]" . fingertip-close-bracket)
+              ("}" . fingertip-close-curly)
+              ("（" . fingertip-open-chinese-round)
+              ("「" . fingertip-open-chinese-bracket)
+              ("【" . fingertip-open-chinese-curly)
+              ("）" . fingertip-close-chinese-round)
+              ("」" . fingertip-close-chinese-bracket)
+              ("】" . fingertip-close-chinese-curly)
+              ("\"" . fingertip-double-quote)
+              ("'" . fingertip-single-quote)
+              ("SPC" . fingertip-space)
+              ("RET" . fingertip-newline)
+              ("DEL" . fingertip-backward-delete)
+              ("<backspace>" . fingertip-backward-delete)
+              ("C-d" . fingertip-forward-delete)
+              ("C-k" . fingertip-kill)
+              ("C-c p (" . fingertip-wrap-round)
+              ("C-c p [" . fingertip-wrap-bracket)
+              ("C-c p {" . fingertip-wrap-curly)
+              ("C-c p \"" . fingertip-wrap-double-quote)
+              ("C-c p '" . fingertip-wrap-single-quote)
+              ("C-c p u" . fingertip-unwrap)
+              ("C-c p n" . fingertip-jump-right)
+              ("C-c p p" . fingertip-jump-left)
+              ("C-c p m" . fingertip-match-paren)
+              ("C-c p j" . fingertip-jump-out-pair-and-newline)
+              ("C-c p a" . fingertip-jump-up)
               ("C-c p q" . quoted-insert)
-              ("C-c p t" . smartparens-mode)
-              ("C-c p ?" . sp-cheat-sheet))
-  :config
-  ;; Use upstream syntax/context rules, including Lisp quotes, Haskell primes,
-  ;; and Markdown code spans; language modules add their local policy overrides.
-  ;; Strict mode stays off: normal deletion, kill/yank, and temporarily unbalanced
-  ;; code remain valid.
-  (require 'smartparens-config)
-  ;; An escaped quote inside a string is content, not a nested string.  The
-  ;; upstream escaped-quote pair otherwise inserts a second escape as well.
-  ;; Retain explicit wrapping/navigation, but leave manual escapes literal.
-  (unless pairs/pair-escaped-quotes
-    (sp-pair "\\\"" nil :actions '(wrap navigate))))
+              ("C-c p t" . fingertip-mode)
+              ("C-c p ?" . pairs/help)))
 
 ;;; pairs.el ends here

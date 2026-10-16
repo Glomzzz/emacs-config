@@ -480,15 +480,20 @@
   (should-error (mounts/resolve-command nil) :type 'user-error))
 
 (ert-deftest config-test/pair-activation-is-configurable ()
+  (skip-unless (treesit-ready-p 'typescript t))
   (with-temp-buffer
     (text-mode)
     (let ((pairs/enabled-modes '(text-mode)))
       (pairs/enable)
-      (should smartparens-mode)))
+      (should-not fingertip-mode)
+      (treesit-parser-create 'typescript)
+      (pairs/enable)
+      (should fingertip-mode)))
   (with-temp-buffer
     (let ((pairs/enabled-modes nil))
-      (emacs-lisp-mode)
-      (should-not smartparens-mode))))
+      (typescript-ts-mode)
+      (should (treesit-parser-list))
+      (should-not fingertip-mode))))
 
 (ert-deftest config-test/lsp-resolution-ignores-other-jsonrpc-connections ()
   (let ((item (list :data 1)))
