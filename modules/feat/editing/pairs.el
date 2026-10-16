@@ -10,9 +10,26 @@
   :init
   (electric-pair-mode -1))
 
-(packages/declare-vc 'fingertip
-                    '(:url "https://github.com/manateelazycat/fingertip"
-                      :vc-backend Git))
+;; Patch the source before byte/native compilation, including on VC upgrades.
+;; Declarations in this module alone would not reach native compiler workers.
+(let ((source
+       `(:url "https://github.com/manateelazycat/fingertip"
+         :vc-backend Git
+         :shell-command
+         ,(mapconcat #'shell-quote-argument
+                     (list (expand-file-name invocation-name invocation-directory)
+                           "--batch" "-Q" "--load"
+                           (expand-file-name "scripts/patch-fingertip.el"
+                                             user-emacs-directory)
+                           "--funcall" "pairs/patch-fingertip")
+                     " "))))
+  (with-eval-after-load 'package-vc
+    ;; Authorize only this package's build command, not arbitrary VC builds.
+    (unless (eq package-vc-allow-build-commands t)
+      (add-to-list 'package-vc-allow-build-commands 'fingertip))
+    ;; Already installed checkouts also need the build step on their next upgrade.
+    (setf (alist-get 'fingertip package-vc-selected-packages) source))
+  (packages/declare-vc 'fingertip source))
 
 (declare-function fingertip-mode "fingertip" (&optional arg))
 

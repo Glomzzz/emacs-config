@@ -5,6 +5,101 @@
 (require 'fingertip)
 (require 'tempel)
 
+(load (expand-file-name "scripts/patch-fingertip.el" user-emacs-directory)
+      nil 'nomessage)
+
+(defconst config-test/fingertip-optional-source
+  (concat ";;; fingertip.el --- Optional integration fixture -*- lexical-binding: t; -*-\n"
+          ";;; Code:\n"
+          "(defun fingertip-test-optional-calls ()\n"
+          "  (sgml-skip-tag-forward 1)\n"
+          "  (sgml-skip-tag-backward 1)\n"
+          "  (web-mode-element-beginning-position 1)\n"
+          "  (web-mode-element-end-position 1)\n"
+          "  (web-mode-element-parent-position 1)\n"
+          "  (web-mode-insert-text-at-pos \"text\" 1)\n"
+          "  (web-mode-element-parent)\n"
+          "  (web-mode-element-vanish 1)\n"
+          "  (ielm-return))\n")
+  "Standalone calls to Fingertip's optional integration functions.")
+
+(ert-deftest config-test/pairs-build-patch-is-idempotent ()
+  (let ((file (make-temp-file "fingertip-patch-" nil ".el"
+                              config-test/fingertip-optional-source)))
+    (unwind-protect
+        (progn
+          (pairs/patch-fingertip file)
+          (let ((patched (with-temp-buffer
+                           (insert-file-contents file)
+                           (buffer-string)))
+                (timestamp (seconds-to-time 1000000)))
+            (should (string-match-p "(declare-function sgml-skip-tag-forward" patched))
+            (set-file-times file timestamp)
+            (pairs/patch-fingertip file)
+            (should (equal timestamp
+                           (file-attribute-modification-time (file-attributes file))))
+            (should (equal patched (with-temp-buffer
+                                     (insert-file-contents file)
+                                     (buffer-string))))))
+      (delete-file file))))
+
+(ert-deftest config-test/pairs-build-patch-preserves-upstream-declarations ()
+  (let* ((upstream "(declare-function sgml-skip-tag-forward \"sgml-mode\" (count))\n")
+         (file (make-temp-file "fingertip-upstream-" nil ".el"
+                               (concat upstream config-test/fingertip-optional-source))))
+    (unwind-protect
+        (progn
+          (pairs/patch-fingertip file)
+          (with-temp-buffer
+            (insert-file-contents file)
+            (should (search-forward upstream nil t))
+            (should-not (search-forward "(declare-function sgml-skip-tag-forward" nil t))))
+      (delete-file file))))
+
+(ert-deftest config-test/pairs-build-patch-rejects-unknown-layout-without-writing ()
+  (let* ((original ";;; No Fingertip code marker here.\n")
+         (file (make-temp-file "fingertip-layout-" nil ".el" original)))
+    (unwind-protect
+        (progn
+          (should-error (pairs/patch-fingertip file))
+          (should (equal original (with-temp-buffer
+                                    (insert-file-contents file)
+                                    (buffer-string)))))
+      (delete-file file))))
+
+(ert-deftest config-test/pairs-build-command-fixes-clean-worker-compilation ()
+  (require 'package-vc)
+  (should (or (eq package-vc-allow-build-commands t)
+              (memq 'fingertip package-vc-allow-build-commands)))
+  (let* ((source (alist-get 'fingertip packages/vc-sources))
+         (directory (make-temp-file "fingertip build " t))
+         (default-directory (file-name-as-directory directory))
+         (file (expand-file-name "fingertip.el" directory)))
+    (unwind-protect
+        (progn
+          (should (equal source (alist-get 'fingertip package-vc-selected-packages)))
+          (with-temp-file file (insert config-test/fingertip-optional-source))
+          (with-temp-buffer
+            ;; Use the actual recipe in a fresh -Q worker so optional libraries
+            ;; preloaded by the configuration cannot hide missing declarations.
+            (let ((command
+                   (concat (plist-get source :shell-command) " --eval "
+                           (shell-quote-argument
+                            (prin1-to-string
+                             `(progn
+                                (require 'bytecomp)
+                                (setq byte-compile-warnings '(unresolved)
+                                      byte-compile-error-on-warn t)
+                                (unless (byte-compile-file ,file)
+                                  (kill-emacs 1))
+                                (dolist (feature '(sgml-mode web-mode ielm))
+                                  (when (featurep feature)
+                                    (error "Build eagerly loaded %s" feature)))))))))
+              (should (zerop (call-process-shell-command command nil t))))
+            (should-not (string-match-p "Warning\\|Error" (buffer-string))))
+          (should (file-exists-p (concat file "c"))))
+      (delete-directory directory t))))
+
 (defmacro config-test/with-pair-buffer (mode &rest body)
   "Run BODY in a displayed temporary buffer using MODE.
 Keyboard macros exercise the actual keymaps and delete-selection behavior."

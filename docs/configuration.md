@@ -509,6 +509,17 @@ removed; `electric-pair-mode` stays disabled so only one engine owns pairing.
 Run the package bootstrap, then restart Emacs to apply this replacement.
 Already installed Smartparens files are left untouched but are no longer used.
 
+Fingertip's VC build runs `scripts/patch-fingertip.el` before byte/native
+compilation to add missing declarations for its optional SGML, web-mode, and
+IELM functions.  Only Fingertip is added to `package-vc-allow-build-commands`;
+other VC packages are not authorized by this change.  The patch is idempotent,
+preserves upstream declarations, and does not load or install optional modes
+or suppress compiler warnings.  Reinstalls and `M-x package-vc-upgrade` use the
+same build step.  Normal startup does not rewrite package sources.  An existing
+checkout can be patched once by running the script from its directory with
+`emacs --batch -Q -l /path/to/emacs/scripts/patch-fingertip.el -f pairs/patch-fingertip`,
+then recompiling `fingertip.el`.
+
 Automatic activation requires **an active Tree-sitter parser** and a mode in
 `pairs/enabled-modes` (programming/config modes, Markdown/Org, and
 `typst-ts-mode` by default).  This covers the configured Tree-sitter language
@@ -949,7 +960,9 @@ installation paths without network requests.
 Tree-sitter parsers to check Fingertip pairing, wrapping, deletion, quotes,
 Rust apostrophes, operators, snippets, and So Long restoration.  It also checks
 parser-free fallbacks and activation exclusions; parser-dependent tests skip
-when their grammar is unavailable.
+when their grammar is unavailable.  Build-patch tests verify idempotence,
+preservation of upstream declarations, and unresolved-function-free compilation
+of optional integration calls in a fresh `-Q` worker using the actual VC recipe.
 `tests/snippets-tests.el` checks Rust argument-field cleanup through the command
 loop in both Rust modes, plus field navigation, editable boundaries, nested
 snippets, normal finalization, and buffer-local hook setup.
