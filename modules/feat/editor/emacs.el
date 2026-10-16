@@ -164,13 +164,19 @@ when a project's format has meaningful trailing spaces."
 
 ;; Search/Replace
 (setq query-replace-highlight t)
-(setq isearch-lazy-highlight t)
-(setq lazy-highlight-cleanup t)
-(setq isearch-wrap-pause t)
-(setq isearch-allow-motion t)
-(setq isearch-motion-changes-direction t)
-(setq isearch-lazy-count t)
-(setq lazy-count-prefix-format "%s/%s ")
+(use-package isearch
+  :ensure nil
+  ;; Backspace edits the query instead of undoing search navigation states.
+  :bind (:map isearch-mode-map
+              ([remap isearch-delete-char] . isearch-del-char))
+  :custom
+  (isearch-lazy-highlight t)
+  (lazy-highlight-cleanup t)
+  (isearch-wrap-pause t)
+  (isearch-allow-motion t)
+  (isearch-motion-changes-direction t)
+  (isearch-lazy-count t)
+  (lazy-count-prefix-format "%s/%s "))
 
 ;; ibuffer(instead of bufferlist)
 (setq ibuffer-use-other-window nil)

@@ -156,5 +156,43 @@
       (should (equal (buffer-string) "needle needle\n"))
       (should-not (overlays-in (point-min) (point-max))))))
 
+(ert-deftest config-test/isearch-count-and-highlight-policy ()
+  (should isearch-lazy-highlight)
+  (should isearch-lazy-count)
+  (should (equal lazy-count-prefix-format "%s/%s "))
+  (should lazy-highlight-cleanup))
+
+(ert-deftest config-test/isearch-backspace-remap-preserves-consult-bindings ()
+  (let ((overriding-terminal-local-map isearch-mode-map))
+    (should (eq (key-binding (kbd "DEL")) #'isearch-del-char))
+    (should (eq (key-binding (kbd "M-e")) #'consult-isearch-history))
+    (should (eq (key-binding (kbd "M-s l")) #'consult-line))
+    (should (eq (key-binding (kbd "M-s L")) #'consult-line-multi))))
+
+(ert-deftest config-test/isearch-backspace-edits-query-after-repeating-search ()
+  (let ((buffer (generate-new-buffer " *isearch test*"))
+        (isearch-mode-map (copy-keymap isearch-mode-map))
+        (search-ring nil)
+        query)
+    (unwind-protect
+        (save-window-excursion
+          (switch-to-buffer buffer)
+          (insert "foo foo food\n")
+          (goto-char (point-min))
+          (define-key isearch-mode-map (kbd "<f12>")
+                      (lambda ()
+                        (interactive)
+                        (setq query isearch-string)
+                        (isearch-exit)))
+          ;; Default Backspace would only undo the repeated-search step.
+          (execute-kbd-macro
+           (vconcat (kbd "C-s") "foo" (kbd "C-s DEL <f12>")))
+          (should (equal query "fo"))
+          (should (equal (buffer-string) "foo foo food\n")))
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (when isearch-mode (isearch-done)))
+        (kill-buffer buffer)))))
+
 (provide 'navigation-tests)
 ;;; navigation-tests.el ends here

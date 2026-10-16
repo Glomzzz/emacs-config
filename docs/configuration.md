@@ -315,6 +315,18 @@ package is installed.  Savehist stores its history at `(cache/file "history")`.
 The extension's default filters omit empty input and M-x sessions.  Repetition reruns the command in the current context; it is not
 an exact snapshot of files, buffers, or an old working directory.
 
+### Incremental Search
+
+`C-s` / `C-r` keep built-in Isearch.  Backspace deletes the last character
+of the search query (`isearch-del-char`), even after repeating a search,
+instead of undoing the last search/navigation state.  The prompt shows the
+current/total match count, such as `2/5`, using Isearch's lazy highlighting.
+Extra match highlights are still cleared when the search ends.
+
+These settings live together in `modules/feat/editor/emacs.el`.  Consult's
+Isearch history (`M-e`) and result-list search (`M-s l` / `M-s L`) bindings
+remain unchanged.  No additional search package is installed.
+
 ### Consult Preview Policy
 
 Press **`M-.`** in Consult's file-oriented prompts to preview the selected
