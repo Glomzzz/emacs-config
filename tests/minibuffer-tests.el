@@ -78,5 +78,28 @@ using the extension's real buffer-local command and exit hooks."
         (should replayed)
         (should (equal minibuffer-setup-hook setup-hooks))))))
 
+(ert-deftest config-test/vertico-file-input-literal-versus-selected-candidate ()
+  (should (eq (lookup-key vertico-map (kbd "M-RET")) #'vertico-exit-input))
+  ;; Batch Emacs reads prompts from stdin, so simulate the minibuffer contents
+  ;; while exercising the configured bindings and Vertico's real exit commands.
+  (dolist (case '(("RET" . "plt-plan.org") ("M-RET" . "plan.org")))
+    (with-temp-buffer
+      (insert "plan.org")
+      (let ((vertico--index 0)
+            (vertico--candidates '("plt-plan.org"))
+            (vertico--total 1)
+            (vertico--base "")
+            (vertico--metadata '(metadata (category . file)))
+            (minibuffer--require-match nil)
+            (current-prefix-arg nil)
+            accepted)
+        (cl-letf (((symbol-function 'minibuffer-contents-no-properties)
+                   (lambda () (buffer-string)))
+                  ((symbol-function 'delete-minibuffer-contents) #'erase-buffer)
+                  ((symbol-function 'exit-minibuffer)
+                   (lambda () (setq accepted (buffer-string)))))
+          (call-interactively (lookup-key vertico-map (kbd (car case))))
+          (should (equal accepted (cdr case))))))))
+
 (provide 'minibuffer-tests)
 ;;; minibuffer-tests.el ends here

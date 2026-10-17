@@ -67,7 +67,8 @@
   :bind
   (:map vertico-map
         ("M-?" . minibuffer-completion-help)
-        ("M-RET" . minibuffer-force-complete-and-exit)
+        ;; Accept a new filename literally, even when a candidate matches.
+        ("M-RET" . vertico-exit-input)
         ("M-TAB" . minibuffer-complete)))
 
 ;; `vertico-directory' ships inside Vertico, so configure the extension through

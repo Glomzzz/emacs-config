@@ -302,6 +302,15 @@ startup and dedicated daemon/client TTY frames (empty and explicit-file
 requests) were smoke-tested; graphical mouse interaction still needs manual
 validation.
 
+### Literal Filenames in Completion
+
+In `C-x C-f`, **`RET`** opens the highlighted completion, while **`M-RET`**
+accepts exactly what you typed.  For example, type `plan.org` and press
+`M-RET` to visit a new `plan.org`, even if `plt-plan.org` is highlighted.
+Save the new buffer with `C-x C-s` to create the file on disk.  **`C-u RET`**
+also accepts literal input.  Directory navigation and normal candidate
+selection are unchanged.
+
 ### Completion Session History
 
 **`M-R`** (`vertico-repeat`) reopens the last recorded completion command
