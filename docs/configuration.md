@@ -813,10 +813,17 @@ with `/`, keep using the Typst root: the nearest `.typst-root`, then the normal
 project root, then the source directory if no project exists.  This lookup
 policy is separate from file completion above.  Spaces, Chinese filenames,
 and escaped quotes/backslashes work here too.  **`M-,`** returns to the original
-location through normal Xref history.  Symbols, unmatched paths, URLs, and `@`
-package imports keep normal definition lookup through Xref/Tinymist; **`C-u M-.`** always requests normal
-definition lookup.  String detection has the same grammar-free limitations
-described above.
+location through normal Xref history.
+
+If neither candidate exists, the minibuffer asks **`Create <path>.typ?`** using
+the first lookup location, not the `statements/` fallback.  Answering `y` creates
+missing parent directories and an empty file on disk, then opens it; `n` or
+`C-g` leaves you in place without creating anything or changing Xref history.
+Existing files are never overwritten.  Symbols, empty strings, directory paths
+ending in `/`, URLs, and `@` package imports keep normal definition lookup
+through Xref/Tinymist; **`C-u M-.`** always requests normal definition lookup,
+without a creation prompt.  String detection has the same grammar-free
+limitations described above.
 
 ### Tree-sitter grammar
 

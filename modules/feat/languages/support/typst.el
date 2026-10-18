@@ -118,9 +118,10 @@ then the source directory.  Other paths use the source directory."
       source-directory)))
 
 (defun typst--definition-file (path)
-  "Find PATH as a .typ file, directly then under statements/.
+  "Resolve PATH to a .typ file, directly then under statements/.
 Paths starting with ./ use the source directory; other paths use the
-Typst root.  Append .typ unless already present."
+Typst root.  Append .typ unless already present.  If neither candidate
+exists, return the direct path so it can be offered for creation."
   (let* ((directory (typst--path-directory
                      (if (string-prefix-p "./" path) path "/")))
          ;; Keep ~ literal and / document-relative, not OS-relative.
@@ -132,15 +133,29 @@ Typst root.  Append .typ unless already present."
          (statement (expand-file-name
                      name (expand-file-name "statements/" directory))))
     (cond ((file-regular-p direct) direct)
-          ((file-regular-p statement) statement))))
+          ((file-regular-p statement) statement)
+          (t direct))))
+
+(defun typst--create-definition-file (file)
+  "Offer to create FILE and its parent directories, returning t on success.
+Declining leaves the filesystem untouched.  Never overwrite an existing path."
+  (when (or (file-exists-p file) (file-symlink-p file))
+    (user-error "Cannot create Typst file; path already exists: %s" file))
+  (when (y-or-n-p (format "File not found. Create %s? "
+                         (abbreviate-file-name file)))
+    (make-directory (file-name-directory file) t)
+    ;; Exclusive creation also protects files that appear during the prompt.
+    (write-region "" nil file nil 'silent nil 'excl)
+    t))
 
 (defun typst/find-definition ()
   "Visit the .typ file named by the Typst string at point.
 Search from the source directory for paths starting with ./, otherwise
 from the Typst root.  Try directly, then under statements/, appending
-.typ unless already present.  Record the jump for `xref-go-back' (M-,).
-With a prefix argument, or when neither file exists, use normal
-definition lookup."
+.typ unless already present.  If neither file exists, offer to create the
+direct path and its parent directories; declining leaves point unchanged.
+Record successful jumps for `xref-go-back' (M-,).  With a prefix argument,
+or outside a file string, use normal definition lookup."
   (interactive)
   (if-let* (((not current-prefix-arg))
             (bounds (or (typst--path-string-bounds)
@@ -153,9 +168,11 @@ definition lookup."
                    (buffer-substring-no-properties (car bounds) (cdr bounds))))
             ((not (or (equal path "")
                       (string-prefix-p "@" path)
+                      (string-suffix-p "/" path)
                       (string-match-p "\\`[[:alpha:]][[:alnum:]+.-]*:" path))))
             (file (typst--definition-file path)))
-      (progn
+      (when (or (file-regular-p file)
+                (typst--create-definition-file file))
         (xref-push-marker-stack)
         (find-file file))
     (call-interactively #'xref-find-definitions)))
