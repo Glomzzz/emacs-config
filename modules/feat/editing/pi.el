@@ -1,4 +1,4 @@
-;;; pi.el --- Inline Pi insertion integration -*- lexical-binding: t; -*-
+;;; pi.el --- Inline Pi file editing integration -*- lexical-binding: t; -*-
 
 (require 'packages)
 
@@ -18,7 +18,7 @@
     map))
 
 (define-minor-mode pi/inline-key-mode
-  "Reserve C-c C-a for inline Pi insertion in an editing buffer."
+  "Reserve C-c C-a for direct Pi file editing from an inline prompt."
   :lighter nil :keymap pi/inline-key-mode-map)
 
 (defun pi/enable-inline-key ()

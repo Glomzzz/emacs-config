@@ -13,15 +13,19 @@
 (defmacro config-test/with-pi (&rest body)
   "Run BODY in a source buffer with isolated Pi workers and transcripts."
   (declare (indent 0) (debug t))
-  `(let ((pi-inline-executable (or (executable-find "python3") "python3"))
+  `(let* ((pi-inline-executable (or (executable-find "python3") "python3"))
          (pi-inline-extra-arguments (list "-u" config-test/pi-fixture))
          (pi-inline-timeout 5)
-         (default-directory temporary-file-directory)
+         (directory (make-temp-file "pi-inline-tests-" t))
+         (default-directory (file-name-as-directory directory))
          (source (generate-new-buffer " *pi-inline-source*"))
          request)
      (with-current-buffer source
        (buffer-enable-undo)
        (insert "before|after")
+       (setq buffer-file-name (expand-file-name "source.txt" directory))
+       (write-region (point-min) (point-max) buffer-file-name nil 'silent)
+       (set-visited-file-modtime)
        (setq buffer-undo-list nil)
        (set-buffer-modified-p nil)
        (goto-char 8)
@@ -36,7 +40,8 @@
              (delete-process (pi-inline--request-stderr request)))
            (when (buffer-live-p (pi-inline--request-log request))
              (kill-buffer (pi-inline--request-log request))))
-         (when (buffer-live-p source) (kill-buffer source))))))
+         (when (buffer-live-p source) (kill-buffer source))
+         (delete-directory directory t)))))
 
 (defun config-test/pi-submit (prompt)
   "Start an inline request with PROMPT in the current test buffer."
@@ -88,9 +93,9 @@
       (should-error (pi-inline/submit) :type 'user-error))
     (should (eq (pi-inline--request-status pi-inline--request) 'editing))))
 
-(ert-deftest config-test/pi-refuses-read-only-and-remote-buffers ()
+(ert-deftest config-test/pi-requires-local-file-buffers ()
   (config-test/with-pi
-    (let ((buffer-read-only t)) (should-error (pi-inline/start)))
+    (let ((buffer-file-name nil)) (should-error (pi-inline/start) :type 'user-error))
     (let ((default-directory "/ssh:example.invalid:/tmp/"))
       (should-error (pi-inline/start) :type 'user-error))
     (should-not pi-inline--request)))
@@ -100,44 +105,44 @@
     (pi-inline/start)
     (should-error (pi-inline/start) :type 'user-error)))
 
-(ert-deftest config-test/pi-rpc-inserts-only-authoritative-text-and-keeps-source-unsaved ()
+(ert-deftest config-test/pi-rpc-edits-the-whole-file-and-keeps-reply-out-of-source ()
   (skip-unless (executable-find "python3"))
   (config-test/with-pi
-    (setq request (config-test/pi-submit "Produce text"))
+    (setq request (config-test/pi-submit "fixture/edit"))
     (should (equal (buffer-string) "before|after"))
     (should-not (buffer-modified-p))
     (should (string-match-p "agent working" (overlay-get (pi-inline--request-overlay request) 'before-string)))
     (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))
-    (should (equal (buffer-string) "before|generated λ\u2028text\nafter"))
-    (should (buffer-modified-p))
+    (should (equal (buffer-string) "Pi changed the whole file\n"))
+    (should-not (buffer-modified-p))
     (should-not pi-inline-mode)
     (should (equal (pi-inline--request-session-file request) "/tmp/pi-inline-fixture-session.jsonl"))
     (with-current-buffer (pi-inline--request-log request)
       (should (string-match-p "Checking context" (buffer-string)))
-      (should (string-match-p "Tool: read" (buffer-string)))
-      (should (string-match-p "Read result" (buffer-string)))
-      (should-not (string-match-p "incorrect partial" (buffer-string))))
-    (undo-only)
-    (should (equal (buffer-string) "before|after"))))
+      (should (string-match-p "Tool: write" (buffer-string)))
+      (should (string-match-p "Write result" (buffer-string)))
+      (should (string-match-p "Edited files λ\u2028summary" (buffer-string)))
+      (should-not (string-match-p "incorrect partial" (buffer-string))))))
 
 (ert-deftest config-test/pi-waits-for-settled-not-agent-end ()
   (skip-unless (executable-find "python3"))
   (config-test/with-pi
     (setq request (config-test/pi-submit "Produce text"))
-    (config-test/pi-wait (lambda () (pi-inline--request-last-message request)))
+    (config-test/pi-wait
+     (lambda () (equal (alist-get 'stopReason (pi-inline--request-last-message request)) "stop")))
     (should (eq (pi-inline--request-status request) 'working))
     (should (equal (buffer-string) "before|after"))
     (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))))
 
-(ert-deftest config-test/pi-worker-uses-rpc-and-read-only-tools ()
+(ert-deftest config-test/pi-worker-keeps-normal-tools-extensions-and-mcp ()
   (skip-unless (executable-find "python3"))
   (config-test/with-pi
     (setq request (config-test/pi-submit "fixture/hang"))
     (let ((command (process-command (pi-inline--request-process request))))
       (should (equal (cadr (member "--mode" command)) "rpc"))
-      (should (equal (cadr (member "--tools" command)) "read,grep,find,ls"))
-      (should (member "--no-extensions" command))
-      (should (member "--no-mcp" command))
+      (should-not (member "--tools" command))
+      (should-not (member "--no-extensions" command))
+      (should-not (member "--no-mcp" command))
       (should-not (member "--no-session" command)))))
 
 (ert-deftest config-test/pi-working-display-is-virtual-and-source-remains-editable ()
@@ -156,9 +161,9 @@
     (pi-inline/cancel)
     (should (equal (buffer-string) "new before|local after"))))
 
-(ert-deftest config-test/pi-failures-never-insert-partial-or-empty-text ()
+(ert-deftest config-test/pi-failures-never-insert-the-final-reply ()
   (skip-unless (executable-find "python3"))
-  (dolist (case '("fixture/reject" "fixture/error" "fixture/length" "fixture/empty" "fixture/handled"))
+  (dolist (case '("fixture/reject" "fixture/error" "fixture/length" "fixture/handled"))
     (config-test/with-pi
       (setq request (config-test/pi-submit case))
       (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'failed)))
@@ -183,7 +188,7 @@
   (config-test/with-pi
     (setq request (config-test/pi-submit "fixture/hang"))
     (pi-inline/cancel)
-    (should-not (process-live-p (pi-inline--request-process request)))
+    (config-test/pi-wait (lambda () (not (process-live-p (pi-inline--request-process request)))))
     (pi-inline--filter request "{\"type\":\"agent_settled\",\"aborted\":false}\n")
     (should (eq (pi-inline--request-status request) 'cancelled))
     (should (equal (buffer-string) "before|after"))))
@@ -199,17 +204,19 @@
     (pi-inline--filter request "not JSON\n")
     (should (eq (pi-inline--request-status request) 'failed))))
 
-(ert-deftest config-test/pi-source-kill-or-mode-change-cancels-worker ()
+(ert-deftest config-test/pi-source-kill-or-mode-change-does-not-limit-disk-work ()
   (skip-unless (executable-find "python3"))
   (config-test/with-pi
     (setq request (config-test/pi-submit "fixture/hang"))
     (fundamental-mode)
-    (should (eq (pi-inline--request-status request) 'cancelled))
-    (should-not (process-live-p (pi-inline--request-process request))))
+    (should (eq (pi-inline--request-status request) 'working))
+    (should (process-live-p (pi-inline--request-process request)))
+    (with-current-buffer (pi-inline--request-log request) (pi-inline/cancel)))
   (config-test/with-pi
     (setq request (config-test/pi-submit "fixture/hang"))
     (kill-buffer (current-buffer))
-    (should (eq (pi-inline--request-status request) 'cancelled))))
+    (should (eq (pi-inline--request-status request) 'working))
+    (with-current-buffer (pi-inline--request-log request) (pi-inline/cancel))))
 
 (ert-deftest config-test/pi-key-and-click-open-matching-transcript-without-rebinding-xref ()
   (skip-unless (executable-find "python3"))
@@ -238,23 +245,27 @@
     (should (equal (buffer-string) "before|after"))
     (should-not pi-inline-mode)))
 
-(ert-deftest config-test/pi-final-insertion-obeys-read-only-source ()
+(ert-deftest config-test/pi-emacs-read-only-state-does-not-restrict-pi-file-edits ()
   (skip-unless (executable-find "python3"))
   (config-test/with-pi
-    (setq request (config-test/pi-submit "Produce text"))
+    (insert "unsaved source ")
     (setq buffer-read-only t)
-    (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'failed)))
-    (should (equal (buffer-string) "before|after"))))
+    (setq request (config-test/pi-submit "fixture/edit"))
+    (should buffer-read-only)
+    (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))
+    (should buffer-read-only)
+    (should (equal (buffer-string) "Pi changed the whole file\n"))))
 
-(ert-deftest config-test/pi-insertion-works-with-narrowing ()
+(ert-deftest config-test/pi-narrowing-does-not-limit-file-context-or-edits ()
   (skip-unless (executable-find "python3"))
   (config-test/with-pi
     (narrow-to-region 3 11)
-    (setq request (config-test/pi-submit "Produce text"))
+    (setq request (config-test/pi-submit "fixture/edit"))
+    (should (string-match-p "before|" (pi-inline--request-context request)))
+    (should (string-match-p "after" (pi-inline--request-context request)))
     (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))
-    (should (= (point-min) 3))
     (widen)
-    (should (equal (buffer-string) "before|generated λ\u2028text\nafter"))))
+    (should (equal (buffer-string) "Pi changed the whole file\n"))))
 
 (ert-deftest config-test/pi-startup-is-lazy-and-start-binding-is-installed ()
   (should-not config-test/pi-loaded-on-startup)
@@ -296,15 +307,15 @@
       (delete-file file)
       (when (file-exists-p recovery) (delete-file recovery)))))
 
-(ert-deftest config-test/pi-submit-restores-auto-save-and-revert-cancels-worker ()
+(ert-deftest config-test/pi-submit-restores-auto-save-and-allows-normal-reversion ()
   (skip-unless (executable-find "python3"))
   (config-test/with-pi
     (setq buffer-auto-save-file-name "/tmp/pi-inline-test-recovery")
     (setq request (config-test/pi-submit "fixture/hang"))
     (should (equal buffer-auto-save-file-name "/tmp/pi-inline-test-recovery"))
-    (run-hooks 'before-revert-hook)
-    (should (eq (pi-inline--request-status request) 'cancelled))
-    (should-not (process-live-p (pi-inline--request-process request)))))
+    (revert-buffer t t t)
+    (should (eq (pi-inline--request-status request) 'working))
+    (should (process-live-p (pi-inline--request-process request)))))
 
 (ert-deftest config-test/pi-cancel-restores-preexisting-undo-and-read-only-draft ()
   (config-test/with-pi
@@ -339,5 +350,193 @@
     (pi-inline/cancel)
     (should (equal (buffer-string) "before|after"))
     (should (eq buffer-undo-list t))))
+
+(ert-deftest config-test/pi-submission-saves-unsaved-source-without-instructions ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (goto-char (point-max))
+    (insert " unsaved source")
+    (setq request (config-test/pi-submit "fixture/hang private instructions"))
+    (should-not (buffer-modified-p))
+    (should (string-match-p "unsaved source" (pi-inline--request-context request)))
+    (with-temp-buffer
+      (insert-file-contents (pi-inline--request-file request))
+      (should (equal (buffer-string) "before|after unsaved source"))
+      (should-not (string-match-p "private instructions" (buffer-string))))))
+
+(ert-deftest config-test/pi-save-failure-keeps-instructions-and-does-not-start-pi ()
+  (config-test/with-pi
+    (insert "unsaved source ")
+    (pi-inline/start)
+    (insert "private instructions")
+    (cl-letf (((symbol-function 'save-buffer) (lambda (&rest _) (error "Fixture save failure"))))
+      (should-error (pi-inline/submit)))
+    (should (eq (pi-inline--request-status pi-inline--request) 'editing))
+    (should-not (pi-inline--request-process pi-inline--request))
+    (should (string-match-p "private instructions" (buffer-string)))
+    (pi-inline/cancel)
+    (should (equal (buffer-string) "before|unsaved source after"))
+    (should (buffer-modified-p))))
+
+(ert-deftest config-test/pi-files-with-spaces-and-unicode-are-edited-directly ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (set-visited-file-name (expand-file-name "file with 空格.txt" directory) t)
+    (set-buffer-modified-p t)
+    (setq request (config-test/pi-submit "fixture/edit"))
+    (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))
+    (should (equal (buffer-string) "Pi changed the whole file\n"))))
+
+(ert-deftest config-test/pi-unsaved-source-edits-survive-agent-disk-writes ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (setq request (config-test/pi-submit "fixture/edit"))
+    (insert "local change ")
+    (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))
+    (should (equal (buffer-string) "before|local change after"))
+    (should (buffer-modified-p))
+    (with-temp-buffer
+      (insert-file-contents (pi-inline--request-file request))
+      (should (equal (buffer-string) "Pi changed the whole file\n")))
+    (with-current-buffer (pi-inline--request-log request)
+      (should (string-match-p "Unsaved edits kept" (buffer-string))))))
+
+(ert-deftest config-test/pi-refreshes-other-files-but-keeps-unsaved-buffers ()
+  (skip-unless (executable-find "python3"))
+  (dolist (modified '(nil t))
+    (config-test/with-pi
+      (let* ((file (expand-file-name "sidecar.txt" directory))
+             (other (find-file-noselect file))
+             expected)
+        (unwind-protect
+            (progn
+              (with-current-buffer other
+                (insert "original sidecar")
+                (save-buffer)
+                (when modified (insert " with local changes"))
+                (setq expected (buffer-string)))
+              (setq request (config-test/pi-submit "fixture/edit"))
+              (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))
+              (with-current-buffer other
+                (should (equal (buffer-string)
+                               (if modified expected "Pi changed another file\n")))
+                (should (eq (not (null (buffer-modified-p))) modified))))
+          (kill-buffer other))))))
+
+(ert-deftest config-test/pi-failed-request-keeps-and-reloads-already-applied-edits ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (setq request (config-test/pi-submit "fixture/edit fixture/error"))
+    (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'failed)))
+    (should (equal (buffer-string) "Pi changed the whole file\n"))
+    (pi-inline/cancel)
+    (should (equal (buffer-string) "Pi changed the whole file\n"))))
+
+(ert-deftest config-test/pi-deleted-source-is-not-recreated-by-refresh ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (setq request (config-test/pi-submit "fixture/delete"))
+    (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))
+    (should-not (file-exists-p buffer-file-name))
+    (should (equal (buffer-string) "before|after"))))
+
+(ert-deftest config-test/pi-empty-final-reply-is-valid-for-direct-file-editing ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (setq request (config-test/pi-submit "fixture/edit fixture/empty"))
+    (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))
+    (should (equal (buffer-string) "Pi changed the whole file\n"))))
+
+(ert-deftest config-test/pi-no-addon-deadline-when-timeout-is-nil ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (let ((pi-inline-timeout nil))
+      (setq request (config-test/pi-submit "fixture/hang")))
+    (should-not (pi-inline--request-timer request))))
+
+(ert-deftest config-test/pi-extension-dialog-waits-for-an-explicit-button-response ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (setq request (config-test/pi-submit "fixture/dialog"))
+    (config-test/pi-wait
+     (lambda () (with-current-buffer (pi-inline--request-log request)
+                  (next-button (point-min)))))
+    (should (eq (pi-inline--request-status request) 'working))
+    (with-current-buffer (pi-inline--request-log request)
+      (let ((button (next-button (point-min))))
+        (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
+          (button-activate button))
+        (should-error (button-activate button) :type 'user-error)))
+    (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))
+    (with-current-buffer (pi-inline--request-log request)
+      (should (string-match-p "Dialog confirmed: true" (buffer-string))))
+    (should (equal (buffer-string) "before|after"))))
+
+(ert-deftest config-test/pi-extension-dialog-supports-denial-cancellation-and-text ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (setq request (config-test/pi-submit "fixture/hang"))
+    (let (sent)
+      (cl-letf (((symbol-function 'pi-inline--send) (lambda (_request record) (setq sent record)))
+                ((symbol-function 'y-or-n-p) (lambda (&rest _) nil)))
+        (pi-inline--answer-dialog request '((id . "confirm") (method . "confirm")))
+        (should (eq (alist-get 'confirmed sent) :false)))
+      (cl-letf (((symbol-function 'pi-inline--send) (lambda (_request record) (setq sent record)))
+                ((symbol-function 'read-string) (lambda (&rest _) (signal 'quit nil))))
+        (pi-inline--answer-dialog request '((id . "input") (method . "input")))
+        (should (eq (alist-get 'cancelled sent) t)))
+      (cl-letf (((symbol-function 'pi-inline--send) (lambda (_request record) (setq sent record)))
+                ((symbol-function 'read-string) (lambda (&rest _) "line one\nline two")))
+        (pi-inline--answer-dialog request '((id . "editor") (method . "editor") (prefill . "initial")))
+        (should (equal (alist-get 'value sent) "line one\nline two")))
+      (cl-letf (((symbol-function 'pi-inline--send) (lambda (_request record) (setq sent record)))
+                ((symbol-function 'completing-read) (lambda (&rest _) "Continue")))
+        (pi-inline--answer-dialog request '((id . "select") (method . "select") (options . ("Continue" "Stop"))))
+        (should (equal (alist-get 'value sent) "Continue"))))))
+
+(ert-deftest config-test/pi-submission-creates-a-new-visiting-file ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (delete-file buffer-file-name)
+    (setq request (config-test/pi-submit "fixture/hang"))
+    (should (file-exists-p buffer-file-name))
+    (should-not (buffer-modified-p))
+    (with-temp-buffer
+      (insert-file-contents (pi-inline--request-file request))
+      (should (equal (buffer-string) "before|after")))))
+
+(ert-deftest config-test/pi-save-hooks-see-source-not-the-instruction-field ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (insert "unsaved ")
+    (let (observed)
+      (add-hook 'before-save-hook (lambda () (setq observed (buffer-string))) nil t)
+      (setq request (config-test/pi-submit "fixture/hang private instructions"))
+      (should (equal observed "before|unsaved after"))
+      (should-not (string-match-p "private instructions" observed)))))
+
+(ert-deftest config-test/pi-whole-buffer-context-can-exceed-a-pipe-write ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (insert (make-string 200000 ?x))
+    (let ((pi-inline-context-size nil))
+      (setq request (config-test/pi-submit "fixture/empty")))
+    (should (> (length (pi-inline--request-context request)) 200000))
+    (config-test/pi-wait (lambda () (eq (pi-inline--request-status request) 'done)))
+    (should (= (buffer-size) 200012))))
+
+(ert-deftest config-test/pi-cancellation-requests-agent-abort-before-shutdown ()
+  (skip-unless (executable-find "python3"))
+  (config-test/with-pi
+    (setq request (config-test/pi-submit "fixture/hang"))
+    (let ((original (symbol-function 'pi-inline--send))
+          records)
+      (cl-letf (((symbol-function 'pi-inline--send)
+                 (lambda (job record)
+                   (push record records)
+                   (funcall original job record))))
+        (pi-inline/cancel))
+      (should (equal (alist-get 'type (car records)) "abort")))
+    (config-test/pi-wait (lambda () (not (process-live-p (pi-inline--request-process request)))))))
 
 ;;; pi-inline-tests.el ends here
