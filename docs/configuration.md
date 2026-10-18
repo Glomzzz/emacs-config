@@ -544,17 +544,22 @@ Fingertip owns `()` / `[]` / `{}`, their Chinese equivalents `（）` / `「」`
 `【】`, and quotes.  `<`, `>`, `%`, and `=` stay literal.  Upstream leaves Rust
 apostrophes literal, so lifetimes and labels do not acquire extra quotes.
 Space inside empty braces/brackets adds padding; RET splits empty pairs and
-indents.  Backspace removes an empty pair, while Backspace/`C-d` protect
-nonempty delimiters; `C-k` uses Fingertip's structural kill.  Closing brackets
-can jump out across the remaining contents of a pair.  These are upstream
-Fingertip semantics, not the previous non-strict Smartparens policies.
+indents.  **Backspace** (`DEL` and graphical `<backspace>`) uses ordinary
+Emacs deletion: it deletes the character to the left, including opening/closing
+brackets and quotes, instead of protecting them or moving across them.  Between
+an empty pair, it deletes only the opening delimiter and leaves the closing one.
+`C-d` still protects nonempty delimiters; `C-k` uses Fingertip's structural kill.
+Closing brackets can jump out across the remaining contents of a pair.  Apart
+from Backspace, these are upstream Fingertip semantics, not the previous
+non-strict Smartparens policies.
 
 A double quote typed **inside a string inserts an escaped quote** instead of
 skipping the closing quote; move right to leave the string.  Use the explicit
 wrapping commands below to choose delimiters around a selection.  Ordinary
 selection replacement and programmatic snippet insertion remain unchanged.
-`C-q` inserts a literal character; disable the mode temporarily for ordinary
-delimiter deletion or other unstructured editing.
+`C-q` inserts a literal character.  Backspace can leave delimiters unbalanced;
+disable the mode temporarily for ordinary forward deletion or other
+unstructured editing.
 
 Structural commands keep a buffer-local `C-c p` prefix rather than adopting
 upstream's suggested Meta bindings, which conflict with snippets, registers,

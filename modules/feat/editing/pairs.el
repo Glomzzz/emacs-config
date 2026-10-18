@@ -64,9 +64,10 @@ Run this again after manually creating a parser in an existing buffer."
   :ensure nil
   :commands (fingertip-mode)
   :hook (after-change-major-mode . pairs/enable)
-  ;; Keep upstream's insertion, deletion, and newline behavior.  Navigation
-  ;; lives under C-c p instead of stealing Tempel's M-{ / M-} or Eldoc's M-n
-  ;; / M-p.  Percent and equals remain literal, and M-' still stores registers.
+  ;; Keep ordinary Emacs Backspace instead of protecting/skipping delimiters.
+  ;; Other editing commands retain upstream behavior.  Navigation lives under
+  ;; C-c p instead of stealing Tempel's M-{ / M-} or Eldoc's M-n / M-p.
+  ;; Percent and equals remain literal, and M-' still stores registers.
   :bind (:map fingertip-mode-map
               ("(" . fingertip-open-round)
               ("[" . fingertip-open-bracket)
@@ -84,8 +85,8 @@ Run this again after manually creating a parser in an existing buffer."
               ("'" . fingertip-single-quote)
               ("SPC" . fingertip-space)
               ("RET" . fingertip-newline)
-              ("DEL" . fingertip-backward-delete)
-              ("<backspace>" . fingertip-backward-delete)
+              ("DEL" . backward-delete-char-untabify)
+              ("<backspace>" . backward-delete-char-untabify)
               ("C-d" . fingertip-forward-delete)
               ("C-k" . fingertip-kill)
               ("C-c p (" . fingertip-wrap-round)
