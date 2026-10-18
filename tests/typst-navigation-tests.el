@@ -33,7 +33,6 @@
 (ert-deftest config-test/typst-file-jump-root-relative-and-escaped-paths ()
   (dolist (fixture '(("|lemma" . "lemma.typ")
                      ("lemma|" . "lemma.typ")
-                     ("./lem|ma" . "lemma.typ")
                      ("/lem|ma" . "lemma.typ")
                      ("lem|ma.typ" . "lemma.typ")
                      ("chapters/first|lemma" . "chapters/firstlemma.typ")
@@ -47,6 +46,28 @@
       (let ((default-directory temporary-file-directory))
         (config-test/typst-follow-file (cdr fixture) root)))))
 
+(ert-deftest config-test/typst-file-jump-dot-slash-starts-at-source-directory ()
+  (dolist (fixture '(("./lem|ma" . "lemma.typ")
+                     ("./lem|ma.typ" . "lemma.typ")
+                     ("./algebra/lem|ma" . "algebra/lemma.typ")
+                     ("./lemma |two" . "lemma two.typ")
+                     ("./|定理" . "定理.typ")
+                     ("./a\\\"q|uote" . "a\"quote.typ")
+                     ("./a\\\\b|ackslash" . "a\\backslash.typ")))
+    (config-test/with-typst-completion (concat "#let path = \"" (car fixture) "\"")
+      (dolist (directory '("" "statements/" "book/" "book/statements/"))
+        (config-test/file root (concat directory (cdr fixture))))
+      ;; Use the source directory even when Emacs' working directory differs.
+      (let ((default-directory root))
+        (config-test/typst-follow-file (concat "book/" (cdr fixture)) root)))))
+
+(ert-deftest config-test/typst-file-jump-dot-slash-falls-back-to-source-statements ()
+  (config-test/with-typst-completion "#let path = \"./lem|ma\""
+    (dolist (name '("lemma.typ" "statements/lemma.typ"
+                    "book/statements/lemma.typ"))
+      (config-test/file root name))
+    (config-test/typst-follow-file "book/statements/lemma.typ" root)))
+
 (ert-deftest config-test/typst-file-jump-prefers-root-over-statements-and-source ()
   (config-test/with-typst-completion "#let name = \"lem|ma\""
     (dolist (name '("lemma.typ" "statements/lemma.typ" "book/lemma.typ"
@@ -57,7 +78,6 @@
 (ert-deftest config-test/typst-file-jump-falls-back-to-statements ()
   (dolist (fixture '(("lem|ma" . "statements/lemma.typ")
                      ("/lem|ma" . "statements/lemma.typ")
-                     ("./lem|ma" . "statements/lemma.typ")
                      ("lem|ma.typ" . "statements/lemma.typ")
                      ("algebra/lem|ma" . "statements/algebra/lemma.typ")))
     (config-test/with-typst-completion (concat "#let name = \"" (car fixture) "\"")
@@ -123,6 +143,7 @@
 (ert-deftest config-test/typst-file-jump-leaves-normal-xref-alone ()
   (dolist (content '("#let value = sym|bol"
                      "#let path = \"mis|sing\""
+                     "#let path = \"./lem|ma\""
                      "#let path = \"|\""
                      "#let path = \"./pict|ures/\""
                      "#let path = \"lemma\"|"

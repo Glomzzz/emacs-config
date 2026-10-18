@@ -806,14 +806,15 @@ No new package installation is needed because Cape is already declared.
 In both Typst modes, **`M-.`** on a string such as `"algebra/lemma"` looks for
 `<typst-root>/algebra/lemma.typ` first, then
 `<typst-root>/statements/algebra/lemma.typ`.  The `.typ` suffix is appended
-unless already present.  All paths, including those starting with `./` or
-`/`, use the Typst root rather than the current source directory.  The root
-is the nearest `.typst-root`, then the normal project root, then the source
-directory if no project exists.  This lookup policy is separate from file
-completion above.  Spaces, Chinese filenames, and escaped quotes/backslashes
-work here too.  **`M-,`** returns to the original location through normal Xref
-history.  Symbols, unmatched paths, URLs, and `@` package imports keep normal
-definition lookup through Xref/Tinymist; **`C-u M-.`** always requests normal
+unless already present.  Paths starting with `./` instead search the current
+source file's directory first, then its `statements/` subdirectory, even when
+Emacs' working directory differs.  All other paths, including those starting
+with `/`, keep using the Typst root: the nearest `.typst-root`, then the normal
+project root, then the source directory if no project exists.  This lookup
+policy is separate from file completion above.  Spaces, Chinese filenames,
+and escaped quotes/backslashes work here too.  **`M-,`** returns to the original
+location through normal Xref history.  Symbols, unmatched paths, URLs, and `@`
+package imports keep normal definition lookup through Xref/Tinymist; **`C-u M-.`** always requests normal
 definition lookup.  String detection has the same grammar-free limitations
 described above.
 

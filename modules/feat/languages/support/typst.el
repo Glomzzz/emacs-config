@@ -118,22 +118,26 @@ then the source directory.  Other paths use the source directory."
       source-directory)))
 
 (defun typst--definition-file (path)
-  "Find PATH as a .typ file under the Typst root, then its statements/.
-Append .typ unless already present.  A leading slash stays root-relative."
-  (let* ((root (typst--path-directory "/"))
+  "Find PATH as a .typ file, directly then under statements/.
+Paths starting with ./ use the source directory; other paths use the
+Typst root.  Append .typ unless already present."
+  (let* ((directory (typst--path-directory
+                     (if (string-prefix-p "./" path) path "/")))
          ;; Keep ~ literal and / document-relative, not OS-relative.
          (relative (concat "./" (string-remove-prefix "/" path)))
          (name (if (string-suffix-p ".typ" relative)
                    relative
                  (concat relative ".typ")))
-         (direct (expand-file-name name root))
-         (statement (expand-file-name name (expand-file-name "statements/" root))))
+         (direct (expand-file-name name directory))
+         (statement (expand-file-name
+                     name (expand-file-name "statements/" directory))))
     (cond ((file-regular-p direct) direct)
           ((file-regular-p statement) statement))))
 
 (defun typst/find-definition ()
   "Visit the .typ file named by the Typst string at point.
-Search the Typst root first, then its statements/ directory, appending
+Search from the source directory for paths starting with ./, otherwise
+from the Typst root.  Try directly, then under statements/, appending
 .typ unless already present.  Record the jump for `xref-go-back' (M-,).
 With a prefix argument, or when neither file exists, use normal
 definition lookup."
