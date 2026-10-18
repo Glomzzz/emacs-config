@@ -583,6 +583,72 @@ buffer with an active parser.  The old Smartparens slurp/barf, raise, and angle
 wrapping shortcuts are not retained: Fingertip has no direct equivalents.
 `pairs/enabled-modes` controls eligibility, not the parser requirement.
 
+### Inline Pi Insertion
+
+`pkgs/pi-inline.el` is a standalone local package, wired in by
+`modules/feat/editing/pi.el`.  It requires Emacs 29.1+ and a recent `pi` CLI
+with RPC `agent_settled` support.  Log in/configure a model with Pi normally
+before using it; the package reuses Pi's credentials and default model.
+There is no additional Emacs package to bootstrap.
+
+1. Put point where generated text should go and press **`C-c C-a`**
+   (`M-x pi-inline/start`).  Type instructions in the highlighted inline
+   field; the surrounding source remains visible.  The command inserts at
+   point, not over the active region.
+2. **`C-c C-k`** cancels and removes the field, restoring the original text,
+   modification flag, and undo history.  While drafting, only the field is
+   editable.  Normal saving is blocked and auto-save-file writing is suspended
+   until submission/cancellation so instructions cannot become file content.
+3. **`C-c C-c`** submits.  The field disappears and a virtual
+   **`agent working… — click to see process (M-.)`** block takes its place.
+   The original source is editable/savable again; the block is never written
+   into the file.  Its insertion marker follows edits before/at that point.
+4. Click the block or press **`M-.` at its insertion point** to open the
+   matching live `*Pi Inline Session*` buffer.  It shows streamed thinking,
+   responses, tool calls/results, diagnostics, and the persisted session path.
+   This is an Emacs RPC transcript, not Pi's terminal UI.  `q` buries it;
+   `C-c C-k` cancels the request from either source or transcript.
+5. Once the agent settles successfully, its final text replaces the virtual
+   block as one undoable insertion.  The buffer is **not saved automatically**.
+   On error, timeout, or truncated output, no partial answer is inserted:
+   the block links to details, **`C-c C-c`** reopens the instructions for a
+   retry, and **`C-c C-k`** dismisses it.
+
+`M-x pi-inline/session` reopens the current/last transcript even after insertion.
+Each request uses a fresh persisted Pi session in the project root (or
+`default-directory` without a project).  It receives up to 12,000 characters
+of unsaved context on either side of point plus the filename and major mode.
+Instructions and context are sent to the configured model provider and stored
+in Pi's normal session history.  Read-only `read`, `grep`, `find`, and `ls`
+tools can inspect project files; command/file-writing tools, extensions, and
+MCP are disabled for these workers.  This is a tool allowlist, not an OS sandbox.
+
+Customize `pi-inline-executable`, `pi-inline-extra-arguments` (for example
+`("--model" "sonnet")`), `pi-inline-context-size`, or `pi-inline-timeout`
+(default 300 seconds) after loading the package.  Do not use extra arguments
+to override the worker's mode/session/tool policy.  One request is allowed
+per buffer; different buffers can run concurrently.  Remote/read-only/special
+buffers are not insertion targets.  Killing, reverting, or changing the source
+buffer's major mode cancels its worker.  Outside the status point, `M-.` keeps
+its ordinary definition-lookup behavior.  A lightweight binding-only minor
+mode makes `C-c C-a` take precedence in ordinary editing buffers, including
+Org/Markdown, without loading the Pi package at startup.  Org attachment
+remains available through `M-x org-attach`.  Special-buffer controls such as
+Dired's Android mount shortcut are unchanged.  Disable
+`pi/global-inline-key-mode` to retain major-mode precedence instead.
+
+Run the focused offline tests with:
+
+```sh
+emacs --batch -Q -L pkgs -l tests/pi-inline-tests.el -f ert-run-tests-batch-and-exit
+```
+
+The tests use a deterministic Python RPC fixture, with no model calls,
+credentials, or network access.  The full regression runner includes them.
+The installed Pi CLI's RPC startup/shutdown was also smoke-tested without
+calling a model.  Actual provider generation and graphical mouse hit-testing
+still need manual validation.
+
 ## 2. Adding Language Support
 
 The four files directly under `modules/feat/languages/` are shared APIs:

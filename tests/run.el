@@ -63,6 +63,8 @@
               nil 'nomessage)
         (load (expand-file-name "tests/task-dashboard-tests.el" user-emacs-directory)
               nil 'nomessage)
+        (load (expand-file-name "tests/pi-inline-tests.el" user-emacs-directory)
+              nil 'nomessage)
         (load (expand-file-name "tests/dashboard-tests.el" user-emacs-directory)
               nil 'nomessage)
         (setq stats (ert-run-tests-batch "^config-test/")))
