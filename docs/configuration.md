@@ -855,6 +855,11 @@ retain Git-aware file listing and ignore rules.  As with Haskell and JavaScript,
 project.el chooses the nearest registered marker; without `.typst-root`, normal
 project discovery still applies.
 
+Typing `$` does not trigger automatic reindentation in Typst buffers.  In
+particular, entering `$$` in `-` or `+` list contents preserves the existing
+indentation instead of realigning it when the math expression becomes complete.
+Explicit indentation, Return, and the other electric-indent triggers are unchanged.
+
 Typst strings starting with `..`, `./`, or `/` get **Cape file completion** in
 the normal Corfu popup, including immediately after the prefix.  Use `C-M-i`
 for manual completion.  `./` and `../` resolve relative to the current source
@@ -1036,6 +1041,9 @@ completion insertion in both Typst modes, plus context rejection and Eglot
 completion-source ordering without starting a language server.
 `tests/typst-navigation-tests.el` checks string file jumps, path resolution,
 Xref return history, and normal-lookup fallbacks in both Typst modes.
+`tests/typst-editing-tests.el` types math delimiters through the real command
+loop to check indentation preservation in ordinary/nested lists, buffer-local
+trigger settings, fallback insertion, and unchanged explicit/newline indentation.
 `tests/refinement-tests.el` also exercises directory-local server settings,
 configurable commands/paths, and a real asynchronous copy between temporary
 files to verify Dirvish/dashboard integration.

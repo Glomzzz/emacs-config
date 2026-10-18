@@ -47,7 +47,8 @@ or revert the buffer for syntax-aware `typst-ts-mode'."
 (use-package typst-ts-mode
   :ensure nil
   :mode ("\\.typ\\'" . typst-mode)
-  :hook ((typst-ts-mode . typst/eglot-ensure)
+  :hook ((typst-ts-mode . typst/setup-indentation)
+         (typst-ts-mode . typst/eglot-ensure)
          (typst-mode . typst/eglot-ensure)
          (typst-ts-mode . format/mode-maybe)
          (typst-mode . format/mode-maybe)
@@ -61,6 +62,12 @@ or revert the buffer for syntax-aware `typst-ts-mode'."
   ;; The package also adds a direct association when loaded.  Keep the safe
   ;; fallback first even if the grammar disappears later in this session.
   (add-to-list 'auto-mode-alist '("\\.typ\\'" . typst-mode)))
+
+(defun typst/setup-indentation ()
+  "Keep math delimiter insertion from changing the current indentation."
+  ;; Completing $$ reparses list content and otherwise normalizes its indent.
+  ;; Leave newline, explicit indentation, and the other electric triggers alone.
+  (setq-local electric-indent-chars (remq ?$ electric-indent-chars)))
 
 (defun typst--path-string-bounds ()
   "Return the content bounds of the Typst string at point, or nil.
