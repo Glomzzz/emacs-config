@@ -260,6 +260,28 @@ The hl-line fallback inherits the active theme's `highlight` face (still
 settings override it normally; changing to a light theme does not retain a
 hard-coded dark stripe.
 
+### Terminal Keyboard Input
+
+`modules/feat/editor/emacs.el` declares `kkp` and enables `global-kkp-mode`
+when a terminal frame is initialized, including `emacsclient -t` frames.
+GUI-only sessions do not load the package.  KKP negotiates support with the
+terminal; unsupported terminals keep their existing keyboard protocol.
+The package defaults enable key disambiguation and alternate-key reporting,
+so supporting terminals such as Foot can transmit `C-.`, `C-,`, `C-'`,
+and more modified keys without handwritten escape-sequence mappings.
+
+Run the package bootstrap after adding this declaration, then restart Emacs.
+Use `M-x kkp-status` inside a terminal frame to check negotiation and `C-h k`
+to inspect a received key.  Desktop and terminal shortcuts still take
+precedence; KKP cannot recover combinations intercepted before Emacs sees them.
+
+While KKP is active, `C-g` arrives as an escape sequence rather than the
+traditional single interrupt byte.  Ordinary command-loop cancellation works,
+but blocking synchronous subprocesses may not be interruptible with `C-g`,
+and the traditional TTY emergency escape behavior is not preserved.  The
+package's legacy-key subprocess workaround remains at its upstream default
+(disabled); use `M-x global-kkp-mode` to disable KKP if necessary.
+
 ### Daily Dashboard and Shortcut Memory Aid
 
 `modules/ui/dashboard.el` provides `*Daily Dashboard*` using Emacs' built-in

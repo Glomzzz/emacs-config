@@ -3,6 +3,14 @@
 (require 'seq)
 
 (require 'locations)
+(require 'packages)
+
+;; Negotiate richer keyboard input only when a terminal frame is opened.
+;; GUI-only sessions keep KKP unloaded; unsupported terminals stay unchanged.
+(packages/declare 'kkp)
+(use-package kkp
+  :ensure nil
+  :hook (tty-setup . global-kkp-mode))
 
 ;; The shared mount predicate is lexical: never stat a disconnected FUSE
 ;; mount from timer/shutdown hooks or resolve it with `file-truename'.

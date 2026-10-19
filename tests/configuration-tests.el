@@ -6,6 +6,32 @@
 (require 'project)
 (require 'apheleia)
 
+(defconst config-test/kkp-loaded-on-startup (featurep 'kkp)
+  "Whether configuration startup eagerly loaded KKP.")
+
+(ert-deftest config-test/kkp-startup-stays-lazy ()
+  (should (memq 'kkp packages/declared))
+  (should-not config-test/kkp-loaded-on-startup)
+  (should-not (bound-and-true-p global-kkp-mode))
+  (should (memq #'global-kkp-mode tty-setup-hook)))
+
+(ert-deftest config-test/kkp-tty-hook-enables-current-and-future-terminals ()
+  (require 'kkp)
+  (let ((tty-setup-hook (list #'global-kkp-mode))
+        enabled)
+    (cl-letf (((symbol-function 'kkp-enable-in-terminal)
+               (lambda (&optional _terminal) (setq enabled t))))
+      (unwind-protect
+          (progn
+            (run-hooks 'tty-setup-hook)
+            (should global-kkp-mode)
+            (should (memq #'kkp-enable-in-terminal tty-setup-hook))
+            ;; Repeated terminal setup must enable, not toggle the mode off.
+            (run-hooks 'tty-setup-hook)
+            (should global-kkp-mode)
+            (should enabled))
+        (global-kkp-mode -1)))))
+
 (defmacro config-test/with-directory (&rest body)
   "Run BODY with a temporary project ROOT, then remove it."
   (declare (indent 0) (debug t))
