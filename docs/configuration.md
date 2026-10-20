@@ -610,8 +610,8 @@ wrapping shortcuts are not retained: Fingertip has no direct equivalents.
 `pkgs/pi-inline.el` is a standalone local package, wired in by
 `modules/feat/editing/pi.el`.  It requires Emacs 29.1+ and a recent `pi` CLI
 with RPC `agent_settled` support.  Log in/configure a model with Pi normally
-before using it; the package reuses Pi's credentials and default model.
-There is no additional Emacs package to bootstrap.
+before using it; the package reuses Pi's credentials and offers Pi's current
+model as the default choice.  There is no additional Emacs package to bootstrap.
 
 1. Visit a local file and press **`C-c C-a`** (`M-x pi-inline/start`).
    Type instructions in the highlighted field; surrounding source stays
@@ -622,9 +622,16 @@ There is no additional Emacs package to bootstrap.
    drafting.  Normal saving is blocked and auto-save-file writing is suspended
    so temporary instructions never become source content.
 3. **`C-c C-c`** removes the field and **saves the source automatically**,
-   using its normal save hooks, before launching Pi.  New visiting files are
-   created too.  If saving fails, no worker starts and the instructions reopen.
-   A virtual **`agent working… — click to see process (M-.)`** block shows
+   using its normal save hooks, then opens **`Pi model:` in the minibuffer**.
+   Choose a `provider/model-id` with normal completion; annotations show model
+   names.  **RET** accepts Pi's current model (or the first available model
+   when no current model is available).  Pi must acknowledge the selected model
+   before the instructions are sent.  **`C-g`** while loading/choosing models
+   closes the startup worker and restores the editable instructions, without
+   sending a prompt; the source remains saved.  Discovery/switch errors do the
+   same rather than silently using a different model.  New visiting files are
+   created too; save failures reopen instructions without starting a worker.
+   A virtual **`agent working… — click to see process (M-.)`** block then shows
    progress without changing file contents.  The source is editable again.
 4. Click the block or press **`M-.` at its marker** to open the matching live
    `*Pi Inline Session*` buffer.  It shows thinking, responses, tool activity,
@@ -647,6 +654,13 @@ buffers.  Use version control/backups to review or undo disk changes; there
 is no longer a single Emacs undo entry for a request.  Failure blocks link to
 details; `C-c C-c` reopens instructions for retry, and `C-c C-k` dismisses them.
 
+The model list comes directly from that Pi worker's `get_available_models`
+RPC command on every submission, including configured/custom providers that
+Pi makes available.  Emacs does not maintain its own catalog or read credential
+files.  With no available models, configure/login through Pi and try again;
+no model prompt is sent.  Selection uses `set_model`, not CLI name matching,
+so identical model IDs from different providers remain distinct.
+
 Each request uses a fresh persisted Pi session in the project root (or
 `default-directory` without a project).  It receives the filename, full-file
 cursor location, major mode, and up to 12,000 characters on either side of
@@ -660,10 +674,12 @@ package does not sandbox or automatically trust project code.
 
 Customize `pi-inline-executable`, `pi-inline-extra-arguments` (for example
 `("--model" "sonnet")`), `pi-inline-context-size` (nil includes the whole
-buffer), or `pi-inline-timeout` (nil, no deadline, by default).  Do not override
-RPC mode through extra arguments.  One request is allowed per source buffer;
-different buffers can run concurrently.  Emacs' buffer read-only flag is not
-a restriction on Pi's disk edits and is restored after drafting/reloading.
+buffer), or `pi-inline-timeout` (nil, no deadline, by default).  A `--model`
+argument sets Pi's initial/default picker choice, not a forced selection.
+Do not override RPC mode through extra arguments.  One request is allowed
+per source buffer; different buffers can run concurrently.  Emacs' buffer
+read-only flag is not a restriction on Pi's disk edits and is restored after
+drafting/reloading.
 Remote, indirect, and non-file/special buffers are not request sources.
 Reverting the source does not stop a worker.  Killing/changing its mode removes
 source UI but submitted work continues; cancel from its session view instead.
@@ -683,10 +699,12 @@ emacs --batch -Q -L pkgs -l tests/pi-inline-tests.el -f ert-run-tests-batch-and-
 ```
 
 The deterministic Python RPC fixture exercises real disk edits, multi-file
-refresh, unsaved-buffer preservation, automatic saving, dialogs, and failures,
-without model calls, credentials, or network access.  The full runner includes
-these tests.  Actual provider generation and graphical mouse hit-testing still
-need manual validation.
+refresh, unsaved-buffer preservation, automatic saving, model discovery and
+selection/cancellation, extension dialogs, and failures, without model calls,
+credentials, or network access.  The full runner includes these tests.
+The installed Pi CLI's model-discovery RPC was also smoke-tested without
+sending a prompt.  Actual provider generation and graphical mouse hit-testing
+still need manual validation.
 
 ## 2. Adding Language Support
 

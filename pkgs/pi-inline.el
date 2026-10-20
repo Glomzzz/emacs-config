@@ -1,12 +1,13 @@
 ;;; pi-inline.el --- Direct Pi file editing with inline prompts -*- lexical-binding: t; -*-
 
-;; Version: 0.2.0
+;; Version: 0.3.0
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: tools, convenience
 
 ;;; Commentary:
 ;; `pi-inline/start' opens an inline instruction field.  Submit with C-c C-c
-;; or cancel with C-c C-k.  While Pi runs, a virtual status block links to
+;; or cancel with C-c C-k.  Submission offers Pi's models in the minibuffer.
+;; While Pi runs, a virtual status block links to
 ;; its live RPC transcript (mouse-1 or M-.).  The source is saved on submission;
 ;; Pi edits files directly with its normal tools and configuration.  Unmodified
 ;; visiting buffers are refreshed afterwards.  Replies stay in the transcript.
@@ -30,6 +31,7 @@
 
 (defcustom pi-inline-extra-arguments nil
   "Additional Pi CLI arguments, for example (\"--model\" \"sonnet\").
+A model argument sets the initial/default choice in the submission picker.
 Pi's normal tools, extensions, MCP, and project trust settings are preserved.
 Do not override the RPC mode here."
   :type '(repeat string))
@@ -61,9 +63,12 @@ session view; Emacs will NOT insert that reply into the source file.")
 
 (cl-defstruct (pi-inline--request (:constructor pi-inline--make-request))
   source position overlay guards group auto-save-name read-only file prompt log stderr
-  process timer tail directory context session-file last-message message-start status)
+  process timer tail directory context session-file last-message message-start status
+  rpc-id rpc-response model)
 
 (defvar pi-inline-mode)
+(defvar pi-inline--model-history nil
+  "Minibuffer history of models selected from Pi.")
 
 (defvar-local pi-inline--request nil
   "Current inline request, if any.")
@@ -363,6 +368,70 @@ Called by a transcript button, never from the process filter."
   (process-send-string (pi-inline--request-process request)
                        (concat (json-serialize record :false-object :false) "\n")))
 
+(defun pi-inline--rpc (request record)
+  "Send RECORD to REQUEST and wait for its correlated response data.
+Only used by submission, never by a process filter, so minibuffer selection
+can follow without prompting from asynchronous process I/O."
+  (unless (and (eq (pi-inline--request-status request) 'working)
+               (process-live-p (pi-inline--request-process request)))
+    (user-error "Pi is not running; see its session for details"))
+  (setf (pi-inline--request-rpc-id request) (alist-get 'id record)
+        (pi-inline--request-rpc-response request) nil)
+  (unwind-protect
+      (progn
+        (pi-inline--send request record)
+        (while (and (not (pi-inline--request-rpc-response request))
+                    (eq (pi-inline--request-status request) 'working)
+                    (process-live-p (pi-inline--request-process request)))
+          (accept-process-output (pi-inline--request-process request) 0.05))
+        (let ((response (pi-inline--request-rpc-response request)))
+          (unless (and response (eq (pi-inline--request-status request) 'working))
+            (user-error "Pi stopped during %s; see its session for details"
+                        (alist-get 'type record)))
+          (when (eq (alist-get 'success response) :false)
+            (user-error "Pi %s failed: %s" (alist-get 'type record)
+                        (or (alist-get 'error response) "Unknown RPC error")))
+          (alist-get 'data response)))
+    (setf (pi-inline--request-rpc-id request) nil
+          (pi-inline--request-rpc-response request) nil)))
+
+(defun pi-inline--model-key (model)
+  "Return MODEL's provider-qualified completion name, or nil."
+  (when (and (listp model) (stringp (alist-get 'provider model))
+             (stringp (alist-get 'id model)))
+    (concat (alist-get 'provider model) "/" (alist-get 'id model))))
+
+(defun pi-inline--select-model (request)
+  "Query Pi's models and select REQUEST's model through the minibuffer."
+  (let* ((state (pi-inline--rpc request '((id . "state") (type . "get_state"))))
+         (current (pi-inline--model-key (alist-get 'model state))))
+    (setf (pi-inline--request-session-file request) (alist-get 'sessionFile state))
+    (pi-inline--log request (format "Session: %s\n\n" (or (pi-inline--request-session-file request) "(pending)")))
+    (let* ((models (alist-get 'models
+                             (pi-inline--rpc request '((id . "models") (type . "get_available_models")))))
+           (choices (mapcar (lambda (model)
+                              (cons (or (pi-inline--model-key model)
+                                        (user-error "Pi returned an invalid model")) model))
+                            models)))
+      (unless choices
+        (user-error "Pi has no available models; configure a provider or log in with Pi first"))
+      (let* ((completion-extra-properties
+              (list :annotation-function
+                    (lambda (key)
+                      (when-let* ((name (alist-get 'name (cdr (assoc key choices)))))
+                        (concat "  " name)))))
+             (choice (completing-read "Pi model: " choices nil t nil 'pi-inline--model-history
+                                     (if (assoc current choices) current (caar choices))))
+             (model (cdr (assoc choice choices))))
+        (unless model (user-error "Choose one of Pi's available models"))
+        ;; Wait for acknowledgement: a rejected switch must never use the old model.
+        (setf (pi-inline--request-model request)
+              (pi-inline--rpc request `((id . "model") (type . "set_model")
+                                        (provider . ,(alist-get 'provider model))
+                                        (modelId . ,(alist-get 'id model)))))
+        (pi-inline--log request (format "Model: %s\n\n"
+                                       (pi-inline--model-key (pi-inline--request-model request))))))))
+
 (defun pi-inline--fail (request reason)
   "Stop REQUEST with REASON, retaining a clickable failure block."
   (when (eq (pi-inline--request-status request) 'working)
@@ -418,19 +487,11 @@ visiting buffers.  Missing files and modified buffers are left untouched."
   (pcase (alist-get 'type record)
     ("response"
      (cond
+      ((and (pi-inline--request-rpc-id request)
+            (equal (alist-get 'id record) (pi-inline--request-rpc-id request)))
+       (setf (pi-inline--request-rpc-response request) record))
       ((eq (alist-get 'success record) :false)
        (pi-inline--fail request (or (alist-get 'error record) "RPC command failed")))
-      ((equal (alist-get 'id record) "state")
-       (setf (pi-inline--request-session-file request)
-             (alist-get 'sessionFile (alist-get 'data record)))
-       (pi-inline--log request
-                       (format "Session: %s\n\n" (or (pi-inline--request-session-file request) "(pending)")))
-       (pi-inline--send
-        request `((id . "prompt") (type . "prompt")
-                  (message . ,(concat "Edit files directly according to these instructions:\n"
-                                      (pi-inline--request-prompt request)
-                                      "\n\nSaved source context (orientation only, not an edit boundary):\n"
-                                      (pi-inline--request-context request))))))
       ((and (equal (alist-get 'id record) "prompt")
             (equal (alist-get 'disposition (alist-get 'data record)) "handled"))
        (pi-inline--fail request "Prompt consumed without starting an agent run"))))
@@ -536,15 +597,16 @@ visiting buffers.  Missing files and modified buffers are left untouched."
           (setf (pi-inline--request-process request) process)
           (when pi-inline-timeout
             (setf (pi-inline--request-timer request)
-                  (run-at-time pi-inline-timeout nil #'pi-inline--fail request "Request timed out")))
-          (pi-inline--send request '((id . "state") (type . "get_state"))))
+                  (run-at-time pi-inline-timeout nil #'pi-inline--fail request "Request timed out"))))
       (error
        (when (process-live-p (pi-inline--request-stderr request))
          (delete-process (pi-inline--request-stderr request)))
        (pi-inline--fail request (error-message-string error))))))
 
 (defun pi-inline/submit ()
-  "Submit the inline instructions, or reopen a failed request for editing."
+  "Save the source, choose a model from Pi, and submit the instructions.
+C-g during model selection keeps the instructions editable without sending
+a prompt.  On a failed request, reopen the instructions for editing."
   (interactive)
   (let ((request pi-inline--request))
     (pcase (and request (pi-inline--request-status request))
@@ -568,15 +630,27 @@ visiting buffers.  Missing files and modified buffers are left untouched."
                (setf (pi-inline--request-overlay request)
                      (make-overlay (pi-inline--request-position request)
                                    (pi-inline--request-position request) nil t t))
-               (pi-inline--status request "agent working…")
+               (pi-inline--status request "loading Pi models…")
                (goto-char (pi-inline--request-position request))
-               (pi-inline--launch request))
+               (pi-inline--launch request)
+               (pi-inline--select-model request)
+               (pi-inline--status request "agent working…")
+               (pi-inline--send
+                request `((id . "prompt") (type . "prompt")
+                          (message . ,(concat "Edit files directly according to these instructions:\n"
+                                              prompt
+                                              "\n\nSaved source context (orientation only, not an edit boundary):\n"
+                                              (pi-inline--request-context request))))))
            ((error quit)
-            ;; Save failures must not lose the instructions or start a worker.
-            (pi-inline--detach request)
-            (goto-char (pi-inline--request-position request))
-            (pi-inline/start)
-            (insert prompt)
+            ;; Saving, discovery, and model selection must not lose instructions.
+            ;; Close any startup worker before restoring the editable draft.
+            (pi-inline--discard request)
+            (when (buffer-live-p (pi-inline--request-source request))
+              (with-current-buffer (pi-inline--request-source request)
+                (unless pi-inline--request
+                  (goto-char (pi-inline--request-position request))
+                  (pi-inline/start)
+                  (insert prompt))))
             (signal (car error) (cdr error))))))
       ('failed
        (let ((prompt (pi-inline--request-prompt request)))

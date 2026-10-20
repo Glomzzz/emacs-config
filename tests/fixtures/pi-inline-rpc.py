@@ -50,13 +50,50 @@ def complete(prompt, reply="Edited files λ\u2028summary\n"):
     emit({"type": "agent_settled", "aborted": False})
 
 
+models = [
+    {"provider": "fixture-a", "id": "shared-model", "name": "Shared Model A"},
+    {"provider": "fixture-b", "id": "shared-model", "name": "Shared Model B"},
+    {"provider": "fixture-local", "id": "custom/模型", "name": "Custom Local Model"},
+]
+current_model = models[1]
+model_selected = False
 pending = None
 for line in sys.stdin.buffer:
     record = json.loads(line)
+    if "--fixture-audit" in sys.argv:
+        with Path("rpc-records.jsonl").open("a") as audit:
+            audit.write(json.dumps(record) + "\n")
     if record["type"] == "get_state":
-        emit({"type": "response", "id": record["id"], "success": True,
-              "data": {"sessionFile": "/tmp/pi-inline-fixture-session.jsonl"}})
+        state = {"sessionFile": "/tmp/pi-inline-fixture-session.jsonl"}
+        if "--fixture-no-current-model" not in sys.argv:
+            state["model"] = current_model
+        emit({"type": "response", "id": record["id"], "success": True, "data": state})
+    elif record["type"] == "get_available_models":
+        if "--fixture-stop-models" in sys.argv:
+            sys.exit(1)
+        if "--fixture-wait-models" in sys.argv:
+            continue
+        if "--fixture-models-error" in sys.argv:
+            emit({"type": "response", "id": record["id"], "success": False,
+                  "error": "Fixture model discovery failure"})
+        else:
+            emit({"type": "response", "id": record["id"], "success": True,
+                  "data": {"models": [] if "--fixture-empty-models" in sys.argv else models}})
+    elif record["type"] == "set_model":
+        selected = next((model for model in models
+                         if model["provider"] == record["provider"] and model["id"] == record["modelId"]), None)
+        if selected is None or "--fixture-set-model-error" in sys.argv:
+            emit({"type": "response", "id": record["id"], "success": False,
+                  "error": "Fixture model switch rejected"})
+        else:
+            current_model = selected
+            model_selected = True
+            emit({"type": "response", "id": record["id"], "success": True, "data": current_model})
     elif record["type"] == "prompt":
+        if not model_selected:
+            emit({"type": "response", "id": record["id"], "success": False,
+                  "error": "Prompt arrived before set_model"})
+            continue
         prompt = record["message"]
         if "fixture/reject" in prompt:
             emit({"type": "response", "id": record["id"], "success": False,
