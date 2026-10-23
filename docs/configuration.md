@@ -337,13 +337,44 @@ programs and account are supplied by Home Manager in
 `~/nixos-config/docs/mail.md` for installation, credentials, and first sync.
 No mail is retrieved or indexed just by starting Emacs.
 
+**Sending is asynchronous.** In a mu4e compose buffer, `C-c C-c` sends and
+closes on success; `C-c C-s` sends and keeps the buffer. The local
+`pkgs/mail-async.el` integration runs msmtp in a separate process and keeps
+the draft read-only with `[sending mail]` in the mode line until it exits.
+You can switch buffers and keep working while SMTP, TLS, or credential
+unlocking is in progress. Only SMTP success runs Message/mu4e's normal Sent
+filing and draft cleanup. A failed send restores editing, retains the draft,
+and opens a `*Mail delivery*` error buffer; there is no automatic retry.
+`M-x mail-async/status` shows a pending draft's log, and
+`M-x mail-async/cancel` stops it after a warning. Cancellation/connection loss
+is not recall: check whether a message was already accepted before retrying.
+If SMTP succeeded but local filing failed, resubmission is blocked to avoid
+duplicate delivery; inspect the error and recover the Sent copy locally.
+
+MIME preparation, attachment reads/encoding, and OpenPGP message signing or
+encryption still happen in Emacs before submission and can take time for large
+messages. This is background SMTP, not a persistent outgoing queue. Save work
+and wait for pending sends before exiting/restarting Emacs; a forced shutdown
+can leave a private staging file and an uncertain delivery result.
+
 systemd synchronizes Infomaniak into `~/Maildir/infomaniak/` every five minutes;
 mu4e indexes immediately on opening and every five minutes while running.
+These are separate timers: new upstream mail can take nearly ten minutes to
+appear in the UI, plus sync time/scheduling delays. Retrieval continues without
+Emacs; indexing waits until mu4e is running.
 `M-x mu4e-update-index` refreshes the index immediately but does not retrieve
 mail. For immediate retrieval use `systemctl --user start mbsync.service` and
 then update the index. No external `mu index` job runs alongside mu4e, avoiding
-database-lock conflicts. msmtp sends through authenticated STARTTLS using an
-encrypted `pass` entry; the password is never embedded in Elisp or Nix.
+database-lock conflicts. Both retrieval and msmtp's authenticated STARTTLS use
+the encrypted GNOME Login keyring, unlocked by password login. No YubiKey is
+needed for ordinary fetching/sending. A locked/missing credential skips scheduled
+sync without prompting; unlock Login in `seahorse`, then retry. Use
+`infomaniak-password store` to enter a mailbox device password privately, or
+`infomaniak-password import-pass` for a one-time YubiKey-backed migration. The
+old pass entry is only an optional backup; there is no automatic GPG fallback.
+`infomaniak-password check` verifies availability without printing the secret.
+The password is never embedded in Elisp or Nix. OpenPGP message signing/encryption
+can still use the YubiKey independently.
 
 Before composing, replying, trashing, or archiving, verify the special-folder
 roles in webmail, sync/index, and run **`M-x mail/configure-folders`**. It prompts

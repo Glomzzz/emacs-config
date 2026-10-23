@@ -54,6 +54,13 @@ No messages are moved and no folders are created by this command."
     (when (yes-or-no-p "Save these verified special-folder mappings? ")
       (customize-save-variable 'mail/special-folders (nreverse mappings)))))
 
+;; Local transport integration: no archive package or extra system program.
+(use-package mail-async
+  :ensure nil
+  :load-path "pkgs"
+  :after mu4e
+  :hook (mu4e-compose-mode . mail-async/mode))
+
 ;; Supplied by Nix alongside the matching mu binary, NOT from ELPA/MELPA.
 ;; Do not use packages/declare: bootstrap must not install another mu4e.
 (use-package mu4e

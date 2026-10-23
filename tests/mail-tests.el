@@ -4,11 +4,13 @@
 (require 'cl-lib)
 
 (defconst config-test/mu4e-loaded-on-startup (featurep 'mu4e))
+(defconst config-test/mail-async-loaded-on-startup (featurep 'mail-async))
 (defconst config-test/mu4e-user-agent-autoload-on-startup
   (autoloadp (symbol-function 'mu4e-user-agent)))
 
 (ert-deftest config-test/mail-startup-stays-lazy-and-nix-managed ()
   (should-not config-test/mu4e-loaded-on-startup)
+  (should-not config-test/mail-async-loaded-on-startup)
   (should-not (memq 'mu4e packages/declared))
   (should (eq (key-binding (kbd "C-c M")) #'mu4e))
   (should (eq (key-binding (kbd "C-c m")) #'consult-man))
@@ -41,6 +43,7 @@
   (should mu4e-change-filenames-when-moving)
   (should (eq mu4e-sent-messages-behavior 'sent))
   (should (eq message-send-mail-function #'message-send-mail-with-sendmail))
+  (should (memq #'mail-async/mode mu4e-compose-mode-hook))
   (should (equal message-sendmail-extra-arguments '("--read-envelope-from")))
   (should message-sendmail-f-is-evil)
   (should (equal (file-name-nondirectory sendmail-program) "msmtp"))
