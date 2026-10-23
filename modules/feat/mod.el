@@ -7,6 +7,7 @@
    "workspace/"
    "languages/"
    "process/"
-   "files/"))
+   "files/"
+   "mail.el"))
 
 ;;; mod.el ends here

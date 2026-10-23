@@ -130,6 +130,10 @@ under `(cache/folder "elpa")`, alongside archive packages.  Git and HTTPS access
 to the source host are required.  Bootstrap reuses installed checkouts; use
 `M-x package-vc-upgrade` to update an installed source package explicitly.
 
+mu4e is an exception: it is supplied by Nix together with the matching `mu`
+binary, so the mail module uses `use-package ... :ensure nil` without
+`packages/declare`. Do not install a second mu4e through the package bootstrap.
+
 The configured package archives are GNU ELPA, NonGNU ELPA, and MELPA.  Archive
 metadata is refreshed at most once during a bootstrap pass.  A package that is
 already provided by Emacs can still be expressed with `packages/declare` when
@@ -323,6 +327,33 @@ automatic display; the reopen shortcut remains available.  Ordinary TTY
 startup and dedicated daemon/client TTY frames (empty and explicit-file
 requests) were smoke-tested; graphical mouse interaction still needs manual
 validation.
+
+### Local Email
+
+`modules/feat/mail.el` provides lazy mu4e access on **`C-c M`** (`M-x mu4e`).
+The existing **`C-c m`** still opens manual pages. This machine's external
+programs and account are supplied by Home Manager in
+`~/nixos-config/modules/home/programs/mail/default.nix`; see
+`~/nixos-config/docs/mail.md` for installation, credentials, and first sync.
+No mail is retrieved or indexed just by starting Emacs.
+
+systemd synchronizes Infomaniak into `~/Maildir/infomaniak/` every five minutes;
+mu4e indexes immediately on opening and every five minutes while running.
+`M-x mu4e-update-index` refreshes the index immediately but does not retrieve
+mail. For immediate retrieval use `systemctl --user start mbsync.service` and
+then update the index. No external `mu index` job runs alongside mu4e, avoiding
+database-lock conflicts. msmtp sends through authenticated STARTTLS using an
+encrypted `pass` entry; the password is never embedded in Elisp or Nix.
+
+Before composing, replying, trashing, or archiving, verify the special-folder
+roles in webmail, sync/index, and run **`M-x mail/configure-folders`**. It prompts
+for Sent, Drafts, Trash, and Archive from mu4e's synchronized folder list and
+saves the confirmed `mail/special-folders` mapping in the existing Customize
+file. Getters refuse unset/missing Maildirs rather than create guessed folders.
+Read/search is available before mappings are configured. The guard covers the
+special-folder actions, not arbitrary moves or explicit permanent deletion.
+Sent messages are kept; check webmail for correct placement/possible provider
+copies during a manual send/reply test. No message is sent automatically.
 
 ### Literal Filenames in Completion
 
