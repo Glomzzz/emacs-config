@@ -5,14 +5,20 @@
 
 (defconst config-test/tty-startup-features
   (mapcar (lambda (feature) (cons feature (featurep feature)))
-          '(xclip xt-mouse tty-tip))
+          '(xclip kitty-graphics xt-mouse tty-tip))
   "Terminal-only libraries loaded by an ordinary batch startup.")
 
 (ert-deftest config-test/tty-integrations-stay-lazy ()
   (dolist (entry config-test/tty-startup-features)
     (should-not (cdr entry)))
   (should (memq #'tty/setup tty-setup-hook))
-  (should (memq 'xclip packages/declared)))
+  (should (memq 'xclip packages/declared))
+  (should (memq 'kitty-graphics packages/declared))
+  (should (equal (plist-get (alist-get 'kitty-graphics packages/vc-sources)
+                           :branch)
+                 "v1.4.0"))
+  (should-not (bound-and-true-p kitty-graphics-mode))
+  (should-not (memq #'kitty-graphics-setup after-make-frame-functions)))
 
 (ert-deftest config-test/tty-setup-leaves-gui-frames-alone ()
   (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) t))

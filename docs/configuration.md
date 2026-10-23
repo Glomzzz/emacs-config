@@ -291,6 +291,34 @@ Run `M-x tty/describe` for a capability summary and `M-x kkp-status` for the
 actual keyboard negotiation status.  Hold Shift while dragging to use the
 terminal's own text selection instead of Emacs' mouse handling.
 
+### Optional Terminal Images and PDFs
+
+`kitty-graphics.el` is declared from its **v1.4.0** release, but is neither
+loaded nor enabled on normal startup.  Run the package bootstrap after adding
+this declaration.  In a supporting terminal:
+
+1. Run **`M-x kitty-graphics-mode`** to enable images for this Emacs process.
+2. Run **`M-x kitty-graphics-doctor`** to check the selected terminal backend.
+3. Open an image or PDF (`doc-view-mode`), or use Org's normal
+   `C-c C-x C-v` inline-image command.  Enable graphics before opening the file;
+   revert/reopen an already-open document if necessary.
+4. Run `M-x kitty-graphics-mode` again to disable it.
+
+Kitty's graphics protocol is preferred in Kitty.  Foot can use the Sixel
+fallback when `img2sixel` (libsixel) or ImageMagick is installed.  ImageMagick
+and Ghostscript are supplied by the author's Nix configuration for image
+conversion and DocView.  This is not native GUI-equivalent image support:
+third-party advice and redisplay hooks implement it, and tmux/scrolling/mixed
+client sessions have upstream limitations.  The mode is global to the daemon,
+although graphics are routed to individual client terminals.
+
+**`M-x kitty-graphics-org-heading-sizes`** separately enables enlarged Org
+headings on supporting Kitty versions.  Leave it off for heavy editing;
+upstream recommends it mainly for reading, and multiple windows on the same
+buffer can differ.  `M-x kitty-graphics-typst-preview` offers optional Typst
+math previews when the Typst CLI is installed.  Video, the experimental inline
+browser, and automatic heading resizing are deliberately disabled.
+
 ### Terminal Keyboard Input
 
 `modules/feat/editor/emacs.el` declares `kkp` and enables `global-kkp-mode`
@@ -1192,7 +1220,7 @@ loop to check indentation preservation in ordinary/nested lists, buffer-local
 trigger settings, fallback insertion, and unchanged explicit/newline indentation.
 `tests/tty-tests.el` checks lazy terminal integration, GUI isolation, idempotent
 mouse/tooltip setup, clipboard fallback/Wayland preference, saved backend
-choices.
+choices, and the opt-in graphics declaration.
 `tests/refinement-tests.el` also exercises directory-local server settings,
 configurable commands/paths, and a real asynchronous copy between temporary
 files to verify Dirvish/dashboard integration.

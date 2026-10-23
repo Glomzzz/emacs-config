@@ -43,8 +43,26 @@ Corfu uses Emacs 31's native TTY child frames without corfu-terminal."
 (unless (or noninteractive (daemonp) (display-graphic-p))
   (tty/setup))
 
+;; Graphics are intentionally opt-in: the package installs redisplay hooks and
+;; advice on several image/document modes. Pin the tested release, never load
+;; it during ordinary startup, and do not automatically enable it for clients.
+(packages/declare-vc
+ 'kitty-graphics
+ '(:url "https://github.com/cashmeredev/kitty-graphics.el"
+   :branch "v1.4.0"
+   :vc-backend Git))
+(use-package kitty-graphics
+  :ensure nil
+  :commands (kitty-graphics-mode kitty-graphics-doctor
+             kitty-graphics-org-heading-sizes kitty-graphics-typst-preview)
+  :custom
+  (kitty-graphics-shr-scale 'fit)
+  (kitty-graphics-heading-sizes-auto nil)
+  (kitty-graphics-enable-video nil)
+  (kitty-graphics-enable-browser nil))
+
 (defun tty/describe ()
-  "Describe the selected terminal's display and clipboard capabilities."
+  "Describe terminal Emacs capabilities without probing or enabling graphics."
   (interactive)
   (let ((frame (selected-frame)))
     (with-help-window "*Terminal Emacs*"
@@ -54,11 +72,14 @@ Corfu uses Emacs 31's native TTY child frames without corfu-terminal."
       (princ (format "Native TTY child frames: %s\nMouse mode: %s\n"
                      (featurep 'tty-child-frames)
                      (bound-and-true-p xterm-mouse-mode)))
-      (princ (format "Clipboard backend: %s\n\n"
-                     (if (bound-and-true-p xclip-mode) xclip-method 'terminal)))
+      (princ (format "Clipboard backend: %s\nOptional graphics enabled: %s\n\n"
+                     (if (bound-and-true-p xclip-mode) xclip-method 'terminal)
+                     (bound-and-true-p kitty-graphics-mode)))
       (princ "Fonts and font size are controlled by the terminal, not Emacs.\n")
       (princ "Use M-x kkp-status to check keyboard protocol negotiation.\n")
-      (princ "Use M-x eldoc-doc-buffer for full documentation in a window.\n"))))
+      (princ "Use M-x eldoc-doc-buffer for full documentation in a window.\n")
+      (princ "Use M-x kitty-graphics-mode to toggle optional image/PDF support,\n")
+      (princ "then M-x kitty-graphics-doctor to inspect its terminal support.\n"))))
 
 (provide 'tty)
 ;;; tty.el ends here
