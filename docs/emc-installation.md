@@ -167,12 +167,22 @@ install -m 755 "$HOME/.config/emacs/scripts/emc" "$HOME/.local/bin/emc"
 Usage:
 
 ```sh
-emc                         # new GUI frame with DISPLAY/Wayland, otherwise TTY
+emc                         # terminal frame, even on a graphical desktop
+emc path/to/file.typ         # terminal editing; waits until C-x # / frame exit
+emc -c path/to/file.tsx      # explicitly use a GUI frame
 emc --create-frame --no-wait path/to/file.tsx
-emc --tty path/to/file.typ
 # You can also bypass the launcher:
 emacs --init-directory="$HOME/.config/emacs"
 ```
+
+The portable launcher expects an attached terminal for its default TTY mode.
+A desktop entry invoking it must declare `Terminal=true`; use `-c` to request
+a GUI instead.  `--eval`, `--help`, and `--version` remain control commands and
+do not create terminal frames.  `--no-wait` requires an explicit GUI frontend:
+detaching a terminal client would close its terminal before editing finishes.
+The author's separate managed Nix launcher can open Kitty automatically when
+a desktop application calls it without a TTY.  The bare `emacs` executable is
+unchanged for standalone, batch, and daemon use.
 
 Overrides: `EMACS` and `EMACSCLIENT` name executable paths; `EMC_CONFIG_DIR`
 is the checkout path; `EMC_SERVER_NAME` defaults to `emc`.  Keep the same server

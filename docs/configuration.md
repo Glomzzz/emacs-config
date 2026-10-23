@@ -266,6 +266,13 @@ hard-coded dark stripe.
 
 ### Terminal Display, Fonts, Mouse, and Clipboard
 
+`emc` defaults to a blocking terminal client, including when files are supplied
+on a graphical desktop.  Use `emc -c` (optionally `-n`) to explicitly request a
+GUI frame.  The author's external Nix configuration routes editor environment
+variables, Git, Niri shortcuts, and desktop file associations through that
+terminal-first launcher, with a separate **Emacs (GUI)** entry.  The standalone
+`emacs` binary retains its normal batch/daemon/GUI command-line semantics.
+
 `modules/ui/tty.el` enables mouse input, Unicode popup borders, and native
 TTY tooltips when a terminal connects.  Ordinary GUI/batch startup does not
 load the terminal integrations.  Emacs 31 has native TTY child frames, which
