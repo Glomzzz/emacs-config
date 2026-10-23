@@ -4,6 +4,7 @@
  '("theme.el"
    "ui.el"
    "appearance.el"
+   "tty.el"
    "dashboard.el"))
 
 ;;; mod.el ends here

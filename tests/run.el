@@ -32,6 +32,8 @@
         (load (expand-file-name "init.el" user-emacs-directory)
               nil 'nomessage)
         (setq treesit-auto-install nil)
+        (load (expand-file-name "tests/tty-tests.el" user-emacs-directory)
+              nil 'nomessage)
         (load (expand-file-name "tests/configuration-tests.el"
                                 user-emacs-directory)
               nil 'nomessage)

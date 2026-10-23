@@ -264,6 +264,33 @@ The hl-line fallback inherits the active theme's `highlight` face (still
 settings override it normally; changing to a light theme does not retain a
 hard-coded dark stripe.
 
+### Terminal Display, Fonts, Mouse, and Clipboard
+
+`modules/ui/tty.el` enables mouse input, Unicode popup borders, and native
+TTY tooltips when a terminal connects.  Ordinary GUI/batch startup does not
+load the terminal integrations.  Emacs 31 has native TTY child frames, which
+the installed Corfu uses for completion and documentation popups; do not add
+`corfu-terminal` on this version.  Eldoc keeps its normal terminal display;
+use `M-x eldoc-doc-buffer` to read complete documentation in a window.
+
+`xclip-mode` supplies local desktop clipboard access for terminal frames,
+without replacing GUI frames' clipboard backend.  It prefers `wl-copy` and
+`wl-paste` on Wayland, honors a saved `xclip-method`, and is not enabled when
+no supported local clipboard tools are available.  Normal `M-w`, `C-w`, and
+`C-y` use the clipboard.  Headless installations keep their existing terminal
+backend; clipboard reading through a remote terminal is not promised.
+
+Fonts are controlled by the terminal, **not** `appearance/apply-fonts` or
+`text-scale-mode`.  The author's Nix configuration uses Kitty with Cascadia
+Mono NF at 16 pt, LXGW WenKai for Han and Chinese punctuation, Noto Color
+Emoji, and Symbols Nerd Font Mono.  Terminal zoom changes the whole window;
+arbitrary per-face fonts/sizes and pixel scrolling remain GUI features.
+Some multi-codepoint emoji can still have width/cursor limitations in Emacs 31.
+
+Run `M-x tty/describe` for a capability summary and `M-x kkp-status` for the
+actual keyboard negotiation status.  Hold Shift while dragging to use the
+terminal's own text selection instead of Emacs' mouse handling.
+
 ### Terminal Keyboard Input
 
 `modules/feat/editor/emacs.el` declares `kkp` and enables `global-kkp-mode`
@@ -1163,6 +1190,9 @@ Xref return history, and normal-lookup fallbacks in both Typst modes.
 `tests/typst-editing-tests.el` types math delimiters through the real command
 loop to check indentation preservation in ordinary/nested lists, buffer-local
 trigger settings, fallback insertion, and unchanged explicit/newline indentation.
+`tests/tty-tests.el` checks lazy terminal integration, GUI isolation, idempotent
+mouse/tooltip setup, clipboard fallback/Wayland preference, saved backend
+choices.
 `tests/refinement-tests.el` also exercises directory-local server settings,
 configurable commands/paths, and a real asynchronous copy between temporary
 files to verify Dirvish/dashboard integration.
