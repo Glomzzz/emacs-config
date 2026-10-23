@@ -82,4 +82,36 @@
             (should (equal xclip-program "/custom/xsel"))))
       (put 'xclip-method 'saved-value saved))))
 
+(ert-deftest config-test/emc-counts-tty-clients-without-display-parameters ()
+  (cl-letf (((symbol-function 'frame-list) (lambda () '(initial gui tty)))
+            ((symbol-function 'frame-parameter)
+             (lambda (frame parameter)
+               (alist-get parameter
+                          (alist-get frame '((initial)
+                                             (gui (display . "wayland-1"))
+                                             (tty (tty . "/dev/pts/1"))))))))
+    (should (equal (emc/client-frames) '(gui tty)))
+    (should (equal (emc/gui-frames) '(gui tty)))))
+
+(ert-deftest config-test/emc-restarts-only-a-safe-stale-daemon ()
+  (with-temp-buffer
+    (let ((buffer (current-buffer)) frames stale)
+      (cl-letf (((symbol-function 'emc/client-frames) (lambda () frames))
+                ((symbol-function 'emc/config-stale-p) (lambda () stale))
+                ((symbol-function 'buffer-list) (lambda () (list buffer))))
+        (cl-progv '(mail-async--jobs) '(nil)
+          (should (eq (emc/launcher-state) 'ok))
+          (setq stale t)
+          (should (eq (emc/launcher-state) 'stale))
+          (setq frames '(tty))
+          (should (eq (emc/launcher-state) 'ok))
+          (setq frames nil)
+          (setq-local buffer-file-name "/test/unsaved.txt")
+          (insert "unsaved work")
+          (should (eq (emc/launcher-state) 'ok))
+          (set-buffer-modified-p nil)
+          (should (eq (emc/launcher-state) 'stale))
+          (cl-progv '(mail-async--jobs) '((pending-send))
+            (should (eq (emc/launcher-state) 'ok))))))))
+
 ;;; tty-tests.el ends here

@@ -1248,8 +1248,12 @@ Install declared packages before running the suite.
 `emc/config-stale-p` includes top-level Elisp, `modules/`, and `pkgs/` in
 its modification-time check.  Changes to a local package therefore mark the
 daemon stale, just like module changes.  Test fixtures and Customize state
-are excluded.  Restart the daemon to apply configuration changes; batch
-validation alone does not update a running session.
+are excluded.  `emc/client-frames` recognizes both GUI and TTY clients; the old
+`emc/gui-frames` name remains a compatibility alias.  The managed launcher's
+`emc/launcher-state` permits a stale restart only with no client frames,
+modified file buffers, or background mail sends.  A timed-out health check is
+not permission to kill an active daemon.  Restart the daemon to apply
+configuration changes; batch validation alone does not update a running session.
 
 `C-c i` opens `consult-info`, and `M-g i` opens `consult-imenu`.  Do not
 install a longer binding below `C-c i`: it is a command, not a prefix.
