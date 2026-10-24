@@ -195,6 +195,55 @@
      'server :textDocument/hover params)
     (should-not (plist-member params :command))))
 
+(defun config-test/sync-with-changes (text changes)
+  "Sync a buffer holding TEXT with queued CHANGES; return the sent queue.
+Return `not-sent' when the guard refuses to call Eglot's sender."
+  (with-temp-buffer
+    (insert text)
+    (setq-local eglot--recent-changes changes)
+    (let ((sent 'not-sent))
+      (condition-case nil
+          (lsp/sync-without-raw-bytes
+           (lambda () (setq sent eglot--recent-changes)))
+        (user-error nil))
+      sent)))
+
+(ert-deftest config-test/eglot-sync-guard-is-installed ()
+  (should (advice-member-p #'lsp/sync-without-raw-bytes
+                           'eglot--signal-textDocument/didChange)))
+
+(ert-deftest config-test/eglot-sync-keeps-clean-incremental-changes ()
+  (let ((changes (list (list '(:line 0 :character 0) '(:line 0 :character 0)
+                             0 "教"))))
+    (should (eq (config-test/sync-with-changes "教" changes) changes))))
+
+(ert-deftest config-test/eglot-sync-recovers-after-raw-bytes-are-deleted ()
+  (let ((changes (list (list '(:line 0 :character 1) '(:line 0 :character 1)
+                             0 (string #x3fffe7)))))
+    ;; The poisoned queue is replaced by one full-text update.
+    (should (eq (config-test/sync-with-changes "教" changes) :emacs-messup))
+    ;; While a raw byte remains, nothing is sent against stale text.
+    (should (eq (config-test/sync-with-changes
+                 (concat "教" (string #x3fffe7)) changes)
+                'not-sent))
+    (should (eq (config-test/sync-with-changes
+                 (concat "教" (string #x3fffe7)) :emacs-messup)
+                'not-sent))))
+
+(ert-deftest config-test/text-capf-skips-missing-word-lists ()
+  (let* ((words (make-temp-file "config-test-words"))
+         (missing (concat words "-missing")))
+    (unwind-protect
+        (dolist (entry `((,missing . nil) (,words . t)))
+          (let ((cape-dict-file (car entry)))
+            (with-temp-buffer
+              (text-mode)
+              (should-not (memq #'ispell-completion-at-point
+                                completion-at-point-functions))
+              (should (eq (and (memq #'cape-dict completion-at-point-functions) t)
+                          (cdr entry))))))
+      (delete-file words))))
+
 (ert-deftest config-test/manual-format-respects-apheleia-owner ()
   (with-temp-buffer
     (setq-local format/apheleia-owns t)

@@ -183,10 +183,24 @@ geometry is measured.  Keep its own faces, colors, and Markdown styling."
 (with-eval-after-load 'prog-mode
   (keymap-set prog-mode-map "C-M-d" #'completion/eldoc-show-at-point))
 
+;; Emacs 30+ text modes add `ispell-completion-at-point' unless this is nil.
+;; Without a plain word list (none by default on NixOS) it signals on every
+;; automatic Corfu attempt; text buffers use `cape-dict' below instead.
+(unless (get 'text-mode-ispell-word-completion 'saved-value)
+  (setq text-mode-ispell-word-completion nil))
+
+(defvar cape-dict-file)
+(defun completion/dictionary-available-p ()
+  "Return non-nil when `cape-dict-file' names a readable word list.
+A function value is trusted; Cape resolves it only while completing."
+  (or (functionp cape-dict-file)
+      (seq-some #'file-readable-p (ensure-list cape-dict-file))))
+
 (defun completion/setup-text-capf ()
-  "Add dictionary completion to ordinary text buffers."
+  "Add dictionary completion to ordinary text buffers.
+Skip `cape-dict' without a word list; it would run grep in vain."
   (completion/setup-capf)
-  (when (fboundp 'cape-dict)
+  (when (and (fboundp 'cape-dict) (completion/dictionary-available-p))
     (add-hook 'completion-at-point-functions #'cape-dict 100 t)))
 
 (use-package cape

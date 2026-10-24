@@ -7,6 +7,7 @@
 (declare-function eglot-current-server "eglot" ())
 (declare-function format/eglot-owns-p "format" (&optional region))
 (defvar eglot-workspace-configuration)
+(defvar eglot--recent-changes)
 
 ;;; workspace configuration
 (defvar lsp/workspace-configurations nil
@@ -118,6 +119,36 @@ Only execute a command after Eglot has successfully applied its edits."
       ;; The wrapper only handles resolve replies from the current server.
       (advice-add 'jsonrpc-request :around #'lsp/completion-resolve-command))))
 
+;;; document synchronization
+(defun lsp/raw-byte-p (string)
+  "Return non-nil when STRING contains raw bytes, which JSON cannot encode."
+  (and (stringp string) (string-match-p "[\200-\377]" string)))
+
+(defun lsp/raw-byte-position ()
+  "Return the position of the first raw byte in the whole buffer, or nil."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (and (re-search-forward "[\200-\377]" nil t) (match-beginning 0)))))
+
+(defun lsp/sync-without-raw-bytes (original &rest arguments)
+  "Call ORIGINAL with ARGUMENTS unless raw bytes block the didChange JSON.
+An undecoded fragment of terminal UTF-8 input inserts raw bytes.  Eglot
+queues each edit's text and would resend that queue, failing forever
+even after the bytes are deleted.  Replace such a queue with a full-text
+update, and refuse while raw bytes remain so requests never run against
+stale server text.  Eglot has no public resync, hence its change queue."
+  (when (and (consp eglot--recent-changes)
+             (seq-some (lambda (change) (lsp/raw-byte-p (nth 3 change)))
+                       eglot--recent-changes))
+    (setq eglot--recent-changes :emacs-messup))
+  (when-let* (((eq eglot--recent-changes :emacs-messup))
+              (position (lsp/raw-byte-position)))
+    (user-error "Eglot sync paused: raw byte at line %d of %s; delete it"
+                (line-number-at-pos position t) (buffer-name)))
+  (apply original arguments))
+
 ;;; eglot
 (defun lsp/format-on-save ()
   "Enable save formatting with the language's supported formatter.
@@ -156,6 +187,9 @@ advertise whole-buffer formatting."
   (remove-hook 'prog-mode-hook #'eglot-ensure)
   (remove-hook 'before-save-hook #'eglot-format)
   :config
+  (when (fboundp 'eglot--signal-textDocument/didChange)
+    (advice-add 'eglot--signal-textDocument/didChange :around
+                #'lsp/sync-without-raw-bytes))
   (lsp/configure-completion-commands))
 
 ;;; lsp.el ends here
