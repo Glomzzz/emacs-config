@@ -25,7 +25,7 @@ Emacs after changing this option; `dashboard/open' is always available."
      ("Browse directory" dirvish-dwim "C-x d"))
     ("Search and tools"
      ("Search files (ripgrep)" consult-ripgrep "C-c s")
-     ("Git status" magit-status "C-x g")
+     ("Jujutsu status" majutsu-log "C-x g")
      ("Terminal in another window" vterm-other-window "C-c t")
      ("Process tasks" task-dashboard "C-c T"))
     ("Learn the keys"

@@ -25,13 +25,17 @@
   (add-hook 'text-mode-hook #'git/diff-hl-maybe)
   (add-hook 'conf-mode-hook #'git/diff-hl-maybe))
 
+;; Majutsu depends on Magit; keep it available for explicit M-x use and the
+;; graphical Git launcher, but let Majutsu own the global VCS shortcuts.
 (packages/declare 'magit)
 (use-package magit
   :ensure nil
   :commands (magit-dispatch magit-file-dispatch magit-status)
-  :bind (("C-x g" . magit-status)
-         ("C-x M-g" . magit-dispatch)
-         ("C-c M-g" . magit-file-dispatch)))
+  :init
+  (setq magit-define-global-key-bindings nil)
+  ;; Autoload activation can install this before a batch load or live reload.
+  (when (eq (lookup-key global-map (kbd "C-c M-g")) #'magit-file-dispatch)
+    (global-unset-key (kbd "C-c M-g"))))
 
 (defun git/display-buffer-in-selected-frame (buffer)
   "Display BUFFER in the selected frame without reusing another frame."

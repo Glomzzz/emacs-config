@@ -2,6 +2,7 @@
 
 (mod/import
  '("git.el"
+   "jujutsu.el"
    "navigation.el"
    "environment.el"))
 

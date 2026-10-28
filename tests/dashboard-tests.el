@@ -34,6 +34,8 @@
           (should (string-prefix-p preferred (button-label button)))
           (should (commandp command))
           (should (eq (lookup-key (current-global-map) (kbd preferred)) command)))))
+    (should (config-test/dashboard-button 'majutsu-log))
+    (should-not (config-test/dashboard-button 'magit-status))
     (should-not (config-test/dashboard-button 'funcs/format-buffer))))
 
 (ert-deftest config-test/dashboard-refresh-reflects-rebound-keys ()
@@ -72,15 +74,15 @@
           (should called))))))
 
 (ert-deftest config-test/dashboard-render-does-not-load-lazy-tools ()
-  (let* ((commands '(magit-status vterm-other-window task-dashboard helpful-key))
+  (let* ((commands '(majutsu-log vterm-other-window task-dashboard helpful-key))
          (definitions (mapcar #'symbol-function commands)))
     (config-test/with-dashboard
       (should (equal definitions (mapcar #'symbol-function commands))))))
 
 (ert-deftest config-test/dashboard-unavailable-button-reports-bootstrap ()
   (config-test/with-dashboard
-    (cl-letf (((symbol-function 'magit-status) nil))
-      (should-error (button-activate (config-test/dashboard-button 'magit-status))
+    (cl-letf (((symbol-function 'majutsu-log) nil))
+      (should-error (button-activate (config-test/dashboard-button 'majutsu-log))
                     :type 'user-error))))
 
 (ert-deftest config-test/dashboard-inherits-caller-directory ()

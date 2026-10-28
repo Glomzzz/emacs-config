@@ -422,7 +422,7 @@ unbound commands show their `M-x` name.  `q` leaves the dashboard.
 | Switch project / find project file | `C-x p p` / `C-x p f` |
 | Browse directory | `C-x d` |
 | Search files with ripgrep | `C-c s` |
-| Git status | `C-x g` |
+| Jujutsu status | `C-x g` |
 | Terminal / process tasks | `C-c t` / `C-c T` |
 | Run a command | `M-x` |
 | Describe a key / list bindings | `C-h k` / `C-h b` |
@@ -431,7 +431,7 @@ unbound commands show their `M-x` name.  `q` leaves the dashboard.
 Save, undo, duplication, formatting, completion, and structural-editing keys
 appear as non-clickable reminders: they should run in an editing buffer,
 not on the read-only dashboard.  Tool commands retain their normal prompts
-and lazy loading.  Search/Git/project commands use the working directory
+and lazy loading.  Search/Jujutsu/project commands use the working directory
 from which the dashboard was opened; no project scan or server startup runs
 just to render buttons.  Vterm and ripgrep still need their external
 prerequisites.
@@ -441,6 +441,30 @@ automatic display; the reopen shortcut remains available.  Ordinary TTY
 startup and dedicated daemon/client TTY frames (empty and explicit-file
 requests) were smoke-tested; graphical mouse interaction still needs manual
 validation.
+
+### Jujutsu (Majutsu)
+
+`modules/feat/workspace/jujutsu.el` declares
+[Majutsu](https://majutsu.org/) from its upstream Git repository through
+`packages/declare-vc`.  Run the package bootstrap after adding it; normal
+startup neither fetches the package nor loads its interface.
+
+In a Jujutsu workspace, **`C-x g`** (`M-x majutsu-log`, also available as
+`M-x majutsu`) opens the change graph and working-copy status.
+**`C-x M-g`** opens `majutsu-dispatch`, the command menu.  **`C-x j`** and
+**`C-x M-j`** remain aliases for those commands.  Within Majutsu, `g`
+refreshes and `q` leaves the buffer.  The dashboard opens Majutsu too.
+
+Magit's standalone global bindings are disabled, including the old
+`C-c M-g` file menu.  Magit remains installed because Majutsu depends on it;
+its commands are still available explicitly through M-x and the graphical
+Git launcher helper.
+
+The external `jj` executable must be on Emacs' `PATH` (upstream requires
+0.41.0 or later); the author's NixOS configuration already supplies it.
+Emacs package dependencies are installed by the bootstrap, not Nix.
+Majutsu is experimental and follows the upstream default branch; use
+`M-x package-vc-upgrade` to update it explicitly.
 
 ### Local Email
 
