@@ -289,7 +289,7 @@ backend; clipboard reading through a remote terminal is not promised.
 
 Fonts are controlled by the terminal, **not** `appearance/apply-fonts` or
 `text-scale-mode`.  The author's Nix configuration uses Kitty with Cascadia
-Mono NF at 16 pt, LXGW WenKai for Han and Chinese punctuation, Noto Color
+Mono NF at 15 pt, LXGW WenKai for Han and Chinese punctuation, Noto Color
 Emoji, and Symbols Nerd Font Mono.  Terminal zoom changes the whole window;
 arbitrary per-face fonts/sizes and pixel scrolling remain GUI features.
 Some multi-codepoint emoji can still have width/cursor limitations in Emacs 31.
