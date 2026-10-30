@@ -478,6 +478,38 @@
       (should-not (locations/unreliable-path-p "/tmp/example-share-other/file"))
       (should (memq #'locations/unreliable-path-p recentf-exclude)))))
 
+(ert-deftest config-test/unreliable-mount-never-starts-auto-revert ()
+  "Auto-Revert must not add a file watch below an unreliable mount."
+  (require 'autorevert)
+  (let ((mounts/android-mount-directory "/tmp/example-phone/")
+        (mounts/mac-mini-mount-directory "/tmp/example-share/")
+        (locations/additional-unreliable-directories nil)
+        (watched nil))
+    (with-temp-buffer
+      (setq buffer-file-name "/tmp/example-share/book.epub")
+      (cl-letf (((symbol-function 'file-notify-add-watch)
+                 (lambda (&rest _) (setq watched t) nil)))
+        (auto-revert-mode 1)
+        (should-not auto-revert-mode)
+        (should-not watched)))))
+
+(ert-deftest config-test/local-files-keep-auto-revert-enabled ()
+  "The mount guard must not disable Auto-Revert for local files."
+  (require 'autorevert)
+  (let ((mounts/android-mount-directory "/tmp/example-phone/")
+        (mounts/mac-mini-mount-directory "/tmp/example-share/")
+        (locations/additional-unreliable-directories nil)
+        (watched nil))
+    (with-temp-buffer
+      (setq buffer-file-name "/tmp/example-local/book.epub")
+      (cl-letf (((symbol-function 'file-notify-add-watch)
+                 (lambda (&rest _) (setq watched t) nil)))
+        (unwind-protect
+            (progn (auto-revert-mode 1)
+                   (should auto-revert-mode)
+                   (should watched))
+          (auto-revert-mode -1))))))
+
 (ert-deftest config-test/mount-destination-uses-remote-home-not-local-expansion ()
   (let ((mounts/mac-mini-host "other-host")
         (mounts/mac-mini-remote-home-directory "~/"))

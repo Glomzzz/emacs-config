@@ -16,14 +16,18 @@
 ;; mount from timer/shutdown hooks or resolve it with `file-truename'.
 (defalias 'emacs/unreliable-path-p #'locations/unreliable-path-p)
 
-(defun emacs/disable-auto-revert-on-unreliable-path ()
-  "Disable auto-revert for buffers below an unreliable FUSE mount."
-  (when (and auto-revert-mode
-             (emacs/unreliable-path-p (or buffer-file-name default-directory)))
-    (auto-revert-mode -1)))
+(defun emacs/auto-revert-mode-guard (original &optional arg)
+  "Call ORIGINAL with ARG, but keep Auto-Revert off below unreliable mounts.
+This wraps the mode function instead of using `auto-revert-mode-hook': the
+mode body adds a file-notify watch and runs a revert check before any hook,
+and on an unreachable FUSE mount that call blocks the Emacs thread."
+  (funcall original
+           (if (emacs/unreliable-path-p (or buffer-file-name default-directory))
+               -1
+             arg)))
 
-(add-hook 'auto-revert-mode-hook
-          #'emacs/disable-auto-revert-on-unreliable-path)
+(with-eval-after-load 'autorevert
+  (advice-add 'auto-revert-mode :around #'emacs/auto-revert-mode-guard))
 (setq read-process-output-max (* 1024 1024)
       process-adaptive-read-buffering nil
       redisplay-skip-fontification-on-input t
