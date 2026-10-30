@@ -549,6 +549,12 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
           (should-not (member "recent-menu-test" (buffers/recent-names 4))))
       (kill-buffer buffer))))
 
+(ert-deftest config-test/avy-menu-is-bound-and-direct-jump-unchanged ()
+  (should (eq (key-binding (kbd "C-x C-h a")) #'hydra-avy/body))
+  (should (eq (key-binding (kbd "C-'")) #'avy-goto-char-timer))
+  (dolist (command '(avy-goto-line avy-kill-region avy-copy-region avy-move-line))
+    (should (fboundp command))))
+
 (ert-deftest config-test/dape-menu-is-bound-and-autoloaded ()
   (should (eq (key-binding (kbd "C-x C-h d")) #'hydra-dape/body))
   (dolist (command '(dape-continue dape-next dape-step-in dape-step-out

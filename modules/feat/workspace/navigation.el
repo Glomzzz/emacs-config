@@ -114,10 +114,33 @@
 (packages/declare 'avy)
 (use-package avy
   :ensure nil
-  :bind (("C-'" . avy-goto-char-timer))
+  :after hydra
+  :bind (("C-'" . avy-goto-char-timer)
+         ("C-x C-h a" . hydra-avy/body))
   :custom
   (avy-all-windows t)
-  (avy-timeout-seconds 0.5))
+  (avy-timeout-seconds 0.5)
+  ;; Menu adapted from the hydra wiki's avy example.  Every head runs its
+  ;; command and then leaves the menu.
+  :hydra (hydra-avy (:exit t :hint nil)
+                    "
+ Line^^       Region^^        Goto
+----------------------------------------------------------
+ [_y_] yank   [_Y_] yank      [_c_] timed char  [_C_] char
+ [_m_] move   [_M_] move      [_w_] word        [_W_] any word
+ [_k_] kill   [_K_] kill      [_l_] line        [_L_] end of line"
+                    ("c" avy-goto-char-timer)
+                    ("C" avy-goto-char)
+                    ("w" avy-goto-word-1)
+                    ("W" avy-goto-word-0)
+                    ("l" avy-goto-line)
+                    ("L" avy-goto-end-of-line)
+                    ("m" avy-move-line)
+                    ("M" avy-move-region)
+                    ("k" avy-kill-whole-line)
+                    ("K" avy-kill-region)
+                    ("y" avy-copy-line)
+                    ("Y" avy-copy-region)))
 
 ;; Window menu adapted from the hydra wiki's "Window moving" example.  Its
 ;; ace-window and helm heads are left out because this config does not install
