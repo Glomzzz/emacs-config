@@ -91,6 +91,15 @@ menus under the `C-x C-h` prefix, which is otherwise unbound, and give each one
 the `:ensure nil` form used by every other package here.  Keep the menu's
 commands in the feature module; the menu only groups them.
 
+| Key | Menu | Defined in |
+| --- | --- | --- |
+| `C-x C-h u` | undo-tree | `modules/feat/editing/undo.el` |
+| `C-x C-h m` | multiple cursors | `modules/feat/editing/multi-cursor.el` |
+| `C-x C-h d` | Dape debugging | `modules/feat/languages/debug.el` |
+| `C-x C-h g` | diff-hl hunks | `modules/feat/workspace/git.el` |
+| `C-x C-h f` | fingertip navigation | `modules/feat/editing/pairs.el` |
+| `C-x C-h w` | windows | `modules/feat/workspace/navigation.el` |
+
 ### Packages and Cache
 
 #### Declaring a Package

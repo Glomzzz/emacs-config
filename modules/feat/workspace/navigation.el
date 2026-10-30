@@ -119,4 +119,46 @@
   (avy-all-windows t)
   (avy-timeout-seconds 0.5))
 
+;; Window menu adapted from the hydra wiki's "Window moving" example.  Its
+;; ace-window and helm heads are left out because this config does not install
+;; those packages.  `winner-mode' supplies the undo and redo heads.
+(use-package window
+  :ensure nil
+  :after hydra
+  :bind ("C-x C-h w" . hydra-window/body)
+  :hydra (hydra-window
+          (:color red :hint nil)
+          "
+ Move: _h_ left  _j_ down  _k_ up  _l_ right    Swap: _s_
+ Split: _v_ertical  _x_ horizontal    Resize: _H_ narrower  _L_ wider  _J_ shorter  _K_ taller
+ Delete: _o_nly  _dw_ window  _db_ buffer  _df_ frame    Frame: _f_ new
+ History: _u_ undo  _r_ redo    _q_ quit"
+          ("h" windmove-left)
+          ("j" windmove-down)
+          ("k" windmove-up)
+          ("l" windmove-right)
+          ("H" shrink-window-horizontally)
+          ("L" enlarge-window-horizontally)
+          ("J" shrink-window)
+          ("K" enlarge-window)
+          ("|" (lambda ()
+                (interactive)
+                (split-window-right)
+                (windmove-right)))
+          ("_" (lambda ()
+                (interactive)
+                (split-window-below)
+                (windmove-down)))
+          ("v" split-window-right)
+          ("x" split-window-below)
+          ("u" winner-undo)
+          ("r" winner-redo)
+          ("o" delete-other-windows :exit t)
+          ("s" window-swap-states)
+          ("dw" delete-window)
+          ("db" kill-this-buffer)
+          ("df" delete-frame :exit t)
+          ("f" make-frame-command :exit t)
+          ("q" nil)))
+
 ;;; navigation.el ends here
