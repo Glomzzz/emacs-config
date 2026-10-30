@@ -38,4 +38,41 @@ _h_   _l_     _y_ank        _t_ype       _e_xchange point
           ("u" undo)
           ("q" nil :color blue)))
 
+;; Keyboard macro menu adapted from the hydra wiki's "Macro" example.  Opening
+;; the menu ends a macro that is still being recorded.
+(use-package kmacro
+  :ensure nil
+  :after hydra
+  :bind (("C-x C-h k" . hydra-macro/body))
+  :hydra (hydra-macro
+          (:hint nil
+           :color pink
+           :pre (when defining-kbd-macro
+                  (kmacro-end-macro 1)))
+          "
+ Cycle: _i_ previous  _k_ next  _j_ start  _l_ end or call   Basic: _e_ execute  _d_ delete  _o_ edit  _m_ step
+ Insert: _n_ counter  _t_ set counter  _a_ add counter  _f_ format   Edit: _'_ last  _,_ kbd-macro  _s_ swap
+ Save: _b_ name  _K_ bind key  _B_ insert defun  _x_ register  _r_ apply to region lines  _q_ quit"
+          ("j" kmacro-start-macro :color blue)
+          ("l" kmacro-end-or-call-macro-repeat)
+          ("i" kmacro-cycle-ring-previous)
+          ("k" kmacro-cycle-ring-next)
+          ("r" apply-macro-to-region-lines)
+          ("d" kmacro-delete-ring-head)
+          ("e" kmacro-end-or-call-macro-repeat)
+          ("o" kmacro-edit-macro-repeat)
+          ("m" kmacro-step-edit-macro)
+          ("s" kmacro-swap-ring)
+          ("n" kmacro-insert-counter)
+          ("t" kmacro-set-counter)
+          ("a" kmacro-add-counter)
+          ("f" kmacro-set-format)
+          ("b" kmacro-name-last-macro)
+          ("K" kmacro-bind-to-key)
+          ("B" insert-kbd-macro)
+          ("x" kmacro-to-register)
+          ("'" kmacro-edit-macro)
+          ("," edit-kbd-macro)
+          ("q" nil :color blue)))
+
 ;;; menus.el ends here
