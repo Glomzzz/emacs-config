@@ -58,6 +58,32 @@ that it is safe to restart."
       'ok
     'stale))
 
+(declare-function calc "calc" (&optional arg full-display interactive))
+(declare-function mu4e "mu4e" (&optional background))
+(defvar mu4e-main-buffer-name)
+
+(defun emc/split-refused-p (err)
+  "Return non-nil when ERR says Emacs refused to split a window.
+A brand-new GUI frame can still be settling its size when a launcher runs."
+  (string-match-p "too small for splitting" (error-message-string err)))
+
+(defun emc/open-calc ()
+  "Show Calc in a launcher-created frame after a short settling delay.
+Calc splits the window for its trail, and calling it in a brand-new frame
+at once intermittently fails, so run it from a 0.3 s timer."
+  (run-at-time 0.3 nil #'calc))
+
+(defun emc/open-mail ()
+  "Show the mu4e main view in the selected frame, starting mu4e if needed.
+If Emacs refuses to split the window while the frame is still settling,
+show the main view in the whole window."
+  (condition-case err
+      (mu4e)
+    (error
+     (unless (emc/split-refused-p err)
+       (signal (car err) (cdr err)))
+     (switch-to-buffer mu4e-main-buffer-name))))
+
 (provide 'emc)
 
 ;;; emc.el ends here

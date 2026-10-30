@@ -98,4 +98,8 @@ No messages are moved and no folders are created by this command."
         message-sendmail-extra-arguments '("--read-envelope-from")
         message-kill-buffer-on-exit t))
 
+;; A fresh daemon loads mu4e (about half a second) on the first mail launch.
+;; Load it once Emacs has been idle, so that launch only shows the main view.
+(run-with-idle-timer 5 nil #'require 'mu4e nil t)
+
 ;;; mail.el ends here
