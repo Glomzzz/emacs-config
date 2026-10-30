@@ -256,4 +256,54 @@
     ("/" ibuffer-filter-disable "disable")
     ("b" hydra-ibuffer-main/body "back" :color blue))))
 
+;; Recent-buffer switcher adapted from the hydra wiki's "Switch to buffer"
+;; example.  The wiki's C-o is `funcs/open-line-below' in this config, so the
+;; menu uses C-x C-h o.
+(defvar buffers/recent-names nil
+  "Names offered by `hydra-buffers', most recently used first.")
+
+(defun buffers/recent-names (count)
+  "Return up to COUNT visible buffer names, skipping the current buffer."
+  (let ((names (delq nil
+                     (mapcar (lambda (buffer)
+                               (let ((name (buffer-name buffer)))
+                                 (unless (string-prefix-p " " name) name)))
+                             (buffer-list)))))
+    (seq-take (cdr names) count)))
+
+(defun buffers/number-names (names)
+  "Return NAMES as a numbered, comma-separated string."
+  (let ((index 0))
+    (mapconcat (lambda (name)
+                 (setq index (1+ index))
+                 (format "%d. %s" index name))
+               names
+               ", ")))
+
+(defun buffers/switch-to-recent (arg)
+  "Switch to the ARGth buffer in `buffers/recent-names'."
+  (interactive "p")
+  (switch-to-buffer (nth (1- arg) buffers/recent-names)))
+
+(defun buffers/switch-to-recent-other-window (arg)
+  "Switch to the ARGth buffer in `buffers/recent-names' in another window."
+  (interactive "p")
+  (switch-to-buffer-other-window (nth (1- arg) buffers/recent-names)))
+
+(require 'hydra)
+(defhydra hydra-buffers (:exit t
+                         :body-pre
+                         (setq buffers/recent-names (buffers/recent-names 4)))
+  "
+Other buffers: %s(buffers/number-names buffers/recent-names)
+"
+  ("o" buffers/switch-to-recent "this window")
+  ("O" buffers/switch-to-recent-other-window "other window")
+  ("1" (buffers/switch-to-recent 1))
+  ("2" (buffers/switch-to-recent 2))
+  ("3" (buffers/switch-to-recent 3))
+  ("4" (buffers/switch-to-recent 4))
+  ("<escape>" nil))
+(keymap-global-set "C-x C-h o" #'hydra-buffers/body)
+
 ;;; navigation.el ends here

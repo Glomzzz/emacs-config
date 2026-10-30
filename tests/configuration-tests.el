@@ -538,6 +538,17 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
   (dolist (menu '(hydra-ibuffer-mark hydra-ibuffer-action hydra-ibuffer-sort hydra-ibuffer-filter))
     (should (fboundp (intern (format "%s/body" menu))))))
 
+(ert-deftest config-test/recent-buffer-menu-numbers-other-buffers ()
+  (should (eq (key-binding (kbd "C-x C-h o")) #'hydra-buffers/body))
+  (let ((names '("alpha" "beta")))
+    (should (equal (buffers/number-names names) "1. alpha, 2. beta")))
+  (let ((buffer (generate-new-buffer "recent-menu-test")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (should (listp (buffers/recent-names 4)))
+          (should-not (member "recent-menu-test" (buffers/recent-names 4))))
+      (kill-buffer buffer))))
+
 (ert-deftest config-test/dape-menu-is-bound-and-autoloaded ()
   (should (eq (key-binding (kbd "C-x C-h d")) #'hydra-dape/body))
   (dolist (command '(dape-continue dape-next dape-step-in dape-step-out
