@@ -107,6 +107,7 @@ commands in the feature module; the menu only groups them.
 | `C-x C-h c` | compilation errors (`C-x `` still `next-error`) | `modules/feat/process/tasks.el` |
 | `C-x C-h p` | elisp profiler | `modules/feat/process/tasks.el` |
 | `C-x C-h D` | Dired file operations | `modules/feat/files/dired.el` |
+| `C-x C-h s` | Dashboard (also `.` inside Dashboard) | `modules/ui/dashboard-config.el` |
 | `C-x C-h M` | markdown formatting (Markdown buffers only) | `modules/feat/languages/support/markdown.el` |
 
 ### Packages and Cache
@@ -227,6 +228,7 @@ state variables there.  The main paths currently include:
 | `tramp-auto-save/` | TRAMP auto-save data |
 | `custom.el` | Emacs Customize state |
 | `history`, `recentf`, `places` | Minibuffer, recent-file, and save-place state |
+| `bookmarks` | Bookmark state |
 | `nov-places` | EPUB reading positions for `nov-mode` |
 | `transient/` | Transient history and values |
 | `projects.eld` | Project list state |
@@ -249,7 +251,7 @@ ownership live with the feature; these guides explain the behavior.
 | [Files and locations](features/files-and-locations.md) | Machine paths, FUSE mount safety, file-operation observers |
 | [Appearance and terminal](features/appearance-and-terminal.md) | Themes, fonts, terminal display, images, keyboard input |
 | [Reading](features/reading.md) | EPUB reader |
-| [Dashboard](features/dashboard.md) | Daily dashboard and shortcut reminders |
+| [Dashboard](features/dashboard.md) | Startup screen, recent files, bookmarks, projects, and Hydra menu |
 | [Version control and mail](features/version-control-and-mail.md) | Majutsu and local mu4e |
 | [Completion and search](features/completion-and-search.md) | Completion, Isearch, Consult, Avy, Corfu timing |
 | [Help and documentation](features/help-and-documentation.md) | Helpful, Eldoc, Eldoc Box |
@@ -668,9 +670,10 @@ choices, and the opt-in graphics declaration.
 `tests/refinement-tests.el` also exercises directory-local server settings,
 configurable commands/paths, and a real asynchronous copy between temporary
 files to verify Dirvish/dashboard integration.
-`tests/dashboard-tests.el` verifies button dispatch and TAB/RET navigation,
-shortcut labels, startup safeguards, and Emacs' real server selection path
-for empty and explicit-file requests.
+`tests/dashboard-tests.el` verifies upstream package loading, recent-file/bookmark/
+project limits, TAB/RET file opening, Hydra navigation and dispatch, startup
+safeguards, and Emacs' real server selection path for empty and explicit-file
+requests.
 `tests/packages-tests.el` checks offline VC declarations and both bootstrap
 installation paths without network requests.
 `tests/pairs-tests.el` types through the real command loop with installed

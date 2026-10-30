@@ -35,6 +35,7 @@ early-init, get the same paths.  Safe to call more than once."
         package-user-dir (cache/folder "elpa")
         package-quickstart-file (cache/file "package-quickstart.el")
         savehist-file (cache/file "history")
+        bookmark-default-file (cache/file "bookmarks")
         project-list-file (cache/file "projects.eld")
         tramp-persistency-file-name (cache/file "tramp")
         tramp-auto-save-directory (cache/folder "tramp-auto-save")

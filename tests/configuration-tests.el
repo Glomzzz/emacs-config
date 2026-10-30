@@ -704,7 +704,8 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
     ;; `package-user-dir' is excluded: tests/run.el deliberately reuses the
     ;; installed package directory.
     (dolist (file (list custom-file package-quickstart-file
-                        savehist-file project-list-file tramp-persistency-file-name
+                        savehist-file bookmark-default-file project-list-file
+                        tramp-persistency-file-name
                         tramp-auto-save-directory transient-history-file
                         auto-save-list-file-prefix
                         (cdar backup-directory-alist)

@@ -5,6 +5,6 @@
    "ui.el"
    "appearance.el"
    "tty.el"
-   "dashboard.el"))
+   "dashboard-config.el"))
 
 ;;; mod.el ends here

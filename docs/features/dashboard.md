@@ -1,45 +1,40 @@
 # Dashboard
 
-The `*Daily Dashboard*` buffer and its shortcut reminders.
+`modules/ui/dashboard-config.el` configures the upstream `dashboard` package.
+It replaces the local Daily Dashboard with the official Emacs banner, the title
+**“The truth is the whole.”**, five recent files, five bookmarks, and ten projects.
+Projects come from the existing built-in project.el list (`C-x p p`).
 
-## Daily Dashboard and Shortcut Memory Aid
+Dashboard opens on an empty startup and in empty `emc`/emacsclient frames.
+Explicit file requests, modified scratch buffers, batch/bootstrap runs, and an
+existing `initial-buffer-choice` take precedence.  The client callback is
+installed after command-line file handling so startup files are not split
+alongside Dashboard.  Customize `dashboard/show-on-startup` to nil and restart
+Emacs to disable automatic display.
 
-`modules/ui/dashboard.el` provides `*Daily Dashboard*` using Emacs' built-in
-buttons, with no extra package.  It opens on an ordinary empty startup and
-in empty `emc`/emacsclient frames.  Explicit file requests, modified scratch
-buffers, batch/bootstrap runs, and an existing `initial-buffer-choice` are
-left alone.  The client callback is installed after command-line file
-handling so a startup file is not split alongside an unwanted dashboard.
+Open Dashboard with **`C-c D`** (`M-x dashboard/open`).  Use `TAB` / `S-TAB` to
+select an item and `RET` to visit it.  `g` refreshes and `q` leaves the buffer.
+The package's section shortcuts are `r` for recent files, `m` for bookmarks,
+and `p` for projects; `{` / `}` move between sections.
 
-Open it again with **`C-c D`** (`M-x dashboard/open`).  Click an action, or
-use `TAB` / `S-TAB` to select a button and `RET` to run it.  Each button shows
-the normal global shortcut, not a dashboard-only mnemonic, so the same keys
-work after leaving the dashboard.  `g` refreshes labels after rebinding keys;
-unbound commands show their `M-x` name.  `q` leaves the dashboard.
+**`C-x C-h s`** opens Dashboard and its Hydra menu.  **`.`** opens the same menu
+inside Dashboard.  Section navigation and refresh keep the menu active; opening
+a file, bookmark, project, or buffer leaves it.
 
-| Daily action | Shortcut |
+| Hydra key | Action |
 | --- | --- |
-| Open file / recent files | `C-x C-f` / `C-c R` |
-| Switch buffer | `C-x b` |
-| Switch project / find project file | `C-x p p` / `C-x p f` |
-| Browse directory | `C-x d` |
-| Search files with ripgrep | `C-c s` |
-| Jujutsu status | `C-x g` |
-| Terminal / process tasks | `C-c t` / `C-c T` |
-| Run a command | `M-x` |
-| Describe a key / list bindings | `C-h k` / `C-h b` |
-| Read manuals | `C-c i` |
+| `n` / `p` | Next / previous section |
+| `g` | Refresh Dashboard |
+| `f` | Open a file |
+| `r` | Consult recent files |
+| `m` | Consult bookmarks |
+| `P` | Switch project |
+| `b` | Consult buffers |
+| `q` | Leave the menu |
 
-Save, undo, duplication, formatting, completion, and structural-editing keys
-appear as non-clickable reminders: they should run in an editing buffer,
-not on the read-only dashboard.  Tool commands retain their normal prompts
-and lazy loading.  Search/Jujutsu/project commands use the working directory
-from which the dashboard was opened; no project scan or server startup runs
-just to render buttons.  Vterm and ripgrep still need their external
-prerequisites.
-
-Customize `dashboard/show-on-startup` to nil and restart Emacs to disable
-automatic display; the reopen shortcut remains available.  Ordinary TTY
-startup and dedicated daemon/client TTY frames (empty and explicit-file
-requests) were smoke-tested; graphical mouse interaction still needs manual
-validation.
+Dashboard is declared through the shared package workflow with `:ensure nil`.
+Run `M-x packages/bootstrap` after loading a configuration with a newly added
+Dashboard declaration; see the [configuration guide](../configuration.md) for
+first-run bootstrap instructions.  Recent files, bookmarks, and project state
+live below the shared cache root.  Dashboard uses the caller's working directory
+for commands opened from its menu.

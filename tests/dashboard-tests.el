@@ -1,89 +1,89 @@
-;;; dashboard-tests.el --- Daily dashboard regressions -*- lexical-binding: t; -*-
+;;; dashboard-tests.el --- Dashboard package integration regressions -*- lexical-binding: t; -*-
 
 (require 'ert)
 (require 'cl-lib)
-(require 'button)
+(require 'bookmark)
+(require 'project)
 (require 'dashboard)
 
 (defmacro config-test/with-dashboard (&rest body)
-  "Run BODY in an isolated dashboard buffer, then remove it."
+  "Run BODY in an isolated upstream Dashboard buffer, then remove it."
   (declare (indent 0) (debug t))
-  `(let ((dashboard--buffer-name (generate-new-buffer-name " *test dashboard*")))
+  `(let ((dashboard-buffer-name (generate-new-buffer-name " *test dashboard*"))
+         (recentf-list nil)
+         (bookmark-alist nil)
+         (bookmark-default-file-already-loaded t)
+         (project--list nil))
      (unwind-protect
          (with-current-buffer (dashboard/buffer) ,@body)
-       (when-let* ((buffer (get-buffer dashboard--buffer-name)))
+       (when-let* ((buffer (get-buffer dashboard-buffer-name)))
          (kill-buffer buffer)))))
 
-(defun config-test/dashboard-button (command)
-  "Return the dashboard button for COMMAND in the current buffer."
-  (let ((button (next-button (point-min) t)))
-    (while (and button (not (eq (button-get button 'dashboard-command) command)))
-      (setq button (next-button (button-end button))))
-    button))
-
-(ert-deftest config-test/dashboard-renders-actions-with-real-global-keys ()
+(ert-deftest config-test/dashboard-loads-package-without-local-feature-collision ()
+  (should (memq 'dashboard packages/declared))
+  (should (file-in-directory-p (symbol-file 'dashboard-mode 'defun) package-user-dir))
   (config-test/with-dashboard
     (should (derived-mode-p 'dashboard-mode))
     (should buffer-read-only)
-    (should-not (buffer-modified-p))
-    (dolist (section dashboard--actions)
-      (pcase-dolist (`(,label ,command ,preferred) (cdr section))
-        (let ((button (config-test/dashboard-button command)))
-          (should button)
-          (should (string-match-p (regexp-quote label) (button-label button)))
-          (should (string-prefix-p preferred (button-label button)))
-          (should (commandp command))
-          (should (eq (lookup-key (current-global-map) (kbd preferred)) command)))))
-    (should (config-test/dashboard-button 'majutsu-log))
-    (should-not (config-test/dashboard-button 'magit-status))
-    (should-not (config-test/dashboard-button 'funcs/format-buffer))))
+    (should (string-match-p "The truth is the whole\\." (buffer-string)))))
 
-(ert-deftest config-test/dashboard-refresh-reflects-rebound-keys ()
-  (let ((map (copy-keymap (current-global-map))))
-    ;; C-c is a named prefix whose map copy-keymap alone does not isolate.
-    (define-key map (kbd "C-c") (copy-keymap mode-specific-map))
-    (define-key map (kbd "C-c r") nil)
-    (define-key map (kbd "C-c R") #'consult-recent-file)
-    (cl-letf (((symbol-function 'current-global-map) (lambda () map)))
-      (config-test/with-dashboard
-        (should (string-prefix-p
-                 "C-c R" (button-label (config-test/dashboard-button 'consult-recent-file))))
-        (define-key map (kbd "C-c R") nil)
-        (dashboard/refresh)
-        (should (string-prefix-p
-                 "M-x consult-recent-file"
-                 (button-label (config-test/dashboard-button 'consult-recent-file))))))))
-
-(ert-deftest config-test/dashboard-buttons-dispatch-interactively ()
-  (let (called)
-    (cl-letf (((symbol-function 'find-file)
-               (lambda () (interactive) (setq called t))))
-      (config-test/with-dashboard
-        (button-activate (config-test/dashboard-button 'find-file))
-        (should called)))))
-
-(ert-deftest config-test/dashboard-tab-and-return-activate-buttons ()
-  (save-window-excursion
-    (let (called)
-      (cl-letf (((symbol-function 'find-file)
-                 (lambda () (interactive) (setq called t))))
-        (config-test/with-dashboard
-          (switch-to-buffer (current-buffer))
-          (goto-char (point-min))
-          (execute-kbd-macro (kbd "TAB RET"))
-          (should called))))))
-
-(ert-deftest config-test/dashboard-render-does-not-load-lazy-tools ()
-  (let* ((commands '(majutsu-log vterm-other-window task-dashboard helpful-key))
-         (definitions (mapcar #'symbol-function commands)))
+(ert-deftest config-test/dashboard-renders-real-recent-bookmark-and-project-limits ()
+  (config-test/with-directory
     (config-test/with-dashboard
-      (should (equal definitions (mapcar #'symbol-function commands))))))
+      (let ((recentf-list
+             (cl-loop for n from 1 to 7
+                      collect (config-test/file root (format "recent-%d.txt" n))))
+            (bookmark-alist
+             (cl-loop for n from 1 to 7
+                      collect `(,(format "bookmark-%d" n)
+                                (filename . ,(expand-file-name "recent-1.txt" root))
+                                (position . 1))))
+            (project--list
+             (cl-loop for n from 1 to 12
+                      for directory = (expand-file-name (format "project-%d/" n) root)
+                      do (make-directory directory)
+                      collect (list directory))))
+        (dashboard-insert-startupify-lists t)
+        (dolist (label '("Recent Files:" "Bookmarks:" "Projects:"
+                         "recent-5.txt" "bookmark-5" "project-10"))
+          (should (string-match-p (regexp-quote label) (buffer-string))))
+        (dolist (label '("recent-6.txt" "bookmark-6" "project-11"))
+          (should-not (string-match-p (regexp-quote label) (buffer-string))))))))
 
-(ert-deftest config-test/dashboard-unavailable-button-reports-bootstrap ()
-  (config-test/with-dashboard
-    (cl-letf (((symbol-function 'majutsu-log) nil))
-      (should-error (button-activate (config-test/dashboard-button 'majutsu-log))
-                    :type 'user-error))))
+(ert-deftest config-test/dashboard-tab-and-return-open-real-recent-file ()
+  (config-test/with-directory
+    (let ((file (config-test/file root "recent.txt")))
+      (unwind-protect
+          (save-window-excursion
+            (config-test/with-dashboard
+              (let ((dashboard-items '((recents . 5)))
+                    (recentf-list (list file)))
+                (dashboard-insert-startupify-lists t)
+                (switch-to-buffer (current-buffer))
+                (goto-char (point-min))
+                (execute-kbd-macro (kbd "TAB RET"))
+                (should (equal (buffer-file-name) file)))))
+        (when-let* ((buffer (get-file-buffer file)))
+          (kill-buffer buffer))))))
+
+(ert-deftest config-test/dashboard-hydra-opens-navigates-and-launches ()
+  (config-test/with-directory
+    (save-window-excursion
+      (config-test/with-dashboard
+        (let ((recentf-list (list (config-test/file root "hydra-recent.txt")))
+              called)
+          (cl-letf (((symbol-function 'consult-recent-file)
+                     (lambda () (interactive) (setq called t))))
+            (unwind-protect
+                (progn
+                  (switch-to-buffer (current-buffer))
+                  (execute-kbd-macro (kbd "C-x C-h s n p g q"))
+                  (should (derived-mode-p 'dashboard-mode))
+                  (should-not hydra-curr-map)
+                  (execute-kbd-macro (kbd ". r"))
+                  (should called)
+                  (should-not hydra-curr-map))
+              (hydra-keyboard-quit))))))))
 
 (ert-deftest config-test/dashboard-inherits-caller-directory ()
   (config-test/with-directory
@@ -160,7 +160,7 @@
 (ert-deftest config-test/dashboard-server-empty-request-selects-dashboard ()
   (require 'server)
   (save-window-excursion
-    (let ((dashboard--buffer-name (generate-new-buffer-name " *client dashboard*"))
+    (let ((dashboard-buffer-name (generate-new-buffer-name " *client dashboard*"))
           (initial-buffer-choice #'dashboard/buffer)
           (server-raise-frame nil)
           (server-after-make-frame-hook nil)
@@ -174,7 +174,7 @@
             (server-execute process nil t nil nil t nil nil)
             (should (derived-mode-p 'dashboard-mode)))
         (delete-process process)
-        (when-let* ((buffer (get-buffer dashboard--buffer-name)))
+        (when-let* ((buffer (get-buffer dashboard-buffer-name)))
           (kill-buffer buffer))))))
 
 (ert-deftest config-test/dashboard-server-file-request-preserves-file ()
