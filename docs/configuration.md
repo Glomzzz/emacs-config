@@ -99,6 +99,7 @@ commands in the feature module; the menu only groups them.
 | `C-x C-h g` | diff-hl hunks | `modules/feat/workspace/git.el` |
 | `C-x C-h f` | fingertip navigation | `modules/feat/editing/pairs.el` |
 | `C-x C-h w` | windows | `modules/feat/workspace/navigation.el` |
+| `C-x C-h b` | Ibuffer (also `.` inside Ibuffer) | `modules/feat/workspace/navigation.el` |
 
 ### Packages and Cache
 

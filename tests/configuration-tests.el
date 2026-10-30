@@ -531,6 +531,13 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
   (should (lookup-key hydra-window/keymap (kbd "h")))
   (should (lookup-key hydra-window/keymap (kbd "dw"))))
 
+(ert-deftest config-test/ibuffer-menus-nest-and-bind-dot ()
+  (should (eq (key-binding (kbd "C-x C-h b")) #'hydra-ibuffer-main/body))
+  (require 'ibuffer)
+  (should (eq (lookup-key ibuffer-mode-map (kbd ".")) #'hydra-ibuffer-main/body))
+  (dolist (menu '(hydra-ibuffer-mark hydra-ibuffer-action hydra-ibuffer-sort hydra-ibuffer-filter))
+    (should (fboundp (intern (format "%s/body" menu))))))
+
 (ert-deftest config-test/dape-menu-is-bound-and-autoloaded ()
   (should (eq (key-binding (kbd "C-x C-h d")) #'hydra-dape/body))
   (dolist (command '(dape-continue dape-next dape-step-in dape-step-out
