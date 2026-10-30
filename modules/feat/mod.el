@@ -5,6 +5,7 @@
    "editor/"
    "completion/"
    "workspace/"
+   "org/"
    "languages/"
    "process/"
    "files/"

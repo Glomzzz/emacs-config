@@ -45,6 +45,8 @@
               nil 'nomessage)
         (load (expand-file-name "tests/chinese-words-tests.el" user-emacs-directory)
               nil 'nomessage)
+        (load (expand-file-name "tests/org-tests.el" user-emacs-directory)
+              nil 'nomessage)
         (load (expand-file-name "tests/emc-launch-tests.el" user-emacs-directory)
               nil 'nomessage)
         (load (expand-file-name "tests/jujutsu-tests.el" user-emacs-directory)
