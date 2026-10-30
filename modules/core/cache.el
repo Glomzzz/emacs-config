@@ -47,6 +47,10 @@ early-init, get the same paths.  Safe to call more than once."
         transient-history-file (cache/file "transient/history.el")
         transient-levels-file (cache/file "transient/levels.el")
         transient-values-file (cache/file "transient/values.el")
+        org-id-locations-file (cache/file "org/id-locations.el")
+        org-clock-persist-file (cache/file "org/clock-save.el")
+        org-persist-directory (cache/folder "org/persist")
+        org-roam-db-location (cache/file "org/roam.db")
         auto-save-list-file-prefix (cache/file "auto-save-list/.saves-")
         backup-directory-alist `(("." . ,(cache/folder "backups")))
         ;; The non-nil third element keeps each source file's auto-save distinct.

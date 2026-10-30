@@ -237,6 +237,8 @@ state variables there.  The main paths currently include:
 | `projects.eld` | Project list state |
 | `projectile/projects.eld`, `projectile/frecency.eld`, `projectile/sessions/` | Projectile known projects, file ranking, and optional saved sessions |
 | `tabspaces/session.el`, `tabspaces/projects/` | Complete workspace snapshot and full-path-keyed per-project sessions |
+| `org/id-locations.el`, `org/clock-save.el`, `org/persist/` | Org ID locations, clock persistence, and Org's persistent cache |
+| `org/roam.db` | org-roam database |
 | `dired-async.log` | Asynchronous Dired log |
 | `debug-adapters/`, `dape-breakpoints` | Dape adapter and breakpoint state |
 

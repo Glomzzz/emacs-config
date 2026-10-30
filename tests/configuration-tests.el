@@ -710,6 +710,8 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
                         workspaces/project-session-directory tramp-persistency-file-name
                         tramp-auto-save-directory transient-history-file
                         auto-save-list-file-prefix
+                        org-id-locations-file org-clock-persist-file
+                        org-roam-db-location
                         (cdar backup-directory-alist)
                         (nth 1 (car auto-save-file-name-transforms))))
       (should (string-prefix-p root (expand-file-name file))))))
