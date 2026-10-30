@@ -39,7 +39,26 @@ intentionally replaces an existing Dape entry."
              dape-breakpoint-toggle
              dape-breakpoint-remove-all
              dape-breakpoint-load
-             dape-breakpoint-save)
+             dape-breakpoint-save
+             dape-continue
+             dape-next
+             dape-step-in
+             dape-step-out
+             dape-restart
+             dape-kill)
+  :after hydra
+  :bind ("C-x C-h d" . hydra-dape/body)
+  :hydra (hydra-dape (:hint nil)
+                     "
+ _c_: continue _n_: next _i_: step in _o_: step out _r_: restart  _b_: breakpoint  _k_: kill  _q_: quit"
+                     ("c" dape-continue)
+                     ("n" dape-next)
+                     ("i" dape-step-in)
+                     ("o" dape-step-out)
+                     ("r" dape-restart)
+                     ("b" dape-breakpoint-toggle)
+                     ("k" dape-kill "kill" :color blue)
+                     ("q" nil "quit" :color blue))
   :custom
   ;; Keep downloaded adapters and breakpoint state in the shared cache.
   (dape-adapter-dir (cache/folder "debug-adapters"))

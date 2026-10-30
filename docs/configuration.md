@@ -585,7 +585,10 @@ modes; `:type`, `:request`, `:command`, `:cwd`, and `:program` are typical
 launch fields.  Use `:request "attach"` and an appropriate `:port` or `:host`
 when the adapter attaches to an existing process.  Check Dape's
 `dape-configs` documentation for adapter-specific fields.  Run `M-x dape` and
-select the registered configuration to verify it is available.
+select the registered configuration to verify it is available.  Once a
+session is running, **`C-x C-h d`** opens the Dape menu: `c` continue, `n`
+next, `i` step in, `o` step out, `r` restart, `b` toggle a breakpoint, `k` kill
+the session, and `q` leave the menu.
 
 `diff-hl` computes Git changes asynchronously so opening a source buffer does
 not wait for the repository diff.  Markers can appear shortly after the
