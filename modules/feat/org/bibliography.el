@@ -11,8 +11,22 @@
   :custom
   (citar-bibliography org/bibtex-files)
   (citar-library-paths (list org/bibtex-library))
+  :after hydra
   :hook (org-mode . citar-capf-setup)
-  :bind ("C-c B" . citar-open))
+  :bind (("C-c B" . citar-open)
+         ("C-x C-h B" . hydra-citar/body))
+  ;; C-x C-h B groups the library and resource commands.  Inserting a citation
+  ;; stays on C-c b in Org buffers, where org-cite handles it.
+  :hydra (hydra-citar
+          (:color blue :hint nil)
+          "
+ _o_: open resources  _f_: library file  _e_: BibTeX entry  _l_: URL or DOI  _a_: add file  _q_: quit"
+          ("o" citar-open)
+          ("f" citar-open-files)
+          ("e" citar-open-entry)
+          ("l" citar-open-links)
+          ("a" citar-add-file-to-library)
+          ("q" nil "quit")))
 
 (use-package org
   :ensure nil

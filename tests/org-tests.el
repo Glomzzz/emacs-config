@@ -174,6 +174,7 @@ command, optionally followed by `-and-exit'."
 (ert-deftest config-test/org-menus-are-bound-under-help-prefix ()
   (should (eq (key-binding (kbd "C-x C-h A")) 'hydra-org-agenda/body))
   (should (eq (key-binding (kbd "C-x C-h N")) 'hydra-org-roam/body))
+  (should (eq (key-binding (kbd "C-x C-h B")) 'hydra-citar/body))
   (with-temp-buffer
     (org-mode)
     (should (eq (key-binding (kbd "C-x C-h O")) 'hydra-org-heading/body))
@@ -198,6 +199,13 @@ command, optionally followed by `-and-exit'."
   (should (org-test/head-runs-p hydra-org-heading/keymap "t" 'org-todo))
   (should (org-test/head-runs-p hydra-org-heading/keymap "+" 'org-priority-up))
   (should (org-test/head-runs-p hydra-org-heading/keymap "r" 'org-refile)))
+
+(ert-deftest config-test/org-citar-menu-covers-library-and-links ()
+  (require 'citar)
+  (dolist (key '("o" "f" "e" "l" "a" "q"))
+    (should (lookup-key hydra-citar/keymap (kbd key))))
+  (should (org-test/head-runs-p hydra-citar/keymap "f" 'citar-open-files))
+  (should (org-test/head-runs-p hydra-citar/keymap "a" 'citar-add-file-to-library)))
 
 (ert-deftest config-test/org-roam-menu-waits-for-org-roam ()
   ;; The menu key must not load org-roam, which may not be configured yet.
