@@ -56,4 +56,12 @@ buffer.  Use Apheleia when preferred or Eglot cannot format the buffer."
    (t
     (user-error "No formatter is available for this buffer"))))
 
+(defun funcs/mark-or-suspend (&optional arg)
+  "Set the mark in graphical frames, or suspend a terminal Emacs.
+ARG is passed to `set-mark-command', so a prefix argument still pops the mark."
+  (interactive "P")
+  (if (display-graphic-p)
+      (set-mark-command arg)
+    (suspend-frame)))
+
 ;;; funcs.el ends here

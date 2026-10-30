@@ -497,6 +497,23 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
   (should (eq (key-binding (kbd "M-g i")) 'consult-imenu))
   (should-not (key-binding (kbd "C-c i m"))))
 
+(ert-deftest config-test/c-z-marks-in-gui-and-suspends-in-terminal ()
+  (should (eq (key-binding (kbd "C-z")) #'funcs/mark-or-suspend))
+  (let (marked suspended)
+    (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) t))
+              ((symbol-function 'set-mark-command) (lambda (_arg) (setq marked t)))
+              ((symbol-function 'suspend-frame) (lambda (&rest _) (setq suspended t))))
+      (funcs/mark-or-suspend nil))
+    (should marked)
+    (should-not suspended))
+  (let (marked suspended)
+    (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) nil))
+              ((symbol-function 'set-mark-command) (lambda (_arg) (setq marked t)))
+              ((symbol-function 'suspend-frame) (lambda (&rest _) (setq suspended t))))
+      (funcs/mark-or-suspend nil))
+    (should suspended)
+    (should-not marked)))
+
 (ert-deftest config-test/stale-check-includes-local-packages ()
   (config-test/with-directory
     (let* ((user-emacs-directory root)

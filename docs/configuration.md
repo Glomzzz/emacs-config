@@ -392,6 +392,10 @@ buffer can differ.  `M-x kitty-graphics-typst-preview` offers optional Typst
 math previews when the Typst CLI is installed.  Video, the experimental inline
 browser, and automatic heading resizing are deliberately disabled.
 
+`C-z` suspends a terminal Emacs as usual.  In graphical frames it sets the mark
+(`funcs/mark-or-suspend`, which `C-u` passes to `set-mark-command`); `C-SPC`
+sets the mark in either kind of frame.
+
 ### Terminal Keyboard Input
 
 `modules/feat/editor/emacs.el` declares `kkp` and enables `global-kkp-mode`

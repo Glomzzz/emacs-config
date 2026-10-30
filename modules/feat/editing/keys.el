@@ -11,7 +11,8 @@
 (global-set-key (kbd "C-S-v") 'yank)
 (global-set-key (kbd "C-S-c") 'kill-ring-save)
 ;; `M-g i' is provided by Consult; leave `C-c i' free for `consult-info'.
-(global-set-key (kbd "C-z") 'set-mark-command)
+;; Keep C-z suspending a terminal Emacs; graphical frames still get a mark.
+(global-set-key (kbd "C-z") #'funcs/mark-or-suspend)
 (global-set-key (kbd "C-M-z") 'rectangle-mark-mode)
 (global-set-key (kbd "C-x C-b") #'ibuffer)
 
