@@ -157,6 +157,7 @@ redisplay behavior without restricting which window triggers it."
     (funcall orig window)))
 
 (use-package dirvish
+  :ensure nil
   :demand t
   :custom
   (dirvish-attributes '(file-time))
