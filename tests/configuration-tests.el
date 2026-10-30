@@ -706,7 +706,8 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
     (dolist (file (list custom-file package-quickstart-file
                         savehist-file bookmark-default-file project-list-file
                         projectile-known-projects-file projectile-frecency-file
-                        projectile-session-directory tramp-persistency-file-name
+                        projectile-session-directory tabspaces-session-file
+                        workspaces/project-session-directory tramp-persistency-file-name
                         tramp-auto-save-directory transient-history-file
                         auto-save-list-file-prefix
                         (cdar backup-directory-alist)

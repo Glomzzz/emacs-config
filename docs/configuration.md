@@ -100,6 +100,7 @@ commands in the feature module; the menu only groups them.
 | `C-x C-h g` | diff-hl hunks | `modules/feat/workspace/git.el` |
 | `C-x C-h f` | fingertip navigation | `modules/feat/editing/pairs.el` |
 | `C-x C-h w` | windows | `modules/feat/workspace/navigation.el` |
+| `C-x C-h W` | Tabspaces workspaces (also `C-c w .`) | `modules/feat/workspace/workspaces.el` |
 | `C-x C-h b` | Ibuffer (also `.` inside Ibuffer) | `modules/feat/workspace/navigation.el` |
 | `C-x C-h o` | recent buffers | `modules/feat/workspace/navigation.el` |
 | `C-x C-h a` | avy line, region, and goto actions | `modules/feat/workspace/navigation.el` |
@@ -235,6 +236,7 @@ state variables there.  The main paths currently include:
 | `transient/` | Transient history and values |
 | `projects.eld` | Project list state |
 | `projectile/projects.eld`, `projectile/frecency.eld`, `projectile/sessions/` | Projectile known projects, file ranking, and optional saved sessions |
+| `tabspaces/session.el`, `tabspaces/projects/` | Complete workspace snapshot and full-path-keyed per-project sessions |
 | `dired-async.log` | Asynchronous Dired log |
 | `debug-adapters/`, `dape-breakpoints` | Dape adapter and breakpoint state |
 
@@ -257,6 +259,7 @@ ownership live with the feature; these guides explain the behavior.
 | [Dashboard](features/dashboard.md) | Startup screen, recent files, bookmarks, projects, and Hydra menu |
 | [Version control and mail](features/version-control-and-mail.md) | Majutsu and local mu4e |
 | [Projects](features/projects.md) | Projectile, Counsel-Projectile, and the `C-c P` prefix |
+| [Workspaces](features/workspaces.md) | Tabspaces, workspace-local Consult buffers, automatic session restoration, and `C-c w` |
 | [Completion and search](features/completion-and-search.md) | Completion, Isearch, Consult, Avy, Corfu timing |
 | [Help and documentation](features/help-and-documentation.md) | Helpful, Eldoc, Eldoc Box |
 | [Debugging](features/debugging.md) | Dape adapters, Hydra controls, breakpoints, watches, and evaluation |
@@ -699,6 +702,10 @@ real Git-aware file indexing and selection, project.el root preservation, and
 the cache policy.  The runner
 disables Projectile before deleting temporary state so exit hooks cannot save
 ranking data into a removed directory.
+`tests/workspaces-tests.el` checks deferred Tabspaces loading, workspace-local
+Consult candidates and the global fallback, project-marker preservation,
+cache-only session paths, daemon first-client restoration, complete exit
+snapshots, Hydra dispatch, and a real file/window session round trip.
 `tests/packages-tests.el` checks offline VC declarations and both bootstrap
 installation paths without network requests.
 `tests/pairs-tests.el` types through the real command loop with installed

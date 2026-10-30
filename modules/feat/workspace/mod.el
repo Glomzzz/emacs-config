@@ -5,6 +5,7 @@
    "jujutsu.el"
    "navigation.el"
    "projects.el"
+   "workspaces.el"
    "environment.el"))
 
 ;;; mod.el ends here

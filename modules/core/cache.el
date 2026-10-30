@@ -40,6 +40,8 @@ early-init, get the same paths.  Safe to call more than once."
         projectile-known-projects-file (cache/file "projectile/projects.eld")
         projectile-frecency-file (cache/file "projectile/frecency.eld")
         projectile-session-directory (cache/folder "projectile/sessions")
+        tabspaces-session-file (cache/file "tabspaces/session.el")
+        workspaces/project-session-directory (cache/folder "tabspaces/projects")
         tramp-persistency-file-name (cache/file "tramp")
         tramp-auto-save-directory (cache/folder "tramp-auto-save")
         transient-history-file (cache/file "transient/history.el")
