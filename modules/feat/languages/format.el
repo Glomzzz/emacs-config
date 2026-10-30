@@ -34,10 +34,17 @@ and any capabilities explicitly ignored in Eglot."
     (require 'apheleia)
     (apheleia-mode 1)))
 
+(defun format/arm-on-save ()
+  "Let the first save decide whether Apheleia formats this buffer.
+Eglot usually takes over shortly after a buffer opens, so checking at open
+time loaded Apheleia into buffers that Eglot then formats.  Enabling Apheleia
+from `before-save-hook' still formats the save that triggered it."
+  (add-hook 'before-save-hook #'format/mode-maybe nil t))
+
 (packages/declare 'apheleia)
 (use-package apheleia
   :ensure nil
-  :hook (prog-mode . format/mode-maybe)
+  :hook (prog-mode . format/arm-on-save)
   :config
   (add-hook 'apheleia-inhibit-functions #'format/inhibit-eglot)
   (add-hook 'apheleia-skip-functions #'format/inhibit-eglot))

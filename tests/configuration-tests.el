@@ -361,6 +361,19 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
       (should-not apheleia-mode)
       (should-not (memq #'apheleia-format-after-save after-save-hook)))))
 
+(ert-deftest config-test/apheleia-claims-buffer-at-save-not-open ()
+  (with-temp-buffer
+    (prog-mode)
+    (should-not apheleia-mode)
+    (should (memq #'format/mode-maybe
+                  (buffer-local-value 'before-save-hook (current-buffer))))
+    (cl-letf (((symbol-function 'format/inhibit-eglot) (lambda () t)))
+      (format/mode-maybe)
+      (should-not apheleia-mode))
+    (cl-letf (((symbol-function 'format/inhibit-eglot) (lambda () nil)))
+      (format/mode-maybe)
+      (should apheleia-mode))))
+
 (ert-deftest config-test/disconnecting-eglot-restores-apheleia ()
   (with-temp-buffer
     (setq-local before-save-hook (list #'eglot-format))

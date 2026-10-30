@@ -1198,7 +1198,9 @@ advertises the needed formatting capability, and the language does not
 prefer Apheleia.  `lsp/format-on-save` uses this predicate for whole-buffer
 formatting and disables Apheleia only while Eglot owns that operation.
 Unmanaged buffers and servers without formatting support keep Apheleia
-available.  This prevents two formatters from racing on save.
+available.  This prevents two formatters from racing on save.  The decision
+is made on a buffer's first save, not when it opens, so Apheleia is not loaded
+for programming buffers that are never saved or that Eglot formats.
 
 A language can keep Apheleia in charge by setting `format/apheleia-owns`
 buffer-locally.  Both save-time formatting and `C-c f`
