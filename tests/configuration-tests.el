@@ -534,7 +534,12 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
 (ert-deftest config-test/multiple-cursors-menu-is-bound ()
   (should (eq (key-binding (kbd "C-x C-h m")) #'hydra-multiple-cursors/body))
   (should (eq (key-binding (kbd "C-c C-S-c")) #'mc/edit-lines))
-  (should (eq (key-binding (kbd "C->")) #'mc/mark-next-like-this)))
+  (should (eq (key-binding (kbd "C->")) #'mc/mark-next-like-this))
+  (should (eq (key-binding (kbd "C-S-<mouse-1>")) #'mc/toggle-cursor-on-click))
+  (require 'multiple-cursors)
+  (dolist (key '("n" "N" "M-n" "p" "P" "M-p" "|" "s" "0" "A" "l" "a" "q"))
+    (should (lookup-key hydra-multiple-cursors/keymap (kbd key))))
+  (should (lookup-key hydra-multiple-cursors/keymap [mouse-1])))
 
 (ert-deftest config-test/undo-tree-menu-is-bound-and-saves-under-cache ()
   (should (fboundp 'hydra-undo-tree/body))

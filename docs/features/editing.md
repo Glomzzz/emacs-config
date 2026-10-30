@@ -139,6 +139,9 @@ no `.~undo-tree~` files appear in project directories.
 ## Multiple Cursors
 
 The direct chords (`C->`, `C-<`, `C-"`, `C-:`, `C-c C-<`, `C-c C-S-c`) still
-work.  **`C-x C-h m`** opens a menu that stays active for repeated marking:
-`n` / `p` mark the next or previous occurrence, `s` / `S` skip, `u` / `U`
-unmark, `a` marks all, `l` edits the lines of the region, and `q` quits.
+work.  **`C-x C-h m`** opens a menu that stays active for repeated marking: `n` / `p`
+mark the next or previous occurrence, `N` / `P` skip, `M-n` / `M-p` unmark, `a`
+marks all, `l` edits the lines of the region, `s` marks matches of a regexp in
+the region, `0` inserts numbers, `A` inserts letters, `|` aligns with a typed
+character, and `q` quits.  **`C-S-<mouse-1>`** toggles a cursor at the click, and
+a click inside the menu adds one.  The direct chords above are unchanged.
