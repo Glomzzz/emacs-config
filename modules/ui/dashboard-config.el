@@ -53,7 +53,7 @@ startup files are not split alongside Dashboard."
   :custom
   (dashboard-banner-logo-title "The truth is the whole.")
   (dashboard-projects-backend 'project-el)
-  (dashboard-startup-banner 'official)
+  (dashboard-startup-banner 'logo)
   (dashboard-items '((recents . 5)
                      (bookmarks . 5)
                      (projects . 10)))

@@ -1,7 +1,7 @@
 # Dashboard
 
 `modules/ui/dashboard-config.el` configures the upstream `dashboard` package.
-It replaces the local Daily Dashboard with the official Emacs banner, the title
+It replaces the local Daily Dashboard with the Emacs logo banner, the title
 **“The truth is the whole.”**, five recent files, five bookmarks, and ten projects.
 Projects come from the existing built-in project.el list (`C-x p p`).
 
