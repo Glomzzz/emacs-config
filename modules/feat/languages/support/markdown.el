@@ -20,6 +20,39 @@
          ("\\.markdown\\'" . markdown-mode)
          ("\\.mdx\\'" . markdown-mode)
          ("README\\(?:\\.md\\)?\\'" . gfm-mode))
+  :after hydra
+  ;; The menu lives in the mode map, so it only runs in Markdown buffers.
+  :bind (:map markdown-mode-map
+              ("C-x C-h M" . hydra-markdown/body))
+  ;; Menu adapted from the hydra wiki's markdown-mode example.
+  :hydra (hydra-markdown
+          (:hint nil)
+          "
+Format: _s_ bold  _e_ italic  _c_ code  _b_ blockquote  _p_ pre
+Heading: _h_ auto  _1_ h1  _2_ h2  _3_ h3  _4_ h4
+Lists: _m_ item  _l_ promote  _r_ demote  _u_ move up  _d_ move down
+Links: _L_ link  _U_ uri  _F_ footnote  _W_ wiki link  _R_ reference  _q_ quit"
+          ("s" markdown-insert-bold)
+          ("e" markdown-insert-italic)
+          ("b" markdown-insert-blockquote :color blue)
+          ("p" markdown-insert-pre :color blue)
+          ("c" markdown-insert-code)
+          ("h" markdown-insert-header-dwim)
+          ("1" markdown-insert-header-atx-1)
+          ("2" markdown-insert-header-atx-2)
+          ("3" markdown-insert-header-atx-3)
+          ("4" markdown-insert-header-atx-4)
+          ("m" markdown-insert-list-item)
+          ("l" markdown-promote)
+          ("r" markdown-demote)
+          ("d" markdown-move-down)
+          ("u" markdown-move-up)
+          ("L" markdown-insert-link :color blue)
+          ("U" markdown-insert-uri :color blue)
+          ("F" markdown-insert-footnote :color blue)
+          ("W" markdown-insert-wiki-link :color blue)
+          ("R" markdown-insert-reference-link :color blue)
+          ("q" nil :color blue))
   :custom
   ;; pandoc converts on stdin/stdout; gfm matches GitHub-flavored Markdown.
   (markdown-command '("pandoc" "--from=gfm" "--to=html5" "--standalone")))

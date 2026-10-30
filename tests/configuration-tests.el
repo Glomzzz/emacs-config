@@ -588,6 +588,19 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
   (dolist (key '("+" "C" "D" "R" "m" "u" "U" "t" "g" "A" "Q" "?" "."))
     (should (lookup-key hydra-dired/keymap (kbd key)))))
 
+(ert-deftest config-test/markdown-menu-is-mode-local-and-keeps-global-undo ()
+  ;; markdown-mode loads lazily, so its :custom settings apply only after this.
+  (require 'markdown-mode)
+  (should (member "--from=gfm" markdown-command))
+  (with-temp-buffer
+    (markdown-mode)
+    (should (eq (key-binding (kbd "C-x C-h M")) #'hydra-markdown/body))
+    ;; The mode-local C-x C-h prefix must not hide the global undo menu.
+    (should (eq (key-binding (kbd "C-x C-h u")) #'hydra-undo-tree/body)))
+  (with-temp-buffer
+    (fundamental-mode)
+    (should-not (eq (key-binding (kbd "C-x C-h M")) #'hydra-markdown/body))))
+
 (ert-deftest config-test/dape-menu-is-bound-and-autoloaded ()
   (should (eq (key-binding (kbd "C-x C-h d")) #'hydra-dape/body))
   (dolist (command '(dape-continue dape-next dape-step-in dape-step-out
