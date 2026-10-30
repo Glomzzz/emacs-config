@@ -98,8 +98,10 @@ Nil leaves the frame's default font unchanged.  Run `appearance/apply-fonts'
 after changing preferences; new graphical frames pick them up automatically."
   :type '(repeat string) :group 'appearance)
 
-(defcustom appearance/font-height 160
-  "Default font height in tenths of a point.  Nil keeps the frame default."
+(defcustom appearance/font-height 150
+  "Default font height in tenths of a point.  Nil keeps the frame default.
+The default, 15 pt, matches Kitty's Cascadia Mono NF size in the author's
+Nix configuration, so GUI and terminal glyphs measure the same."
   :type '(choice (const nil) integer) :group 'appearance)
 
 (defcustom appearance/script-font-families

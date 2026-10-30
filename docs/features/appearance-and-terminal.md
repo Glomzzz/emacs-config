@@ -53,9 +53,10 @@ configuration module itself byte-compiles without warnings.
 ## Portable Appearance
 
 `appearance/font-families` keeps Cascadia Mono NF first, then tries installed
-fallbacks.  `appearance/font-height` defaults to 160 (16 pt); nil leaves the
-frame height unchanged.  `appearance/script-font-families` configures Unicode,
-CJK, symbols, emoji, and Greek preferences.  Explicit script choices update
+fallbacks.  `appearance/font-height` defaults to 150 (15 pt), the Kitty size in
+the author's Nix configuration, so GUI and terminal glyphs measure the same;
+nil leaves the frame height unchanged.  `appearance/script-font-families`
+configures Unicode, CJK, symbols, emoji, and Greek preferences.  Explicit script choices update
 each graphical frame's own fontset, so a cached system fallback cannot override
 them.  Chinese text and punctuation use LXGW WenKai, with Noto Sans CJK SC as
 the fallback; these render `。`, `，`, and `、` at the bottom rather than using
