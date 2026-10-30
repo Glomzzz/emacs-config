@@ -112,6 +112,10 @@ buffer with an active parser.  The old Smartparens slurp/barf, raise, and angle
 wrapping shortcuts are not retained: Fingertip has no direct equivalents.
 `pairs/enabled-modes` controls eligibility, not the parser requirement.
 
+**`C-x C-h f`** opens a structural-navigation menu that works in any buffer:
+`n` / `p` jump to the next or previous syntax node, `a` jumps to the beginning of
+the enclosing definition, `m` matches the paren, and `q` leaves the menu.
+
 ## Undo History
 
 `undo-tree` (`modules/feat/editing/undo.el`) keeps every edit branch, not a

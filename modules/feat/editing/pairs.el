@@ -63,12 +63,15 @@ Run this again after manually creating a parser in an existing buffer."
 (use-package fingertip
   :ensure nil
   :commands (fingertip-mode)
+  :after hydra
   :hook (after-change-major-mode . pairs/enable)
   ;; Keep ordinary Emacs Backspace instead of protecting/skipping delimiters.
   ;; Other editing commands retain upstream behavior.  Navigation lives under
   ;; C-c p instead of stealing Tempel's M-{ / M-} or Eldoc's M-n / M-p.
   ;; Percent and equals remain literal, and M-' still stores registers.
-  :bind (:map fingertip-mode-map
+  ;; The menu's binding is global; the keys below stay buffer-local.
+  :bind (("C-x C-h f" . hydra-fingertip/body)
+         :map fingertip-mode-map
               ("(" . fingertip-open-round)
               ("[" . fingertip-open-bracket)
               ("{" . fingertip-open-curly)
@@ -102,6 +105,14 @@ Run this again after manually creating a parser in an existing buffer."
               ("C-c p a" . fingertip-jump-up)
               ("C-c p q" . quoted-insert)
               ("C-c p t" . fingertip-mode)
-              ("C-c p ?" . pairs/help)))
+              ("C-c p ?" . pairs/help))
+  :hydra (hydra-fingertip (:hint nil)
+                          "
+ _n_: next _p_: previous _a_: up _m_: match paren  _q_: quit"
+                          ("n" fingertip-jump-right)
+                          ("p" fingertip-jump-left)
+                          ("a" fingertip-jump-up)
+                          ("m" fingertip-match-paren)
+                          ("q" nil "quit" :color blue)))
 
 ;;; pairs.el ends here
