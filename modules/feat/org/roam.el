@@ -16,7 +16,21 @@
       (file+head "${slug}-%<%Y%m%d%H%M%S>.org"
                  "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n")
       :immediate-finish t)))
-  :bind ("C-c n f" . org-roam-node-find)
+  :after hydra
+  :bind (("C-c n f" . org-roam-node-find)
+         ("C-x C-h N" . hydra-org-roam/body))
+  ;; C-x C-h N groups the note commands that work from any buffer.  Commands
+  ;; that need an Org node (ID, tags, alias) stay on C-c n in Org buffers.
+  :hydra (hydra-org-roam
+          (:color blue :hint nil)
+          "
+ _f_: find note  _c_: capture note  _i_: insert link  _l_: backlinks  _s_: sync database  _q_: quit"
+          ("f" org-roam-node-find)
+          ("c" org-roam-capture)
+          ("i" org-roam-node-insert)
+          ("l" org-roam-buffer-toggle)
+          ("s" org-roam-db-sync)
+          ("q" nil "quit"))
   :config
   ;; The database indexes the notes directory.  When that directory does not
   ;; exist yet, syncing would signal an error during startup, so skip it.

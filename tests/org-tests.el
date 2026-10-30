@@ -173,6 +173,7 @@ command, optionally followed by `-and-exit'."
 
 (ert-deftest config-test/org-menus-are-bound-under-help-prefix ()
   (should (eq (key-binding (kbd "C-x C-h A")) 'hydra-org-agenda/body))
+  (should (eq (key-binding (kbd "C-x C-h N")) 'hydra-org-roam/body))
   (with-temp-buffer
     (org-mode)
     (should (eq (key-binding (kbd "C-x C-h O")) 'hydra-org-heading/body))
@@ -197,6 +198,12 @@ command, optionally followed by `-and-exit'."
   (should (org-test/head-runs-p hydra-org-heading/keymap "t" 'org-todo))
   (should (org-test/head-runs-p hydra-org-heading/keymap "+" 'org-priority-up))
   (should (org-test/head-runs-p hydra-org-heading/keymap "r" 'org-refile)))
+
+(ert-deftest config-test/org-roam-menu-waits-for-org-roam ()
+  ;; The menu key must not load org-roam, which may not be configured yet.
+  (should (fboundp 'hydra-org-roam/body))
+  (should (or (featurep 'org-roam)
+              (autoloadp (symbol-function 'hydra-org-roam/body)))))
 
 (provide 'org-tests)
 
