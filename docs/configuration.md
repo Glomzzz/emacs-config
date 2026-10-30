@@ -100,6 +100,7 @@ commands in the feature module; the menu only groups them.
 | `C-x C-h f` | fingertip navigation | `modules/feat/editing/pairs.el` |
 | `C-x C-h w` | windows | `modules/feat/workspace/navigation.el` |
 | `C-x C-h b` | Ibuffer (also `.` inside Ibuffer) | `modules/feat/workspace/navigation.el` |
+| `C-x C-h o` | recent buffers | `modules/feat/workspace/navigation.el` |
 
 ### Packages and Cache
 
