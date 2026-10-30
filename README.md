@@ -27,7 +27,7 @@ clearing the cache: it currently also holds backups, recovery files, and state.
 An empty startup or `emc` frame shows daily actions with their normal key
 sequences, plus editing-key reminders.  Click a button or use `TAB` / `RET`;
 reopen with **`C-c D`**.  Explicit file requests remain focused on the file.
-See [dashboard shortcuts](docs/configuration.md#daily-dashboard-and-shortcut-memory-aid).
+See [dashboard shortcuts](docs/features/dashboard.md).
 
 ## License
 
