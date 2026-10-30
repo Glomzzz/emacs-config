@@ -296,6 +296,10 @@
           (setq buffer-file-name file
                 buffer-auto-save-file-name recovery)
           (write-region (point-min) (point-max) file nil 'silent)
+          ;; Record the file just written as the visited one.  Otherwise Emacs
+          ;; compares it with the harness file's mtime and asks about a changed
+          ;; file, which fails in batch whenever the two writes cross a second.
+          (set-visited-file-modtime)
           (pi-inline/start)
           (insert "never write these instructions")
           (should-not buffer-auto-save-file-name)
