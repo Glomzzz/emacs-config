@@ -2,7 +2,9 @@
 
 `modules/feat/workspace/workspaces.el` adds buffer-isolated workspaces on top
 of Emacs' native tab bar.  Each tab keeps its own window layout and buffer
-list.  Buffers are still shared Emacs buffers: adding a file to two workspaces
+list.  The tab bar itself is hidden (`tab-bar-show` is nil), so workspaces are
+selected with the commands below rather than from a visible strip.  Set
+`tab-bar-show` to t to show the bar again.  Buffers are still shared Emacs buffers: adding a file to two workspaces
 does not create independent copies of its contents.
 
 Tabspaces loads from `emacs-startup-hook`, after feature declarations have

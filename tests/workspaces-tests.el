@@ -42,6 +42,7 @@
   (should (memq #'workspaces/enable emacs-startup-hook))
   (should tabspaces-mode)
   (should tab-bar-mode)
+  (should-not tab-bar-show)
   (should tabspaces-session)
   (should tabspaces-session-auto-restore)
   (should-not tabspaces-initialize-project-with-todo)

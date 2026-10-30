@@ -108,6 +108,8 @@ restoration until the first client frame is available."
   (tabspaces-session-auto-restore t)
   (tabspaces-session-project-session-store #'workspaces/project-session-file)
   (tab-bar-new-tab-choice "*scratch*")
+  ;; Tabs stay active for workspaces; the visible tab bar is hidden.
+  (tab-bar-show nil)
   :bind (("C-x C-h W" . hydra-workspaces/body)
          :map tabspaces-mode-map
          ("C-c w" . tabspaces-command-map)
