@@ -21,3 +21,6 @@ auto-save-list/
 *.local.el
 /local.el
 .dir-locals-2.el
+
+# Local game state such as Snake high scores
+/games/
