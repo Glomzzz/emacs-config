@@ -4,6 +4,7 @@
  '("git.el"
    "jujutsu.el"
    "navigation.el"
+   "projects.el"
    "environment.el"))
 
 ;;; mod.el ends here

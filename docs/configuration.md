@@ -107,6 +107,7 @@ commands in the feature module; the menu only groups them.
 | `C-x C-h k` | keyboard macros | `modules/feat/editing/menus.el` |
 | `C-x C-h c` | compilation errors (`C-x `` still `next-error`) | `modules/feat/process/tasks.el` |
 | `C-x C-h p` | elisp profiler | `modules/feat/process/tasks.el` |
+| `C-x C-h P` | Projectile (also `C-c P .`) | `modules/feat/workspace/projects.el` |
 | `C-x C-h D` | Dired file operations | `modules/feat/files/dired.el` |
 | `C-x C-h s` | Dashboard (also `.` inside Dashboard) | `modules/ui/dashboard-config.el` |
 | `C-x C-h M` | markdown formatting (Markdown buffers only) | `modules/feat/languages/support/markdown.el` |
@@ -233,6 +234,7 @@ state variables there.  The main paths currently include:
 | `nov-places` | EPUB reading positions for `nov-mode` |
 | `transient/` | Transient history and values |
 | `projects.eld` | Project list state |
+| `projectile/projects.eld`, `projectile/frecency.eld`, `projectile/sessions/` | Projectile known projects, file ranking, and optional saved sessions |
 | `dired-async.log` | Asynchronous Dired log |
 | `debug-adapters/`, `dape-breakpoints` | Dape adapter and breakpoint state |
 
@@ -254,6 +256,7 @@ ownership live with the feature; these guides explain the behavior.
 | [Reading](features/reading.md) | EPUB reader |
 | [Dashboard](features/dashboard.md) | Startup screen, recent files, bookmarks, projects, and Hydra menu |
 | [Version control and mail](features/version-control-and-mail.md) | Majutsu and local mu4e |
+| [Projects](features/projects.md) | Projectile, Counsel-Projectile, and the `C-c P` prefix |
 | [Completion and search](features/completion-and-search.md) | Completion, Isearch, Consult, Avy, Corfu timing |
 | [Help and documentation](features/help-and-documentation.md) | Helpful, Eldoc, Eldoc Box |
 | [Debugging](features/debugging.md) | Dape adapters, Hydra controls, breakpoints, watches, and evaluation |
@@ -690,6 +693,12 @@ evaluation, watch/scope panes, and thread/frame selection with an actual adapter
 `tests/eglot-ui-tests.el` checks native Xref previews, source-window preservation,
 return history, asynchronous Eldoc display in a top pane, workspace-symbol
 preview settings, and Hydra command dispatch without starting a language server.
+`tests/projects-tests.el` checks Projectile/Counsel keymaps alongside Fingertip
+and Vertico, Hydra dispatch and exit behavior, explicit project registration,
+real Git-aware file indexing and selection, project.el root preservation, and
+the cache policy.  The runner
+disables Projectile before deleting temporary state so exit hooks cannot save
+ranking data into a removed directory.
 `tests/packages-tests.el` checks offline VC declarations and both bootstrap
 installation paths without network requests.
 `tests/pairs-tests.el` types through the real command loop with installed
