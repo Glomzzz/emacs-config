@@ -42,7 +42,9 @@
 (ert-deftest config-test/org-keys-are-bound ()
   (should (eq (key-binding (kbd "C-c a")) 'org-agenda))
   (should (eq (key-binding (kbd "C-c c")) 'org-capture))
-  (should (eq (lookup-key org-mode-map (kbd "C-c C-q")) 'counsel-org-tag)))
+  (should (eq (lookup-key org-mode-map (kbd "C-c C-q")) 'counsel-org-tag))
+  (should (eq (key-binding (kbd "C-c n f")) 'org-roam-node-find))
+  (should (eq (lookup-key org-mode-map (kbd "C-c n i")) 'org-roam-node-insert)))
 
 (ert-deftest config-test/org-state-stays-out-of-the-repository ()
   (let ((repository (expand-file-name user-emacs-directory)))
