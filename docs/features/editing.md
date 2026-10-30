@@ -131,3 +131,10 @@ the buffer is killed or Emacs exits.
 redo, `s` save the history, `l` load it, `u` visualize, and `q` quits.  Saved
 history goes to `(cache/folder "undo-tree")`, not beside the edited file, so
 no `.~undo-tree~` files appear in project directories.
+
+## Multiple Cursors
+
+The direct chords (`C->`, `C-<`, `C-"`, `C-:`, `C-c C-<`, `C-c C-S-c`) still
+work.  **`C-x C-h m`** opens a menu that stays active for repeated marking:
+`n` / `p` mark the next or previous occurrence, `s` / `S` skip, `u` / `U`
+unmark, `a` marks all, `l` edits the lines of the region, and `q` quits.
