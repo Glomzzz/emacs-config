@@ -7,6 +7,7 @@
    "undo.el"
    "pairs.el"
    "multi-cursor.el"
-   "pi.el"))
+   "pi.el"
+   "chinese-words.el"))
 
 ;;; mod.el ends here

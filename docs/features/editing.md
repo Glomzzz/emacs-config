@@ -145,3 +145,27 @@ marks all, `l` edits the lines of the region, `s` marks matches of a regexp in
 the region, `0` inserts numbers, `A` inserts letters, `|` aligns with a typed
 character, and `q` quits.  **`C-S-<mouse-1>`** toggles a cursor at the click, and
 a click inside the menu adds one.  The direct chords above are unchanged.
+
+## Chinese Word Motion
+
+`modules/feat/editing/chinese-words.el` loads `cns.el` from
+[kanglmf/emacs-chinese-word-segmentation](https://github.com/kanglmf/emacs-chinese-word-segmentation)
+through `packages/declare-vc`, so `M-x packages/bootstrap` installs it like the
+other VC packages.  Its segmenter, `cnws`, comes from NixOS
+(`pkgs/chinese-word-segmentation.nix`, installed by `modules/home/programs/emacs/packages.nix`).
+The Jieba dictionaries live beside it under `share/chinese-word-segmentation/dict/`,
+and the module finds them from the `cnws` location; nothing is configured by hand.
+
+When a small file opens and contains Han characters, `cns-mode` turns on.  Its
+commands replace the word keys in that buffer: `M-f` / `M-b` move by Chinese
+words, `M-d` / `M-DEL` / `C-<delete>` / `C-<backspace>` kill them, and `M-t`
+transposes them.  Buffers without Han text keep the usual Emacs word commands.
+Enabling is decided when the file opens, so a buffer whose Chinese text is typed
+later stays on the ordinary commands until reopened.  Without `cnws` on
+`exec-path`, or without the `cns` package, Chinese files open normally.
+
+The segmenter runs as one process per Emacs session (`cns-process-type` is
+`shell`).  The protocol is line-based: Emacs writes one sentence and a newline
+to `cnws`'s stdin, and reads one reply line of the form
+`["中文", "分词"]: 2 2` from stdout.  Only the word lengths after `: ` are used.
+Opening the first Chinese file waits briefly while the dictionaries load.
