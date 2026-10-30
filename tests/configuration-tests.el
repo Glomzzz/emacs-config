@@ -514,6 +514,11 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
     (should (eq (key-binding (kbd "C-/")) #'undo-tree-undo))
     (should (eq (key-binding (kbd "C-x u")) #'undo-tree-visualize))))
 
+(ert-deftest config-test/diff-hl-menu-is-bound-and-hooks-stay-eager ()
+  (should (eq (key-binding (kbd "C-x C-h g")) #'hydra-diff-hl/body))
+  (should (featurep 'diff-hl))
+  (should (memq #'git/diff-hl-maybe prog-mode-hook)))
+
 (ert-deftest config-test/dape-menu-is-bound-and-autoloaded ()
   (should (eq (key-binding (kbd "C-x C-h d")) #'hydra-dape/body))
   (dolist (command '(dape-continue dape-next dape-step-in dape-step-out

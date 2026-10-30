@@ -14,6 +14,18 @@
 
 (use-package diff-hl
   :ensure nil
+  ;; `:demand' keeps the eager load that installs the prog-mode hooks below;
+  ;; the menu's `:bind' alone would defer them until the first key press.
+  :demand t
+  :after hydra
+  :bind ("C-x C-h g" . hydra-diff-hl/body)
+  :hydra (hydra-diff-hl (:hint nil)
+                        "
+ _n_: next hunk _p_: previous hunk _*_: show hunk  _q_: quit"
+                        ("n" diff-hl-next-hunk)
+                        ("p" diff-hl-previous-hunk)
+                        ("*" diff-hl-show-hunk "show" :color blue)
+                        ("q" nil "quit" :color blue))
   :custom
   ;; Git diff calculation is filesystem/process work.  Let the buffer finish
   ;; opening while diff-hl computes markers in a worker thread.

@@ -592,7 +592,8 @@ the session, and `q` leave the menu.
 
 `diff-hl` computes Git changes asynchronously so opening a source buffer does
 not wait for the repository diff.  Markers can appear shortly after the
-buffer is displayed; remote buffers remain excluded by the feature hook.
+buffer is displayed; remote buffers remain excluded by the feature hook.  **`C-x C-h g`** opens a hunk
+menu: `n` and `p` move between hunks, `*` shows the current hunk, and `q` leaves.
 
 ### Language support checklist
 
