@@ -555,6 +555,13 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
   (dolist (command '(avy-goto-line avy-kill-region avy-copy-region avy-move-line))
     (should (fboundp command))))
 
+(ert-deftest config-test/rectangle-menu-is-bound-and-keeps-built-in-chord ()
+  (should (eq (key-binding (kbd "C-x C-h r")) #'hydra-rectangle/body))
+  (should (eq (key-binding (kbd "C-x SPC")) #'rectangle-mark-mode))
+  (require 'rect)
+  (dolist (key '("k" "j" "h" "l" "d" "y" "w" "o" "t" "c" "e" "N" "r" "u" "q"))
+    (should (lookup-key hydra-rectangle/keymap (kbd key)))))
+
 (ert-deftest config-test/dape-menu-is-bound-and-autoloaded ()
   (should (eq (key-binding (kbd "C-x C-h d")) #'hydra-dape/body))
   (dolist (command '(dape-continue dape-next dape-step-in dape-step-out
