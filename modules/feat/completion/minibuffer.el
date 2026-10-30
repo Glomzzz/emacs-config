@@ -70,9 +70,7 @@
         ("M-RET" . vertico-exit-input)
         ("M-TAB" . minibuffer-complete)))
 
-;; `vertico-directory' ships inside Vertico, so configure the extension through
-;; a second declaration of its parent package instead of installing it alone.
-(packages/declare 'vertico)
+;; `vertico-directory' ships inside the Vertico package declared above.
 
 (defun completion/vertico-rename-prompt-p ()
   "Return non-nil when the minibuffer asks for a rename destination."
