@@ -104,6 +104,7 @@ commands in the feature module; the menu only groups them.
 | `C-x C-h a` | avy line, region, and goto actions | `modules/feat/workspace/navigation.el` |
 | `C-x C-h r` | rectangle editing | `modules/feat/editing/menus.el` |
 | `C-x C-h k` | keyboard macros | `modules/feat/editing/menus.el` |
+| `C-x C-h c` | compilation errors (`C-x `` still `next-error`) | `modules/feat/process/tasks.el` |
 
 ### Packages and Cache
 

@@ -568,6 +568,13 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
   (dolist (key '("j" "l" "i" "k" "e" "n" "t" "a" "f" "b" "K" "B" "x" "'" "," "q"))
     (should (lookup-key hydra-macro/keymap (kbd key)))))
 
+(ert-deftest config-test/compile-error-menu-is-bound-and-next-error-unchanged ()
+  (should (eq (key-binding (kbd "C-x C-h c")) #'hydra-next-error/body))
+  (should (eq (key-binding (kbd "C-x `")) #'next-error))
+  (require 'compile)
+  (dolist (key '("`" "j" "k" "h" "l" "q"))
+    (should (lookup-key hydra-next-error/keymap (kbd key)))))
+
 (ert-deftest config-test/dape-menu-is-bound-and-autoloaded ()
   (should (eq (key-binding (kbd "C-x C-h d")) #'hydra-dape/body))
   (dolist (command '(dape-continue dape-next dape-step-in dape-step-out
