@@ -1,6 +1,9 @@
 ;;; reading.el --- EPUB reading support -*- lexical-binding: t; -*-
 
 (require 'packages)
+(require 'cl-lib)
+(require 'dom)
+(require 'seq)
 
 (defgroup reading nil
   "Comfortable EPUB reading in terminal and graphical frames."
@@ -126,6 +129,189 @@ Interactively, prompt for a width or use the numeric prefix argument."
   (visual-line-mode 1)
   (visual-fill-column-mode 1))
 
+(defcustom reading/han-family "Noto Serif CJK SC"
+  "Font family for Chinese text in EPUB body text, in graphical frames.
+Latin text keeps `reading/nov-body-family'.  Terminal fonts belong to the
+terminal, so nothing changes there."
+  :type 'string
+  :group 'reading)
+
+(defconst reading--han-regexp
+  "[\u3000-\u303f\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]+"
+  "Runs of CJK ideographs and CJK punctuation in EPUB text.")
+
+(defun reading/apply-han-font ()
+  "Give the CJK runs of the rendered EPUB section the Han font family.
+Runs after each render.  Graphical frames only, since a terminal picks its
+own fonts."
+  (when (display-graphic-p)
+    (let ((inhibit-read-only t))
+      (save-excursion
+        (goto-char (point-min))
+        (while (re-search-forward reading--han-regexp nil t)
+          (add-face-text-property (match-beginning 0) (match-end 0)
+                                  (list :family reading/han-family) t))))))
+
+(defvar nov-file-name)
+(declare-function nov-goto-document "nov" (index))
+
+(defvar reading--section-text-cache (make-hash-table :test 'equal)
+  "Plain text of EPUB sections, keyed by file, valued (STAMP . TEXT).")
+
+(defun reading--section-text (file)
+  "Return the plain text of the XHTML section FILE, cached per file version."
+  (let* ((stamp (file-attribute-modification-time (file-attributes file)))
+         (cached (gethash file reading--section-text-cache)))
+    (if (and cached (equal (car cached) stamp))
+        (cdr cached)
+      (let ((text (with-temp-buffer
+                    (insert-file-contents file)
+                    (dom-inner-text (libxml-parse-html-region (point-min)
+                                                              (point-max))))))
+        (puthash file (cons stamp text) reading--section-text-cache)
+        text))))
+
+(defun reading--snippet (text begin end)
+  "Return a one-line excerpt of TEXT around the match from BEGIN to END."
+  (string-trim
+   (replace-regexp-in-string
+    "[[:space:]\n]+" " "
+    (substring text (max 0 (- begin 30)) (min (length text) (+ end 30))))))
+
+(defun reading--book-matches (query)
+  "Return (INDEX . SNIPPET) for each match of QUERY in the EPUB's sections."
+  (let ((case-fold-search (let ((case-fold-search nil))
+                            (not (string-match-p "[[:upper:]]" query))))
+        matches)
+    (dotimes (index (length nov-documents))
+      (let ((text (reading--section-text (cdr (aref nov-documents index))))
+            (pos 0))
+        (while (string-match (regexp-quote query) text pos)
+          (let ((begin (match-beginning 0))
+                (end (match-end 0)))
+            (push (cons index (reading--snippet text begin end)) matches)
+            (setq pos end)))))
+    (nreverse matches)))
+
+(defun reading--goto-match (index query)
+  "Show section INDEX and move point to the first occurrence of QUERY in it."
+  (nov-goto-document index)
+  (goto-char (point-min))
+  (when (search-forward query nil t)
+    (goto-char (match-beginning 0))))
+
+(defun reading/search-book (query)
+  "Search every section of this EPUB for QUERY and show the chosen match."
+  (interactive (list (read-string "Search book: ")))
+  (unless (derived-mode-p 'nov-mode)
+    (user-error "Not an EPUB buffer"))
+  (when (string-empty-p query)
+    (user-error "Empty search"))
+  (let ((matches (reading--book-matches query)))
+    (unless matches
+      (user-error "No match for \"%s\"" query))
+    (let* ((candidates
+            (mapcar (lambda (match)
+                      (cons (format "%3d  %s" (1+ (car match)) (cdr match))
+                            (car match)))
+                    matches))
+           (choice (completing-read "Match: " candidates nil t)))
+      (reading--goto-match (cdr (assoc choice candidates)) query))))
+
+(defface reading-highlight
+  '((t :inherit secondary-selection))
+  "Face for EPUB text highlighted with `reading/highlight-region'."
+  :group 'reading)
+
+(defun reading--highlights-file ()
+  "Return the file that keeps the EPUB highlights."
+  (cache/file "reading/highlights.eld"))
+
+(defun reading--highlights-read ()
+  "Return the saved highlights as an alist of (BOOK . ((INDEX TEXT) ...))."
+  (let ((file (reading--highlights-file)))
+    (when (file-readable-p file)
+      (with-temp-buffer
+        (insert-file-contents file)
+        (ignore-errors (read (current-buffer)))))))
+
+(defun reading--book-highlights ()
+  "Return the highlights of the current EPUB as a list of (INDEX TEXT)."
+  (cdr (assoc (file-truename nov-file-name) (reading--highlights-read))))
+
+(defun reading--book-highlights-set (highlights)
+  "Save HIGHLIGHTS as the highlights of the current EPUB."
+  (let* ((key (file-truename nov-file-name))
+         (alist (assoc-delete-all key (reading--highlights-read))))
+    (with-temp-file (reading--highlights-file)
+      (prin1 (if highlights (cons (cons key highlights) alist) alist)
+             (current-buffer)))))
+
+(defun reading--highlight-overlay (beg end text)
+  "Mark BEG to END as a highlight of TEXT."
+  (let ((overlay (make-overlay beg end nil t nil)))
+    (overlay-put overlay 'face 'reading-highlight)
+    (overlay-put overlay 'reading-text text)
+    overlay))
+
+(defun reading--apply-highlights ()
+  "Recreate the saved highlights of the section that was just rendered."
+  (when (and (boundp 'nov-file-name) nov-file-name)
+    (save-excursion
+      (dolist (entry (reading--book-highlights))
+        (when (= (car entry) nov-documents-index)
+          (goto-char (point-min))
+          (when (search-forward (cadr entry) nil t)
+            (reading--highlight-overlay (match-beginning 0) (match-end 0)
+                                        (cadr entry))))))))
+
+(defun reading/highlight-region (beg end)
+  "Highlight the region of this EPUB and remember it with the book."
+  (interactive "r")
+  (unless (derived-mode-p 'nov-mode)
+    (user-error "Not an EPUB buffer"))
+  (let ((text (buffer-substring-no-properties beg end)))
+    (when (string-blank-p text)
+      (user-error "Select some text to highlight"))
+    (reading--highlight-overlay beg end text)
+    (reading--book-highlights-set
+     (delete-dups (cons (list nov-documents-index text)
+                        (reading--book-highlights))))
+    (deactivate-mark)))
+
+(defun reading/unhighlight ()
+  "Remove the highlight at point and forget it."
+  (interactive)
+  (let* ((overlay (seq-find (lambda (ov) (overlay-get ov 'reading-text))
+                            (overlays-at (point))))
+         (text (and overlay (overlay-get overlay 'reading-text))))
+    (unless overlay
+      (user-error "No highlight at point"))
+    (delete-overlay overlay)
+    (reading--book-highlights-set
+     (cl-remove-if (lambda (entry)
+                     (and (= (car entry) nov-documents-index)
+                          (equal (cadr entry) text)))
+                   (reading--book-highlights)))))
+
+(defun reading/highlights ()
+  "Show this EPUB's highlights and jump to the chosen one."
+  (interactive)
+  (let ((entries (reading--book-highlights)))
+    (unless entries
+      (user-error "No highlights in this book"))
+    (let* ((candidates
+            (mapcar (lambda (entry)
+                      (cons (format "%3d  %s" (1+ (car entry)) (cadr entry))
+                            entry))
+                    entries))
+           (choice (cdr (assoc (completing-read "Highlight: " candidates nil t)
+                               candidates))))
+      (reading--goto-match (car choice) (cadr choice)))))
+
+(add-hook 'nov-post-html-render-hook #'reading/apply-han-font)
+(add-hook 'nov-post-html-render-hook #'reading--apply-highlights)
+
 (packages/declare 'nov 'visual-fill-column)
 
 (use-package nov
@@ -152,7 +338,11 @@ Interactively, prompt for a width or use the numeric prefix argument."
                        ("+" . reading/widen)
                        ("-" . reading/narrow)
                        ("=" . reading/reset-width)
-                       ("?" . describe-mode)))
+                       ("?" . describe-mode)
+                       ("/" . reading/search-book)
+                       ("h" . reading/highlight-region)
+                       ("H" . reading/unhighlight)
+                       ("L" . reading/highlights)))
       (define-key map (kbd (car binding)) (cdr binding)))))
 
 (use-package visual-fill-column

@@ -55,6 +55,15 @@ already supplies the Latin/CJK fonts, and its CLI package list supplies
 `unzip`, which Nov requires. No new system package, global Kitty typography
 change, or automatic graphics activation is needed for text-first reading.
 
+Chinese text in graphical frames uses Noto Serif CJK SC (`reading/han-family`),
+and Latin text keeps the body family.  Terminals keep their own fonts.
+
+Search the whole book with `/`.  It lists each match with its section and
+jumps to the one you choose.  `C-s` still searches the current section.  Select
+a passage and press `h` to highlight it.  Highlights are saved per book in
+`(cache/file "reading/highlights.eld")` and come back when the section is shown
+again.  `H` removes the highlight at point, and `L` lists the book's highlights.
+
 ## PDF Reading
 
 Graphical frames open PDFs in [Emacs Reader](https://codeberg.org/MonadicSheep/emacs-reader),
