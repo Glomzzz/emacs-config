@@ -58,11 +58,7 @@
 ;;; transient
 (packages/declare 'transient)
 (use-package transient
-  :ensure nil
-  :custom
-  (transient-history-file (cache/file "transient/history.el"))
-  (transient-levels-file (cache/file "transient/levels.el"))
-  (transient-values-file (cache/file "transient/values.el")))
+  :ensure nil)
 
 ;;; whichkey
 (packages/declare 'which-key)

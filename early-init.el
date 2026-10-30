@@ -13,13 +13,7 @@
 (load (expand-file-name "modules/core/cache.el" user-emacs-directory)
       nil 'nomessage)
 
-(setq package-user-dir (cache/folder "elpa")
-      auto-save-list-file-prefix (cache/file "auto-save-list/.saves-")
-      tramp-persistency-file-name (cache/file "tramp")
-      transient-history-file (cache/file "transient/history.el")
-      transient-levels-file (cache/file "transient/levels.el")
-      transient-values-file (cache/file "transient/values.el")
-      project-list-file (cache/file "projects.eld"))
+(cache/configure-state-paths)
 
 (when (fboundp 'startup-redirect-eln-cache)
   (startup-redirect-eln-cache (cache/eln)))

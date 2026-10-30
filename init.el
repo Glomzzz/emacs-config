@@ -29,18 +29,8 @@
 (when (fboundp 'startup-redirect-eln-cache)
   (startup-redirect-eln-cache (cache/eln)))
 
-(setq custom-file
-      (cache/file "custom.el"))
-
-;; The systemd package bootstrap runs with `-Q' and skips `early-init.el', so
-;; define these paths here as a fallback as well as during normal early startup.
-(setq savehist-file (cache/file "history")
-      tramp-persistency-file-name (cache/file "tramp")
-      ;; `early-init.el' is skipped by the `-Q' bootstrap invocation.
-      transient-history-file (cache/file "transient/history.el")
-      transient-levels-file (cache/file "transient/levels.el")
-      transient-values-file (cache/file "transient/values.el")
-      project-list-file (cache/file "projects.eld"))
+;; `-Q' bootstrap runs skip `early-init.el', so set the state paths here too.
+(cache/configure-state-paths)
 
 ;; Prefer a newer source over its byte-compiled file, so an edit is never
 ;; hidden by a stale `.elc'.  `scripts/byte-compile.el' writes those files.

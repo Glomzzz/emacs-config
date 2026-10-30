@@ -185,7 +185,9 @@ when troubleshooting.  `XDG_STATE_HOME` is not used yet; changing
 `XDG_CACHE_HOME` starts with a different set of state as well as packages.
 
 Use `cache/folder` and `cache/file` instead of hard-coding `~/.cache` or
-writing state into the repository.  The main paths currently include:
+writing state into the repository.  `cache/configure-state-paths` in
+`modules/core/cache.el` points Emacs' state variables below the root; add new
+state variables there.  The main paths currently include:
 
 | Path | Purpose |
 | --- | --- |

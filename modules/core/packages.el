@@ -16,12 +16,10 @@ Set this before loading the configuration for a one-shot bootstrap pass.")
 (defvar packages--archives-refreshed nil)
 (defvar packages--installed-count 0)
 
-(setq package-user-dir
-      (cache/folder "elpa")
-      ;; Load one generated autoload file instead of opening every package's
+(setq ;; Load one generated autoload file instead of opening every package's
       ;; autoload file during startup.  Bootstrap refreshes it after changes.
+      ;; Directories come from `cache/configure-state-paths'.
       package-quickstart t
-      package-quickstart-file (cache/file "package-quickstart.el")
       package-archives
       '(("gnu" . "https://elpa.gnu.org/packages/")
         ;; The official host can accept a connection and then stall mid-transfer.

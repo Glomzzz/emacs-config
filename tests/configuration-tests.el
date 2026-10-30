@@ -529,6 +529,18 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
             (should (eq config-test-module-kind 'edited)))
         (makunbound 'config-test-module-kind)))))
 
+(ert-deftest config-test/state-paths-stay-below-cache-root ()
+  (let ((root (file-name-as-directory (expand-file-name cache/root))))
+    ;; `package-user-dir' is excluded: tests/run.el deliberately reuses the
+    ;; installed package directory.
+    (dolist (file (list custom-file package-quickstart-file
+                        savehist-file project-list-file tramp-persistency-file-name
+                        tramp-auto-save-directory transient-history-file
+                        auto-save-list-file-prefix
+                        (cdar backup-directory-alist)
+                        (nth 1 (car auto-save-file-name-transforms))))
+      (should (string-prefix-p root (expand-file-name file))))))
+
 (ert-deftest config-test/trust-excludes-shared-tmp-and-downloads ()
   (dolist (file (list (expand-file-name "config-test.el" temporary-file-directory)
                       (expand-file-name "Downloads/config-test.el" "~/")))

@@ -54,17 +54,8 @@
       kept-new-versions 5
       kept-old-versions 2
       delete-old-versions t
-      backup-directory-alist `(("." . ,(cache/folder "backups")))
-      auto-save-default t
-      tramp-auto-save-directory (cache/folder "tramp-auto-save")
-      auto-save-list-file-prefix (cache/file "auto-save-list/.saves-"))
-(unless (file-exists-p (file-name-directory auto-save-list-file-prefix))
-  (make-directory (file-name-directory auto-save-list-file-prefix) t))
-;; The non-nil third element keeps each source file's auto-save distinct.
-(setq auto-save-file-name-transforms
-      `((".*" ,(cache/folder "auto-save-files") t)))
-(unless (file-exists-p (file-name-directory (car (cdr (car auto-save-file-name-transforms)))))
-  (make-directory (file-name-directory (car (cdr (car auto-save-file-name-transforms)))) t))
+      auto-save-default t)
+;; Backup, auto-save, and TRAMP state locations: `cache/configure-state-paths'.
 
 
 

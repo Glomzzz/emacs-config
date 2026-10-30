@@ -37,7 +37,6 @@
 (use-package savehist
   :ensure nil
   :init
-  (setq savehist-file (cache/file "history"))
   (savehist-mode)
   :custom
   (history-delete-duplicates t)
