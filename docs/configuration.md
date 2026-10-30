@@ -256,6 +256,7 @@ ownership live with the feature; these guides explain the behavior.
 | [Version control and mail](features/version-control-and-mail.md) | Majutsu and local mu4e |
 | [Completion and search](features/completion-and-search.md) | Completion, Isearch, Consult, Avy, Corfu timing |
 | [Help and documentation](features/help-and-documentation.md) | Helpful, Eldoc, Eldoc Box |
+| [Debugging](features/debugging.md) | Dape adapters, Hydra controls, breakpoints, watches, and evaluation |
 | [Editing](features/editing.md) | Project policies, pairing, delimiter colors, resource limits |
 | [Inline Pi editing](features/pi-inline.md) | Pi file editing from Emacs |
 | [Performance measurements](performance.md) | Opt-in synchronous workload harness |
@@ -611,10 +612,12 @@ modes; `:type`, `:request`, `:command`, `:cwd`, and `:program` are typical
 launch fields.  Use `:request "attach"` and an appropriate `:port` or `:host`
 when the adapter attaches to an existing process.  Check Dape's
 `dape-configs` documentation for adapter-specific fields.  Run `M-x dape` and
-select the registered configuration to verify it is available.  Once a
-session is running, **`C-x C-h d`** opens the Dape menu: `c` continue, `n`
-next, `i` step in, `o` step out, `r` restart, `b` toggle a breakpoint, `k` kill
-the session, and `q` leave the menu.
+select the registered configuration to verify it is available.  **`C-x C-h d`**
+opens the Dape menu: `dd` launches, `n`/`i`/`o` step, `c` continues, `bb` toggles
+a breakpoint, `ds` restarts the session, `r` restarts a frame, and `q` leaves the
+menu.  Session/thread/frame selection, conditional and log breakpoints, scope
+variables, watches, and evaluation are covered in the
+[debugging guide](features/debugging.md).
 
 `diff-hl` computes Git changes asynchronously so opening a source buffer does
 not wait for the repository diff.  Markers can appear shortly after the
@@ -680,6 +683,10 @@ files to verify Dirvish/dashboard integration.
 project limits, TAB/RET file opening, Hydra navigation and dispatch, startup
 safeguards, and Emacs' real server selection path for empty and explicit-file
 requests.
+`tests/debug-tests.el` checks persistent Hydra operation with Repeat mode,
+prefixed command dispatch, native info tabs, region/symbol evaluation, and real
+source breakpoint edits.  A separate GDB DAP smoke test verified stepping,
+evaluation, watch/scope panes, and thread/frame selection with an actual adapter.
 `tests/eglot-ui-tests.el` checks native Xref previews, source-window preservation,
 return history, asynchronous Eldoc display in a top pane, workspace-symbol
 preview settings, and Hydra command dispatch without starting a language server.

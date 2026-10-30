@@ -51,6 +51,8 @@
               nil 'nomessage)
         (load (expand-file-name "tests/eglot-ui-tests.el" user-emacs-directory)
               nil 'nomessage)
+        (load (expand-file-name "tests/debug-tests.el" user-emacs-directory)
+              nil 'nomessage)
         (load (expand-file-name "tests/mail-tests.el" user-emacs-directory)
               nil 'nomessage)
         (load (expand-file-name "tests/mail-async-tests.el" user-emacs-directory)
