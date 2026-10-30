@@ -11,7 +11,7 @@ The normal help keys load it on first use:
 | --- | --- |
 | `C-h f` | `helpful-callable` — function, macro, or special form |
 | `C-h v` | `helpful-variable` |
-| `C-h k` | `helpful-key` — also used by the dashboard button |
+| `C-h k` | `helpful-key` — describe the current command bound to a key |
 | `C-h x` | `helpful-command` — interactive commands only |
 | `C-h C-.` | `helpful-at-point` — inspect the current Elisp symbol |
 
@@ -34,7 +34,10 @@ the cursor moved again.  The completion module now owns the longer delay;
 Eglot does not reset it.  Server response latency is additional, and a
 language backend must provide documentation for the symbol at point.
 `C-M-d` calls `eldoc-box-help-at-point` in a GUI and requests normal Eldoc in
-terminals.  The package owns its display hooks and cursor-following behavior;
+terminals.  Explicit Eldoc documentation buffers open in a top pane in both
+GUI and terminal frames.  `C-x C-h l h` requests fresh documentation;
+`C-x C-h l H` opens the last documentation buffer.  The pane updates when an
+asynchronous server response arrives.  The package owns its display hooks and cursor-following behavior;
 this configuration does not advise private Eldoc update functions, suppress
 comments globally, or install a private Eldoc Box renderer.
 
@@ -64,3 +67,38 @@ package measures popup geometry; reused popups replace the old scale rather
 than accumulating zoom.  Documentation colors and Markdown styling remain
 owned by Eldoc Box and the active theme.  Ordinary and zoomed font sizes
 were checked against the source text in a real GUI.
+
+## Eglot Navigation and Symbols
+
+`modules/feat/languages/eglot-ui.el` adds an Eglot-compatible navigation menu at
+**`C-x C-h l`**.  It uses the existing Eglot connections and Consult/Vertico
+interface.  The `consult-eglot` package supplies workspace symbol search;
+run the shared package bootstrap when adding it on another machine.
+
+| Hydra key | Command |
+| --- | --- |
+| `d` / `r` | Preview definitions / references |
+| `b` / `f` | Xref back / forward |
+| `s` | Search workspace symbols with Consult |
+| `i` | Search document symbols with Consult Imenu |
+| `t` / `I` | Find type definition / implementation |
+| `h` / `H` | Request documentation / open last doc buffer at the top |
+| `a` / `R` | Code actions / rename |
+| `e` / `E` | Buffer / project diagnostics |
+| `c` | Reconnect Eglot |
+| `q` | Leave the menu |
+
+Each action leaves the Hydra.  Definition and reference previews use Xref's
+native bottom results list and show the first result in another window.
+`n` / `p` preview other results, `RET` visits one, `TAB` visits and closes the
+list, and `M-,` returns through Xref history.  A single result opens directly
+in another window, preserving the source window.  `C-u` asks for an identifier
+as with normal Xref commands; reference searches keep Xref's normal prompt.
+These windows work in terminal and graphical frames.
+
+`M-.`, `M-?`, and Typst's string-file navigation retain their existing behavior;
+the preview commands are also available as `M-x eglot-ui/peek-definition` and
+`M-x eglot-ui/peek-references`.  Workspace symbol search is available as
+`M-x consult-eglot-symbols`, with `M-.` to preview a candidate before visiting
+its file.  Symbol search, type/implementation lookup, rename, and code actions
+require the corresponding capabilities from an active Eglot server.

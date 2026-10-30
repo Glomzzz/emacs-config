@@ -5,6 +5,7 @@
  '("treesit.el"
    "format.el"
    "lsp.el"
+   "eglot-ui.el"
    "debug.el"
    "support/"))
 

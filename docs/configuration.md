@@ -96,6 +96,7 @@ commands in the feature module; the menu only groups them.
 | `C-x C-h u` | undo-tree | `modules/feat/editing/undo.el` |
 | `C-x C-h m` | multiple cursors | `modules/feat/editing/multi-cursor.el` |
 | `C-x C-h d` | Dape debugging | `modules/feat/languages/debug.el` |
+| `C-x C-h l` | Eglot navigation, symbols, documentation, and actions | `modules/feat/languages/eglot-ui.el` |
 | `C-x C-h g` | diff-hl hunks | `modules/feat/workspace/git.el` |
 | `C-x C-h f` | fingertip navigation | `modules/feat/editing/pairs.el` |
 | `C-x C-h w` | windows | `modules/feat/workspace/navigation.el` |
@@ -261,7 +262,7 @@ ownership live with the feature; these guides explain the behavior.
 
 ## 2. Adding Language Support
 
-The four files directly under `modules/feat/languages/` are shared APIs:
+The following four modules under `modules/feat/languages/` define shared APIs:
 
 | File | API and responsibility |
 | --- | --- |
@@ -269,6 +270,11 @@ The four files directly under `modules/feat/languages/` are shared APIs:
 | `lsp.el` | Configures Eglot and provides `lsp/format-on-save`; it does not start Eglot globally. |
 | `format.el` | Configures Apheleia and provides `format/mode-maybe` as the unmanaged-buffer fallback. |
 | `debug.el` | Configures Dape and provides `debug/register-config` for language-specific adapters. |
+
+`eglot-ui.el` adds navigation previews, Consult workspace-symbol search, a top
+Eldoc documentation pane, and the `C-x C-h l` Hydra.  It uses Eglot's existing
+connections; see [Help and documentation](features/help-and-documentation.md#eglot-navigation-and-symbols)
+for keys and preview behavior.
 
 Do not add a language's mode, server, formatter, grammar, or debugger details to
 these shared files.  Put all of one language's details in
@@ -674,6 +680,9 @@ files to verify Dirvish/dashboard integration.
 project limits, TAB/RET file opening, Hydra navigation and dispatch, startup
 safeguards, and Emacs' real server selection path for empty and explicit-file
 requests.
+`tests/eglot-ui-tests.el` checks native Xref previews, source-window preservation,
+return history, asynchronous Eldoc display in a top pane, workspace-symbol
+preview settings, and Hydra command dispatch without starting a language server.
 `tests/packages-tests.el` checks offline VC declarations and both bootstrap
 installation paths without network requests.
 `tests/pairs-tests.el` types through the real command loop with installed
