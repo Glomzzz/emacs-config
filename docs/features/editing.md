@@ -124,6 +124,10 @@ single linear list.  `global-undo-tree-mode` enables it in ordinary buffers.
 | `C-x u` | Visualize the undo tree (`undo-tree-visualize`) |
 
 `C-x u` therefore no longer runs the built-in `undo` command.  The tree is
-kept in memory only (`undo-tree-auto-save-history` is nil), so it is discarded
-when the buffer is killed or Emacs exits, and nothing is written under the cache
-root.
+kept in memory (`undo-tree-auto-save-history` is nil), so it is discarded when
+the buffer is killed or Emacs exits.
+
+**`C-x C-h u`** opens the undo menu (`hydra-undo-tree/body`): `p` undo, `n`
+redo, `s` save the history, `l` load it, `u` visualize, and `q` quits.  Saved
+history goes to `(cache/folder "undo-tree")`, not beside the edited file, so
+no `.~undo-tree~` files appear in project directories.

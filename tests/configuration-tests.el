@@ -514,6 +514,13 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
     (should (eq (key-binding (kbd "C-/")) #'undo-tree-undo))
     (should (eq (key-binding (kbd "C-x u")) #'undo-tree-visualize))))
 
+(ert-deftest config-test/undo-tree-menu-is-bound-and-saves-under-cache ()
+  (should (fboundp 'hydra-undo-tree/body))
+  (should (eq (key-binding (kbd "C-x C-h u")) #'hydra-undo-tree/body))
+  (let ((root (file-name-as-directory (expand-file-name cache/root))))
+    (should (string-prefix-p root
+                             (expand-file-name (cdar undo-tree-history-directory-alist))))))
+
 (ert-deftest config-test/undo-tree-undo-and-redo-restore-text ()
   (with-temp-buffer
     (undo-tree-mode 1)
