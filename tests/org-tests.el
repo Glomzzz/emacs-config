@@ -172,7 +172,16 @@ command, optionally followed by `-and-exit'."
       (delete-directory directory t))))
 
 (ert-deftest config-test/org-menus-are-bound-under-help-prefix ()
-  (should (eq (key-binding (kbd "C-x C-h A")) 'hydra-org-agenda/body)))
+  (should (eq (key-binding (kbd "C-x C-h A")) 'hydra-org-agenda/body))
+  (with-temp-buffer
+    (org-mode)
+    (should (eq (key-binding (kbd "C-x C-h O")) 'hydra-org-heading/body))
+    ;; The mode-local prefix must not hide global menus or built-in C-x keys.
+    (should (eq (key-binding (kbd "C-x C-h u")) 'hydra-undo-tree/body))
+    (should (eq (key-binding (kbd "C-x C-f")) 'find-file)))
+  (with-temp-buffer
+    (fundamental-mode)
+    (should-not (eq (key-binding (kbd "C-x C-h O")) 'hydra-org-heading/body))))
 
 (ert-deftest config-test/org-agenda-menu-covers-views-and-capture ()
   (require 'org-agenda)
@@ -181,6 +190,13 @@ command, optionally followed by `-and-exit'."
   (should (org-test/head-runs-p hydra-org-agenda/keymap "d" 'org/agenda-daily))
   (should (org-test/head-runs-p hydra-org-agenda/keymap "p" 'org/agenda-projects))
   (should (org-test/head-runs-p hydra-org-agenda/keymap "c" 'org-capture)))
+
+(ert-deftest config-test/org-heading-menu-covers-structure-editing ()
+  (dolist (key '("n" "p" "c" "t" "+" "-" "T" "s" "d" "i" "o" "r" "a" "q"))
+    (should (lookup-key hydra-org-heading/keymap (kbd key))))
+  (should (org-test/head-runs-p hydra-org-heading/keymap "t" 'org-todo))
+  (should (org-test/head-runs-p hydra-org-heading/keymap "+" 'org-priority-up))
+  (should (org-test/head-runs-p hydra-org-heading/keymap "r" 'org-refile)))
 
 (provide 'org-tests)
 

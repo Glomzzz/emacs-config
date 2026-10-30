@@ -128,7 +128,32 @@ the keyword position when the caller has already computed it."
      ("TODO" ("WAITING") ("CANCELLED"))
      ("NEXT" ("WAITING") ("CANCELLED"))
      ("DONE" ("WAITING") ("CANCELLED"))))
+  :after hydra
+  ;; Mode-local, like the Markdown menu, because heading commands need an Org
+  ;; buffer.  The mode-local C-x prefix does not hide global keys like C-x C-f.
   :bind (:map org-mode-map
-              ("C-c C-q" . counsel-org-tag)))
+              ("C-c C-q" . counsel-org-tag)
+              ("C-x C-h O" . hydra-org-heading/body))
+  :hydra (hydra-org-heading
+          (:color pink :hint nil)
+          "
+ Move: _n_: next  _p_: previous  _c_: cycle
+ Task: _t_: TODO  _+_: priority up  _-_: priority down  _T_: tags
+ Time: _s_: schedule  _d_: deadline  _i_: clock in  _o_: clock out
+ Place: _r_: refile  _a_: archive subtree  _q_: quit"
+          ("n" org-next-visible-heading)
+          ("p" org-previous-visible-heading)
+          ("c" org-cycle)
+          ("t" org-todo)
+          ("+" org-priority-up)
+          ("-" org-priority-down)
+          ("T" counsel-org-tag)
+          ("s" org-schedule)
+          ("d" org-deadline)
+          ("i" org-clock-in)
+          ("o" org-clock-out)
+          ("r" org-refile)
+          ("a" org-archive-subtree)
+          ("q" nil "quit" :color blue)))
 
 ;;; org.el ends here
