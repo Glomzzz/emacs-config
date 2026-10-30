@@ -112,6 +112,10 @@ commands in the feature module; the menu only groups them.
 | `C-x C-h D` | Dired file operations | `modules/feat/files/dired.el` |
 | `C-x C-h s` | Dashboard (also `.` inside Dashboard) | `modules/ui/dashboard-config.el` |
 | `C-x C-h M` | markdown formatting (Markdown buffers only) | `modules/feat/languages/support/markdown.el` |
+| `C-x C-h A` | Org agenda views and capture | `modules/feat/org/agenda.el` |
+| `C-x C-h O` | Org heading editing (Org buffers only) | `modules/feat/org/org.el` |
+| `C-x C-h N` | org-roam notes | `modules/feat/org/roam.el` |
+| `C-x C-h B` | citar bibliography | `modules/feat/org/bibliography.el` |
 
 ### Packages and Cache
 
@@ -266,6 +270,7 @@ ownership live with the feature; these guides explain the behavior.
 | [Help and documentation](features/help-and-documentation.md) | Helpful, Eldoc, Eldoc Box |
 | [Debugging](features/debugging.md) | Dape adapters, Hydra controls, breakpoints, watches, and evaluation |
 | [Editing](features/editing.md) | Project policies, pairing, delimiter colors, resource limits |
+| [Org](features/org.md) | Agenda, capture, org-roam notes, and citar citations |
 | [Inline Pi editing](features/pi-inline.md) | Pi file editing from Emacs |
 | [Performance measurements](performance.md) | Opt-in synchronous workload harness |
 
