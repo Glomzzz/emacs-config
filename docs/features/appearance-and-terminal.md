@@ -121,7 +121,9 @@ this declaration.  In a supporting terminal:
 
 1. Run **`M-x kitty-graphics-mode`** to enable images for this Emacs process.
 2. Run **`M-x kitty-graphics-doctor`** to check the selected terminal backend.
-3. Open an image or PDF (`doc-view-mode`), or use Org's normal
+3. Open an image, or a PDF in terminal Emacs (`doc-view-mode`); graphical
+   frames open PDFs in Emacs Reader instead (see [Reading](reading.md)).  Or use
+   Org's normal
    `C-c C-x C-v` inline-image command.  Enable graphics before opening the file;
    revert/reopen an already-open document if necessary.
 4. Run `M-x kitty-graphics-mode` again to disable it.

@@ -5,6 +5,7 @@
    "emacs.el"
    "help.el"
    "persistence.el"
-   "reading.el"))
+   "reading.el"
+   "pdf.el"))
 
 ;;; mod.el ends here

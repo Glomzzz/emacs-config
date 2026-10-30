@@ -261,7 +261,7 @@ ownership live with the feature; these guides explain the behavior.
 | --- | --- |
 | [Files and locations](features/files-and-locations.md) | Machine paths, FUSE mount safety, file-operation observers |
 | [Appearance and terminal](features/appearance-and-terminal.md) | Themes, Smart Mode Line, minor-mode indicators, fonts, terminal display, images, keyboard input |
-| [Reading](features/reading.md) | EPUB reader |
+| [Reading](features/reading.md) | EPUB and PDF readers |
 | [Dashboard](features/dashboard.md) | Startup screen, recent files, bookmarks, projects, and Hydra menu |
 | [Version control and mail](features/version-control-and-mail.md) | Majutsu and local mu4e |
 | [Projects](features/projects.md) | Projectile, Counsel-Projectile, and the `C-c P` prefix |
