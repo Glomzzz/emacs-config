@@ -3,6 +3,7 @@
 (mod/import
  '("funcs.el"
    "keys.el"
+   "undo.el"
    "pairs.el"
    "multi-cursor.el"
    "pi.el"))

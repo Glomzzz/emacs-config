@@ -497,6 +497,30 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
   (should (eq (key-binding (kbd "M-g i")) 'consult-imenu))
   (should-not (key-binding (kbd "C-c i m"))))
 
+(ert-deftest config-test/undo-tree-is-global-and-memory-only ()
+  (should (memq 'undo-tree packages/declared))
+  (should global-undo-tree-mode)
+  (should-not undo-tree-auto-save-history)
+  ;; The undo-tree keys live in its minor-mode map, so check inside a buffer
+  ;; that has the mode, as the global mode would enable it.
+  (with-temp-buffer
+    (undo-tree-mode 1)
+    (should (eq (key-binding (kbd "C-/")) #'undo-tree-undo))
+    (should (eq (key-binding (kbd "C-x u")) #'undo-tree-visualize))))
+
+(ert-deftest config-test/undo-tree-undo-and-redo-restore-text ()
+  (with-temp-buffer
+    (undo-tree-mode 1)
+    (buffer-enable-undo)
+    (insert "one")
+    (undo-boundary)
+    (insert " two")
+    (undo-boundary)
+    (undo-tree-undo)
+    (should (equal (buffer-string) "one"))
+    (undo-tree-redo)
+    (should (equal (buffer-string) "one two"))))
+
 (ert-deftest config-test/c-z-marks-in-gui-and-suspends-in-terminal ()
   (should (eq (key-binding (kbd "C-z")) #'funcs/mark-or-suspend))
   (let (marked suspended)

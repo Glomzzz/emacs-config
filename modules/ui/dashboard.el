@@ -38,7 +38,7 @@ These are launch actions, not a second set of dashboard-only shortcuts.")
 
 (defconst dashboard--editing-keys
   '(("Save file" save-buffer "C-x C-s")
-    ("Undo" undo "C-x u")
+    ("Undo" undo "C-/")
     ("Duplicate line" funcs/duplicate-line "C-,")
     ("Format buffer" funcs/format-buffer "C-c f")
     ("Complete at point" completion-at-point "C-M-i")

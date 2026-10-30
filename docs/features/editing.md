@@ -111,3 +111,19 @@ After disabling it, use `M-x fingertip-mode` to enable it again only in a
 buffer with an active parser.  The old Smartparens slurp/barf, raise, and angle
 wrapping shortcuts are not retained: Fingertip has no direct equivalents.
 `pairs/enabled-modes` controls eligibility, not the parser requirement.
+
+## Undo History
+
+`undo-tree` (`modules/feat/editing/undo.el`) keeps every edit branch, not a
+single linear list.  `global-undo-tree-mode` enables it in ordinary buffers.
+
+| Key | Action |
+| --- | --- |
+| `C-/` or `C-_` | Undo (`undo-tree-undo`) |
+| `M-_` or `C-?` | Redo (`undo-tree-redo`) |
+| `C-x u` | Visualize the undo tree (`undo-tree-visualize`) |
+
+`C-x u` therefore no longer runs the built-in `undo` command.  The tree is
+kept in memory only (`undo-tree-auto-save-history` is nil), so it is discarded
+when the buffer is killed or Emacs exits, and nothing is written under the cache
+root.
