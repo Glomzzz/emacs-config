@@ -4,6 +4,7 @@
  '("org.el"
    "agenda.el"
    "capture.el"
-   "roam.el"))
+   "roam.el"
+   "bibliography.el"))
 
 ;;; mod.el ends here

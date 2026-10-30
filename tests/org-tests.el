@@ -44,7 +44,9 @@
   (should (eq (key-binding (kbd "C-c c")) 'org-capture))
   (should (eq (lookup-key org-mode-map (kbd "C-c C-q")) 'counsel-org-tag))
   (should (eq (key-binding (kbd "C-c n f")) 'org-roam-node-find))
-  (should (eq (lookup-key org-mode-map (kbd "C-c n i")) 'org-roam-node-insert)))
+  (should (eq (lookup-key org-mode-map (kbd "C-c n i")) 'org-roam-node-insert))
+  (should (eq (lookup-key org-mode-map (kbd "C-c b")) 'org-cite-insert))
+  (should (eq (key-binding (kbd "C-c B")) 'citar-open)))
 
 (ert-deftest config-test/org-state-stays-out-of-the-repository ()
   (let ((repository (expand-file-name user-emacs-directory)))
@@ -54,6 +56,13 @@
       (should-not (string-prefix-p repository (expand-file-name file))))
     (should-not (string-prefix-p repository
                                  (expand-file-name org-persist-directory)))))
+
+(ert-deftest config-test/org-citar-uses-org-cite-processors ()
+  (require 'citar-org)
+  (should (equal citar-bibliography org/bibtex-files))
+  (should (eq org-cite-insert-processor 'citar))
+  (should (eq org-cite-follow-processor 'citar))
+  (should (eq org-cite-activate-processor 'citar)))
 
 (ert-deftest config-test/org-paths-live-under-org-directory ()
   (should (file-name-absolute-p org-directory))
