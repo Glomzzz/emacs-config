@@ -71,6 +71,18 @@ behavior.  For a distinct integration:
 The same rule applies to `modules/core/` and `modules/ui/`.  A file that is
 not listed by an index is not part of the normal configuration.
 
+### Byte compilation
+
+Module sources load directly, which is simplest while editing.  For faster
+startup, compile the modules and local packages once after changes:
+
+```sh
+emacs --batch -Q -l /path/to/emacs/scripts/byte-compile.el
+```
+
+`init.el` sets `load-prefer-newer`, so a source edited after compiling
+loads instead of its older `.elc`.  Compiled files are gitignored.
+
 ### Packages and Cache
 
 #### Declaring a Package

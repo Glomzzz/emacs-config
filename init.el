@@ -42,6 +42,10 @@
       transient-values-file (cache/file "transient/values.el")
       project-list-file (cache/file "projects.eld"))
 
+;; Prefer a newer source over its byte-compiled file, so an edit is never
+;; hidden by a stale `.elc'.  `scripts/byte-compile.el' writes those files.
+(setq load-prefer-newer t)
+
 (defun mod/import (paths)
   "Load PATHS relative to the file containing the call.
 PATHS may be one relative path or a list of relative paths.  A path
@@ -61,7 +65,9 @@ ending in `/` loads the `mod.el` file in that directory."
         (error "Module import path must be relative: %s" path))
       (when (string-suffix-p "/" path)
         (setq path (concat path "mod.el")))
-      (load (expand-file-name path caller-directory) nil 'nomessage))))
+      ;; No suffix: `load' then uses a current `.elc' beside the source.
+      (load (file-name-sans-extension (expand-file-name path caller-directory))
+            nil 'nomessage))))
 
 
 (condition-case error

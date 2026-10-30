@@ -506,6 +506,29 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
       (set-file-times (config-test/file root "modules/example.el") new)
       (should (equal (emc/config-newest-mtime) new)))))
 
+(ert-deftest config-test/module-import-prefers-current-compiled-module ()
+  (should load-prefer-newer)
+  (config-test/with-directory
+    (let ((caller (config-test/file root "modules/mod.el"))
+          (source (config-test/file root "modules/example.el"
+                                    "(setq config-test-module-kind 'source)\n")))
+      (unwind-protect
+          (progn
+            (byte-compile-file source)
+            (with-temp-file source
+              (insert "(setq config-test-module-kind 'edited)\n"))
+            ;; A source older than its compiled file must not hide the .elc.
+            (set-file-times source (seconds-to-time 1000000000))
+            (let ((load-file-name caller))
+              (mod/import '("example.el")))
+            (should (eq config-test-module-kind 'source))
+            ;; A newer edit must win over the stale compiled file.
+            (set-file-times source (time-add (current-time) 3600))
+            (let ((load-file-name caller))
+              (mod/import '("example.el")))
+            (should (eq config-test-module-kind 'edited)))
+        (makunbound 'config-test-module-kind)))))
+
 (ert-deftest config-test/trust-excludes-shared-tmp-and-downloads ()
   (dolist (file (list (expand-file-name "config-test.el" temporary-file-directory)
                       (expand-file-name "Downloads/config-test.el" "~/")))
