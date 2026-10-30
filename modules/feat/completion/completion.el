@@ -85,10 +85,15 @@ Corfu installs timer hooks; preserve explicit buffer-local opt-outs."
              (not (bound-and-true-p eldoc-box-hover-at-point-mode)))
     (eldoc-box-hover-at-point-mode 1)))
 
+(defvar eldoc--doc-buffer)
 (defun completion/eldoc-show-at-point ()
-  "Show documentation with Eldoc Box, or normal Eldoc in terminals."
+  "Show documentation with Eldoc Box, or normal Eldoc in terminals.
+Eldoc Box reads ElDoc's documentation buffer, which stays nil until ElDoc
+has produced docs once in this session.  Until then, use the echo area."
   (interactive)
-  (if (and (display-graphic-p) (require 'eldoc-box nil t))
+  (if (and (display-graphic-p)
+           (require 'eldoc-box nil t)
+           (buffer-live-p (bound-and-true-p eldoc--doc-buffer)))
       (call-interactively #'eldoc-box-help-at-point)
     (eldoc-print-current-symbol-info t)))
 

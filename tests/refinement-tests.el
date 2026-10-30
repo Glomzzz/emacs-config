@@ -335,6 +335,29 @@
         (completion/eldoc-show-at-point)
         (should requested)))))
 
+(ert-deftest config-test/eldoc-box-waits-for-eldoc-doc-buffer ()
+  "Eldoc Box runs only after ElDoc has a live documentation buffer."
+  ;; Load first: the package's own `require' would otherwise replace the mock.
+  (require 'eldoc-box)
+  (with-temp-buffer
+    (emacs-lisp-mode)
+    (let ((box-calls 0) (echo-requests 0))
+      (cl-letf (((symbol-function 'display-graphic-p) (lambda (&optional _display) t))
+                ((symbol-function 'eldoc-box-help-at-point)
+                 (lambda () (interactive) (cl-incf box-calls)))
+                ((symbol-function 'eldoc-print-current-symbol-info)
+                 (lambda (&optional _interactive) (cl-incf echo-requests))))
+        (let ((eldoc--doc-buffer nil))
+          (completion/eldoc-show-at-point))
+        (should (= box-calls 0))
+        (should (= echo-requests 1))
+        (let ((eldoc--doc-buffer (generate-new-buffer " *eldoc-doc-test*")))
+          (unwind-protect
+              (completion/eldoc-show-at-point)
+            (kill-buffer eldoc--doc-buffer)))
+        (should (= box-calls 1))
+        (should (= echo-requests 1))))))
+
 (ert-deftest config-test/completion-balanced-performance-defaults ()
   (require 'corfu-auto)
   (require 'cape)

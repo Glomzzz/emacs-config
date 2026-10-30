@@ -34,7 +34,9 @@ the cursor moved again.  The completion module now owns the longer delay;
 Eglot does not reset it.  Server response latency is additional, and a
 language backend must provide documentation for the symbol at point.
 `C-M-d` calls `eldoc-box-help-at-point` in a GUI and requests normal Eldoc in
-terminals.  Explicit Eldoc documentation buffers open in a top pane in both
+terminals.  Eldoc Box needs ElDoc's documentation buffer, which exists only
+after ElDoc has produced docs once in the session; until then a GUI `C-M-d`
+uses the echo area.  Explicit Eldoc documentation buffers open in a top pane in both
 GUI and terminal frames.  `C-x C-h l h` requests fresh documentation;
 `C-x C-h l H` opens the last documentation buffer.  The pane updates when an
 asynchronous server response arrives.  The package owns its display hooks and cursor-following behavior;
