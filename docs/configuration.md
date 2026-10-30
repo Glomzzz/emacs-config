@@ -83,6 +83,14 @@ emacs --batch -Q -l /path/to/emacs/scripts/byte-compile.el
 `init.el` sets `load-prefer-newer`, so a source edited after compiling
 loads instead of its older `.elc`.  Compiled files are gitignored.
 
+### Key menus with Hydra
+
+`modules/core/hydra.el` installs Hydra and its `:hydra` use-package keyword, so
+a feature module can define a repeatable menu next to its other settings.  Put
+menus under the `C-x C-h` prefix, which is otherwise unbound, and give each one
+the `:ensure nil` form used by every other package here.  Keep the menu's
+commands in the feature module; the menu only groups them.
+
 ### Packages and Cache
 
 #### Declaring a Package

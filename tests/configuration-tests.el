@@ -497,6 +497,12 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
   (should (eq (key-binding (kbd "M-g i")) 'consult-imenu))
   (should-not (key-binding (kbd "C-c i m"))))
 
+(ert-deftest config-test/hydra-keyword-is-available-to-features ()
+  (should (memq 'hydra packages/declared))
+  (should (memq 'use-package-hydra packages/declared))
+  (should (fboundp 'defhydra))
+  (should (memq :hydra use-package-keywords)))
+
 (ert-deftest config-test/undo-tree-is-global-and-memory-only ()
   (should (memq 'undo-tree packages/declared))
   (should global-undo-tree-mode)

@@ -2,6 +2,7 @@
 
 (mod/import
  '("packages.el"
+   "hydra.el"
    "buffers.el"
    "locations.el"
    "emc.el"))
