@@ -14,6 +14,42 @@ completion and documentation popups follow theme changes automatically;
 theme-provided Corfu faces and Customize settings still take precedence.
 Vertico already inherits standard theme faces.
 
+## Smart Mode Line
+
+`modules/ui/modeline.el` installs Smart Mode Line and its Rich Minority
+dependency through the shared package bootstrap.  Its `respectful` theme
+uses the existing theme's colors; Gruber Darker remains enabled.  Projectile
+path replacement is disabled so redisplay does not perform extra project
+root discovery, especially for remote files.
+
+Minor-mode labels are filtered by **mode symbol**, not their displayed text.
+The allowlist `modeline/visible-minor-modes` keeps:
+
+- Flymake diagnostics and envrc environment status;
+- overwrite, keyboard-macro recording, and Isearch state;
+- multiple cursors, rectangle modes, and hidden-unmatched-line editing;
+- active Dired asynchronous jobs and Typst watch mode.
+
+Routine labels such as Which Key, Zoom, Undo Tree, Projectile, Eldoc, and
+Outline are hidden.  **The modes, keymaps, commands, and global
+`minor-mode-alist` are unchanged.**  Eglot/Dape status, major mode,
+modified/read-only/remote state, narrowing, and version-control information
+remain in their existing mode-line sections.  Status-specific faces, hover
+text, and mouse actions are preserved rather than overwritten by Rich
+Minority's generic styling.
+
+Customize `modeline/visible-minor-modes` to add or remove indicators; the next
+mode-line update uses the new list.  `C-h m` still lists active modes even
+when their labels are hidden.  Smart Mode Line handles minor-mode truncation
+in narrow windows.  Emacs 31's separate `mode-line-minor-modes` slot is wired
+to the same filtered renderer; older inline minor-mode layouts use Smart
+Mode Line's normal integration.  Setup is idempotent when the module reloads.
+
+Restart the daemon to apply the saved configuration.  Batch tests do not
+change the running session.  The upstream packages emit some obsolete API
+and missing lexical-binding warnings during compilation on Emacs 31; the
+configuration module itself byte-compiles without warnings.
+
 ## Portable Appearance
 
 `appearance/font-families` keeps Cascadia Mono NF first, then tries installed

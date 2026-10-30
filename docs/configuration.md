@@ -254,7 +254,7 @@ ownership live with the feature; these guides explain the behavior.
 | Guide | Covers |
 | --- | --- |
 | [Files and locations](features/files-and-locations.md) | Machine paths, FUSE mount safety, file-operation observers |
-| [Appearance and terminal](features/appearance-and-terminal.md) | Themes, fonts, terminal display, images, keyboard input |
+| [Appearance and terminal](features/appearance-and-terminal.md) | Themes, Smart Mode Line, minor-mode indicators, fonts, terminal display, images, keyboard input |
 | [Reading](features/reading.md) | EPUB reader |
 | [Dashboard](features/dashboard.md) | Startup screen, recent files, bookmarks, projects, and Hydra menu |
 | [Version control and mail](features/version-control-and-mail.md) | Majutsu and local mu4e |
@@ -679,6 +679,9 @@ trigger settings, fallback insertion, and unchanged explicit/newline indentation
 loading, buffer-local reading layout, theme colors on the first and subsequent
 renders, width changes across multiple windows, link navigation, contents
 selection, saved positions, and idempotent font remapping.
+`tests/modeline-tests.el` checks Smart Mode Line setup, Emacs 31's minor-mode
+slot, symbol-based indicator filtering, preservation of native status
+properties, unchanged modes/keymaps, and idempotent configuration.
 `tests/tty-tests.el` checks lazy terminal integration, GUI isolation, idempotent
 mouse/tooltip setup, clipboard fallback/Wayland preference, saved backend
 choices, and the opt-in graphics declaration.

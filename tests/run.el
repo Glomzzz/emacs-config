@@ -39,6 +39,8 @@
               nil 'nomessage)
         (load (expand-file-name "tests/reading-tests.el" user-emacs-directory)
               nil 'nomessage)
+        (load (expand-file-name "tests/modeline-tests.el" user-emacs-directory)
+              nil 'nomessage)
         (load (expand-file-name "tests/packages-tests.el" user-emacs-directory)
               nil 'nomessage)
         (load (expand-file-name "tests/jujutsu-tests.el" user-emacs-directory)

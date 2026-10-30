@@ -4,6 +4,7 @@
  '("theme.el"
    "ui.el"
    "appearance.el"
+   "modeline.el"
    "tty.el"
    "dashboard-config.el"))
 
