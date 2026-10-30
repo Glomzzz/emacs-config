@@ -158,10 +158,35 @@ skipped too.  Scheduled and deadline items are left to the agenda's
         nil
       (org--next-heading-position))))
 
+(defun org/agenda-daily ()
+  "Show today's agenda with the high-priority and all-TODO blocks."
+  (interactive)
+  (org-agenda nil "d"))
+
+(defun org/agenda-projects ()
+  "Show the Projects agenda: refile, stuck projects, and project tasks."
+  (interactive)
+  (org-agenda nil "p"))
+
 (use-package org
   :ensure nil
   :defer t
-  :bind ("C-c a" . org-agenda)
+  :after hydra
+  :bind (("C-c a" . org-agenda)
+         ("C-x C-h A" . hydra-org-agenda/body))
+  ;; C-x C-h A groups the agenda views and capture into one menu.
+  :hydra (hydra-org-agenda
+          (:color blue :hint nil)
+          "
+ _a_: dispatcher  _d_: daily  _p_: projects  _t_: TODO list  _m_: tags  _s_: search  _c_: capture  _q_: quit"
+          ("a" org-agenda)
+          ("d" org/agenda-daily)
+          ("p" org/agenda-projects)
+          ("t" org-todo-list)
+          ("m" org-tags-view)
+          ("s" org-search-view)
+          ("c" org-capture)
+          ("q" nil "quit"))
   :custom
   (org-agenda-files org/agenda-files)
   ;; Keep blocked tasks at full brightness.

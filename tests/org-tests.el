@@ -21,6 +21,16 @@
   (beginning-of-line)
   (funcall function))
 
+(defun org-test/head-runs-p (keymap key command)
+  "Return non-nil when hydra KEYMAP runs COMMAND for KEY.
+Hydra wraps each head in a generated function whose name ends with the
+command, optionally followed by `-and-exit'."
+  (let ((entry (lookup-key keymap (kbd key))))
+    (and (symbolp entry)
+         (string-match-p (concat "/" (regexp-quote (symbol-name command))
+                                 "\\(?:-and-exit\\)?\\'")
+                         (symbol-name entry)))))
+
 (defconst org-test/projects-sample
   "* TODO Stuck project
 ** TODO Waiting for reply
@@ -160,6 +170,17 @@
                 (should-not (string-match-p "Daily habit" text))))
             (kill-buffer buffer)))
       (delete-directory directory t))))
+
+(ert-deftest config-test/org-menus-are-bound-under-help-prefix ()
+  (should (eq (key-binding (kbd "C-x C-h A")) 'hydra-org-agenda/body)))
+
+(ert-deftest config-test/org-agenda-menu-covers-views-and-capture ()
+  (require 'org-agenda)
+  (dolist (key '("a" "d" "p" "t" "m" "s" "c" "q"))
+    (should (lookup-key hydra-org-agenda/keymap (kbd key))))
+  (should (org-test/head-runs-p hydra-org-agenda/keymap "d" 'org/agenda-daily))
+  (should (org-test/head-runs-p hydra-org-agenda/keymap "p" 'org/agenda-projects))
+  (should (org-test/head-runs-p hydra-org-agenda/keymap "c" 'org-capture)))
 
 (provide 'org-tests)
 
