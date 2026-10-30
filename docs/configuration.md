@@ -106,6 +106,7 @@ commands in the feature module; the menu only groups them.
 | `C-x C-h k` | keyboard macros | `modules/feat/editing/menus.el` |
 | `C-x C-h c` | compilation errors (`C-x `` still `next-error`) | `modules/feat/process/tasks.el` |
 | `C-x C-h p` | elisp profiler | `modules/feat/process/tasks.el` |
+| `C-x C-h D` | Dired file operations | `modules/feat/files/dired.el` |
 
 ### Packages and Cache
 

@@ -5,6 +5,8 @@
 (use-package dired
   :ensure nil
   :defer t
+  :after hydra
+  :bind (("C-x C-h D" . hydra-dired/body))
   :custom
   ;; Move deleted files to the desktop trash when supported.
   (delete-by-moving-to-trash t)
@@ -27,6 +29,45 @@
   (dired-mouse-drag-files t)
   ;; Allow dragging files from Dired to another application.
   (mouse-drag-and-drop-region-cross-program t)
+  ;; Dired menu adapted from the hydra wiki's Dired example.  Heads that need
+  ;; dired-x, ediff, rsync, or dired+ are left out because this config does not
+  ;; load those.
+  :hydra (hydra-dired
+          (:hint nil :color pink)
+          "
+ _+_ mkdir     _v_ view       _m_ mark       _(_ details     _i_ insert subdir
+ _C_ copy      _O_ view other _U_ unmark all _)_ omit        _w_ kill subdir
+ _D_ delete    _o_ open other _u_ unmark     _l_ redisplay   _g_ revert buffer
+ _R_ rename    _M_ chmod      _t_ toggle     _s_ sort        _A_ find regexp
+ _Y_ rel link  _G_ chgrp      _Z_ compress   _S_ symlink     _Q_ regexp replace
+ _?_ summary   _._ quit"
+          ("+" dired-create-directory)
+          ("C" dired-do-copy)
+          ("D" dired-do-delete)
+          ("R" dired-do-rename)
+          ("Y" dired-do-relsymlink)
+          ("S" dired-do-symlink)
+          ("v" dired-view-file)
+          ("O" dired-display-file)
+          ("o" dired-find-file-other-window)
+          ("M" dired-do-chmod)
+          ("G" dired-do-chgrp)
+          ("m" dired-mark)
+          ("U" dired-unmark-all-marks)
+          ("u" dired-unmark)
+          ("t" dired-toggle-marks)
+          ("(" dired-hide-details-mode)
+          (")" dired-omit-mode)
+          ("i" dired-maybe-insert-subdir)
+          ("w" dired-kill-subdir)
+          ("l" dired-do-redisplay)
+          ("g" revert-buffer)
+          ("s" dired-sort-toggle-or-edit)
+          ("A" dired-do-find-regexp)
+          ("Q" dired-do-find-regexp-and-replace)
+          ("Z" dired-do-compress)
+          ("?" dired-summary)
+          ("." nil :color blue))
   :hook (dired-mode . auto-revert-mode)
   :config
   ;; Local file notifications keep Dired current without remote polling.
