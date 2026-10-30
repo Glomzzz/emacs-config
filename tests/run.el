@@ -16,6 +16,7 @@
 ;; Reuse installed packages without touching the user's history, Customize,
 ;; quickstart file, or other state.  Normal startup never installs packages.
 (let* ((package-directory (cache/folder "elpa"))
+       (pdf-directory (cache/folder "pdf"))
        (grammar-directory (cache/tree-sitter))
        (state-directory (make-temp-file "emacs-config-tests-" t))
        (cache/root (file-name-as-directory state-directory))
@@ -24,9 +25,9 @@
   (unwind-protect
       (cl-letf (((symbol-function 'cache/folder)
                  (lambda (path)
-                   (if (equal path "elpa")
-                       package-directory
-                     (funcall original-cache-folder path)))))
+                   (cond ((equal path "elpa") package-directory)
+                         ((equal path "pdf") pdf-directory)
+                         (t (funcall original-cache-folder path))))))
         (require 'treesit)
         (add-to-list 'treesit-extra-load-path grammar-directory)
         (load (expand-file-name "init.el" user-emacs-directory)
@@ -39,9 +40,9 @@
               nil 'nomessage)
         (load (expand-file-name "tests/reading-tests.el" user-emacs-directory)
               nil 'nomessage)
-        (load (expand-file-name "tests/reading-book-tests.el" user-emacs-directory)
-              nil 'nomessage)
         (load (expand-file-name "tests/pdf-tests.el" user-emacs-directory)
+              nil 'nomessage)
+        (load (expand-file-name "tests/reading-book-tests.el" user-emacs-directory)
               nil 'nomessage)
         (load (expand-file-name "tests/modeline-tests.el" user-emacs-directory)
               nil 'nomessage)

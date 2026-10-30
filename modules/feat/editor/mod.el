@@ -6,6 +6,6 @@
    "help.el"
    "persistence.el"
    "reading.el"
-   "pdf.el"))
+   "pdf/"))
 
 ;;; mod.el ends here

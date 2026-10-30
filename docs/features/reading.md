@@ -1,7 +1,7 @@
 # Reading
 
 EPUB and PDF reading.  The EPUB reader is in `modules/feat/editor/reading.el`;
-the PDF integration is in `modules/feat/editor/pdf.el`.
+the PDF modules are in `modules/feat/editor/pdf/`.
 
 ## EPUB Reading
 
@@ -111,7 +111,33 @@ package for every file, so the config runs that restore only in Reader buffers.
 | `C-x r b` | Bookmarks |
 | `Q` | Quit the buffer |
 
-Not available yet: search, text selection, annotations, and SyncTeX.  Upstream
-plans selection and annotations for 0.5.0, which needs Emacs 32's canvas image
-type.  Until then, `C-s` in a DocView buffer searches, and `M-x doc-view-open-text`
+### Selecting text
+
+Drag with the mouse to select text on the page, double-click a word, or
+triple-click a line.  The highlight is painted into the page image, and `M-w`
+copies the selection to the kill ring.  From the keyboard, `C-SPC` starts a
+selection at the cursor, `M-f` and `M-b` move by word, `M-n` and `M-p` by line,
+and `C-g` clears it.  A selection stays on its page; turning the page clears it.
+
+### Search
+
+`/` searches the document.  Smart case applies: an uppercase letter makes the
+search case-sensitive.  `C-s` and `C-r` move to the next and previous match and
+turn to its page.  Every match on the page is highlighted, and the current match
+is stronger.  `C-g` clears the search.
+
+### History and fit
+
+`M-<left>` and `M-<right>` go back and forward through the pages you visited.
+`H` and `W` fit the height or width, and the last fit is remembered per file.
+`+`, `-`, and `0` set the zoom by hand, which clears the remembered fit.  Reader's
+bookmark keeps the zoom value itself.
+
+Text comes from `mutool draw -F stext`, which `M-x pdf/build` roots from the same
+nixpkgs MuPDF as Reader.  A scanned PDF without a text layer has nothing to
+select or search.
+
+Not available yet: annotations and SyncTeX.  Upstream plans its own selection and
+annotations for 0.5.0, which needs Emacs 32's canvas image type.  Until then,
+`C-s` in a DocView buffer (terminal frames) searches, and `M-x doc-view-open-text`
 shows a PDF as text.
