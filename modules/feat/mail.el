@@ -54,6 +54,47 @@ No messages are moved and no folders are created by this command."
     (when (yes-or-no-p "Save these verified special-folder mappings? ")
       (customize-save-variable 'mail/special-folders (nreverse mappings)))))
 
+;; Opened from a click on a desktop new-mail notification (see the notifier in
+;; the Nix mail module).  Both are needed only after mu4e has loaded.
+(declare-function emc/split-refused-p "emc" (err))
+(declare-function mu4e "mu4e" (&optional background))
+(declare-function mu4e-update-index "mu4e-update" ())
+(declare-function mu4e-search "mu4e-search" (&optional expr prompt edit ignore-history msgid show))
+(declare-function mu4e-view-message-with-message-id "mu4e-view" (msgid))
+(defvar mu4e-index-updated-hook)
+
+(defun mail/call-retrying-split (show)
+  "Call SHOW.  Retry shortly if Emacs refuses to split a brand-new frame.
+This is the same brand-new-frame race that `emc/open-mail' handles."
+  (condition-case err
+      (funcall show)
+    (error
+     (unless (emc/split-refused-p err)
+       (signal (car err) (cdr err)))
+     (run-at-time 0.3 nil show))))
+
+(defun mail/show-once-indexed (show)
+  "Call SHOW after mu4e has indexed the mailbox, starting mu4e if needed.
+The notifier runs right after mbsync, but mu4e indexes on its own five-minute
+timer, so a message that has just arrived may not be searchable yet."
+  (mu4e t)
+  (let (once)
+    (setq once (lambda ()
+                 (remove-hook 'mu4e-index-updated-hook once)
+                 (mail/call-retrying-split show)))
+    (add-hook 'mu4e-index-updated-hook once)
+    (mu4e-update-index)))
+
+(defun mail/open-notified-message (msgid)
+  "Show the mu4e message MSGID, as a clicked new-mail notification asks."
+  (mail/show-once-indexed
+   (lambda () (mu4e-view-message-with-message-id msgid))))
+
+(defun mail/open-notified-folder (folder)
+  "Show the new mail in the mu4e FOLDER, a name such as \"alimail\"."
+  (let ((query (format "\"maildir:/infomaniak/%s\" flag:new" folder)))
+    (mail/show-once-indexed (lambda () (mu4e-search query)))))
+
 ;; Local transport integration: no archive package or extra system program.
 (use-package mail-async
   :ensure nil
