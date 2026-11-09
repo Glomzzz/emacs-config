@@ -76,6 +76,8 @@
               nil 'nomessage)
         (load (expand-file-name "tests/language-selection-tests.el" user-emacs-directory)
               nil 'nomessage)
+        (load (expand-file-name "tests/codewars-tests.el" user-emacs-directory)
+              nil 'nomessage)
         (load (expand-file-name "tests/typst-completion-tests.el" user-emacs-directory)
               nil 'nomessage)
         (load (expand-file-name "tests/typst-navigation-tests.el" user-emacs-directory)

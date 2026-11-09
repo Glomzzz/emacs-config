@@ -9,6 +9,7 @@
    "languages/"
    "process/"
    "files/"
-   "mail.el"))
+   "mail.el"
+   "codewars.el"))
 
 ;;; mod.el ends here

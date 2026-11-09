@@ -116,6 +116,7 @@ commands in the feature module; the menu only groups them.
 | `C-x C-h O` | Org heading editing (Org buffers only) | `modules/feat/org/org.el` |
 | `C-x C-h N` | org-roam notes | `modules/feat/org/roam.el` |
 | `C-x C-h B` | citar bibliography | `modules/feat/org/bibliography.el` |
+| `C-x C-h K` | Codewars kata pulls, tests, and trainer | `modules/feat/codewars.el` |
 
 ### Packages and Cache
 
@@ -272,6 +273,7 @@ ownership live with the feature; these guides explain the behavior.
 | [Editing](features/editing.md) | Project policies, pairing, delimiter colors, resource limits |
 | [Org](features/org.md) | Agenda, capture, org-roam notes, and citar citations |
 | [Inline Pi editing](features/pi-inline.md) | Pi file editing from Emacs |
+| [Codewars](features/codewars.md) | Pulling kata into local projects, running tests, and opening the trainer |
 | [Performance measurements](performance.md) | Opt-in synchronous workload harness |
 
 ## 2. Adding Language Support
@@ -429,6 +431,16 @@ and Eglot's completion metadata, not custom parsing of labels or HLS-private
 resolve data.  `haskell/max-completions` defaults to 1000 and can be adjusted
 per project through directory-local variables.
 
+A full-configuration check against HLS 2.13.0.0 and GHC 9.10.3 confirmed
+diagnostics, hover, definition, references, rename preparation, document
+symbols, code actions, completion, LSP formatting, and save-time Ormolu for a
+standalone file.  Diagnostics appear only when the file is listed in
+`trusted-content` (see the trust paragraph below).  Stack projects whose
+`stack.yaml` has a `nix:` block fail with `GHC ABIs don't match`: Stack then
+uses a different GHC build from the one HLS was built against.  `stack
+--no-nix path --compiler-exe` shows the matching GHC.  Remove the `nix:` block
+when the project's dev shell already supplies its native libraries.
+
 `markdown.el` is the editing-and-preview exception: `markdown-mode` owns
 `.md`/`.markdown`/`.mdx` buffers (with `gfm-mode` for README files), and
 preview uses markdown-mode's own commands — `markdown-live-preview-mode`
@@ -571,10 +583,10 @@ buffer instead.  Apheleia remains the fallback when Eglot cannot format the
 buffer at all.
 
 Flymake only starts backends such as `eglot-flymake-backend` in buffers whose
-files are listed in `trusted-content`.  The default trust list is `~/git/`
-and this Emacs configuration directory, not the whole home directory or
-`/tmp/`: trusting content can permit automatic code execution, not just
-diagnostics.  Add only reviewed directories with
+files are listed in `trusted-content`.  The default trust list is `~/git/`,
+this Emacs configuration directory, and the Codewars project directory
+(`codewars/directory`), not the whole home directory or `/tmp/`: trusting
+content can permit automatic code execution, not just diagnostics.  Add only reviewed directories with
 `M-x customize-variable RET trusted-content`; a saved Customize choice
 takes precedence over the defaults.  Untrusted files do not get these
 backends until explicitly trusted.  `flymake-show-diagnostics-at-end-of-line`
