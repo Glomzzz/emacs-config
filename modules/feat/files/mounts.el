@@ -23,6 +23,11 @@
 (defcustom mounts/mac-mini-connect-command '("mac-mini-connect")
   "Command and arguments for connecting the Mac-mini share."
   :type '(repeat string) :group 'mounts)
+(defcustom mounts/mac-mini-smb-service "mac-mini-smb.service"
+  "User systemd unit that holds the Mac-mini SMB mount.
+Emacs connects only while this unit is already active.  Unlocking its
+credentials decrypts with the YubiKey, so that step stays in a terminal."
+  :type 'string :group 'mounts)
 
 (defun mounts/resolve-command (command)
   "Resolve COMMAND's executable, preserving its arguments."
@@ -154,10 +159,24 @@
           (when (buffer-live-p buffer)
             (kill-buffer buffer)))))))
 
+(defun mounts--mac-mini-smb-active-p ()
+  "Return non-nil when the Mac-mini SMB unit is already active.
+This check never starts or unlocks anything."
+  (and (executable-find "systemctl")
+       (zerop (call-process "systemctl" nil nil nil
+                            "--user" "is-active" "--quiet"
+                            mounts/mac-mini-smb-service))))
+
 (defun mounts--connect-mac-mini ()
-  "Connect to Mac-mini asynchronously, then open it in Dirvish."
-  (if (process-live-p mounts/mac-mini-connect-process)
-      (message "Already connecting to mac-mini")
+  "Connect to Mac-mini asynchronously, then open it in Dirvish.
+Never run `mac-mini-connect' while the share is locked: its unlock step
+decrypts credentials with the YubiKey, which Emacs must not trigger."
+  (cond
+   ((process-live-p mounts/mac-mini-connect-process)
+    (message "Already connecting to mac-mini"))
+   ((not (mounts--mac-mini-smb-active-p))
+    (user-error "Mac-mini share is locked; unlock it with mac-mini-connect in a terminal"))
+   (t
     (let ((command (mounts/resolve-command mounts/mac-mini-connect-command))
           (output-buffer (generate-new-buffer " *mac-mini connector*")))
       (let ((process
@@ -184,7 +203,7 @@
         (unless (process-live-p process)
           (mounts--mac-mini-sentinel process "finished\n"))
         (message "Connecting to mac-mini... use C-c C-k to cancel")
-        process))))
+        process)))))
 
 (defun mounts--cancel-process (process)
   "Cancel PROCESS while preserving its dashboard cancellation state."

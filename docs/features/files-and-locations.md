@@ -24,6 +24,13 @@ passed as separate process arguments, not interpolated into shell commands.
 Missing tools report the configured executable, without assuming NixOS is
 how every machine must install it.
 
+Connecting to the Mac-mini share from Emacs never unlocks its SMB credentials,
+because that step decrypts with the YubiKey.  Emacs runs `mac-mini-connect`
+only when `mounts/mac-mini-smb-service` is already active; otherwise it reports
+that the share must be unlocked from a terminal.  SSH to `mac-mini` (TRAMP)
+uses `~/.ssh/id_ed25519` with `IdentityAgent none` and does not touch the
+YubiKey.
+
 ## File-Operation Observers
 
 Dirvish task tracking observes its public yank handler and rsync command,
