@@ -435,11 +435,13 @@ A full-configuration check against HLS 2.13.0.0 and GHC 9.10.3 confirmed
 diagnostics, hover, definition, references, rename preparation, document
 symbols, code actions, completion, LSP formatting, and save-time Ormolu for a
 standalone file.  Diagnostics appear only when the file is listed in
-`trusted-content` (see the trust paragraph below).  Stack projects whose
-`stack.yaml` has a `nix:` block fail with `GHC ABIs don't match`: Stack then
-uses a different GHC build from the one HLS was built against.  `stack
---no-nix path --compiler-exe` shows the matching GHC.  Remove the `nix:` block
-when the project's dev shell already supplies its native libraries.
+`trusted-content` (see the trust paragraph below).  In this environment Stack
+enables its Nix integration by default, so it builds with a different GHC
+build from the one HLS was built against, and HLS fails with `GHC ABIs don't
+match`.  Set `nix: enable: false` in the project's `stack.yaml`; Stack then
+uses the GHC from the dev shell.  `stack path --compiler-exe` shows which GHC
+Stack selects.  Projects whose flake dev shell already supplies the native
+libraries need nothing else.
 
 `markdown.el` is the editing-and-preview exception: `markdown-mode` owns
 `.md`/`.markdown`/`.mdx` buffers (with `gfm-mode` for README files), and
