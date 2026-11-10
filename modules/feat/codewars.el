@@ -20,10 +20,13 @@
   "Language preselected when pulling a kata that offers it."
   :type 'string :group 'codewars)
 
-(defcustom codewars/test-commands nil
+(defcustom codewars/test-commands
+  '(("haskell" . "ghc -ignore-dot-ghci solution.hs Test.hs -e Main.main"))
   "Alist mapping a Codewars language name to the command `codewars/test' runs.
-Each command runs in the kata's project directory.  Languages without an
-entry are prompted for."
+Each command runs in the kata's project directory.  The Haskell default
+loads solution.hs and a user-written Test.hs containing Main.main; passing
+both files explicitly also supports a differently named solution module.
+Languages without an entry are prompted for."
   :type '(alist :key-type string :value-type string) :group 'codewars)
 
 (defconst codewars/base-url "https://www.codewars.com"
@@ -62,25 +65,75 @@ backend stays off in every kata."
      ((string-match-p "\\`[A-Za-z0-9_-]+\\'" text) text)
      (t (user-error "Not a Codewars kata slug or URL: %s" input)))))
 
-(defun codewars/fetch-kata (slug)
-  "Return the public API record for kata SLUG as an alist."
+(defconst codewars--request-timeout 20
+  "Seconds `codewars/fetch-kata' waits for Codewars before giving up.")
+
+(defun codewars--response-kata (slug)
+  "Return (KATA . nil) or (nil . MESSAGE) for the response in this buffer.
+Decide from the buffer, not from `url-retrieve's status: an HTTP error also
+sets an :error status, and a connection failure leaves the buffer empty."
+  (goto-char (point-min))
+  (cond
+   ((looking-at "HTTP/[0-9.]+ 2")
+    (re-search-forward "\n\n" nil t)
+    (condition-case nil
+        (cons (json-parse-buffer :object-type 'alist :array-type 'list
+                                 :null-object nil :false-object nil)
+              nil)
+      (json-error
+       (cons nil (format "Codewars sent unreadable data for %s" slug)))))
+   ((looking-at "HTTP/")
+    (cons nil (format "Codewars returned an error for %s: %s" slug
+                      (buffer-substring-no-properties
+                       (point) (line-end-position)))))
+   ;; No status line: the connection itself failed.
+   (t (cons nil (format "Could not reach Codewars for %s" slug)))))
+
+(defun codewars--fetch-kata-finish (request buffer callback kata error)
+  "Finish REQUEST once: cancel its timer, discard BUFFER, call CALLBACK.
+REQUEST is (DONE . TIMER).  Later calls for the same REQUEST do nothing, so a
+request reports exactly once even if `url-retrieve' calls back twice."
+  (unless (car request)
+    (setcar request t)
+    (when (timerp (cdr request)) (cancel-timer (cdr request)))
+    (when (buffer-live-p buffer) (kill-buffer buffer))
+    (funcall callback kata error)))
+
+(defun codewars--fetch-kata-done (_status slug callback request)
+  "Handle the response for kata SLUG; see `codewars/fetch-kata'."
+  (unless (car request)
+    (let ((result (codewars--response-kata slug)))
+      (codewars--fetch-kata-finish request (current-buffer) callback
+                                   (car result) (cdr result)))))
+
+(defun codewars--fetch-kata-timed-out (buffer slug callback request)
+  "Give up on the request in BUFFER for kata SLUG and report a timeout."
+  (unless (car request)
+    (let ((process (and (buffer-live-p buffer) (get-buffer-process buffer))))
+      (when process
+        ;; Silence the sentinel first so the abandoned request cannot report.
+        (set-process-sentinel process #'ignore)
+        (delete-process process)))
+    (codewars--fetch-kata-finish
+     request buffer callback nil
+     (format "Codewars did not answer for %s within %s seconds"
+             slug codewars--request-timeout))))
+
+(defun codewars/fetch-kata (slug callback)
+  "Fetch the public API record for kata SLUG without blocking Emacs.
+Call CALLBACK exactly once: with (KATA nil) on success, or with (nil MESSAGE)
+when the request fails or takes longer than `codewars--request-timeout'."
   (let* ((url (format "%s/api/v1/code-challenges/%s"
                       codewars/base-url (url-hexify-string slug)))
          (url-request-extra-headers '(("Accept" . "application/json")))
-         (buffer (url-retrieve-synchronously url t t 20)))
-    (unless buffer
-      (user-error "Codewars request timed out: %s" url))
-    (unwind-protect
-        (with-current-buffer buffer
-          (goto-char (point-min))
-          (unless (looking-at "HTTP/[0-9.]+ 2")
-            (user-error "Codewars returned an error for %s: %s" slug
-                        (buffer-substring-no-properties
-                         (point) (line-end-position))))
-          (re-search-forward "\n\n" nil t)
-          (json-parse-buffer :object-type 'alist :array-type 'list
-                             :null-object nil :false-object nil))
-      (kill-buffer buffer))))
+         (request (cons nil nil))
+         (buffer (url-retrieve url #'codewars--fetch-kata-done
+                               (list slug callback request) t t)))
+    (unless (car request)
+      (setcdr request (run-at-time codewars--request-timeout nil
+                                   #'codewars--fetch-kata-timed-out
+                                   buffer slug callback request)))
+    buffer))
 
 (defun codewars/extension-for (language)
   "Return the file extension used for LANGUAGE."
@@ -118,12 +171,24 @@ backend stays off in every kata."
 
 (defun codewars/pull (input)
   "Pull the kata named by INPUT (slug, id, or URL) into a local project.
-Create the project directory, its README, and an empty solution file for
-the chosen language, then open the solution."
+The request runs in the background.  When the kata arrives, ask for the
+language, create the project directory, its README, and an empty solution
+file, then open the solution."
   (interactive "sKata slug or URL: ")
   (codewars--trust-directory)
-  (let* ((kata (codewars/fetch-kata (codewars/slug-from-input input)))
-         (languages (alist-get 'languages kata))
+  (let ((slug (codewars/slug-from-input input)))
+    (message "Fetching Codewars kata %s..." slug)
+    (codewars/fetch-kata slug #'codewars--pull-fetched)))
+
+(defun codewars--pull-fetched (kata error)
+  "Create the project for KATA, or report ERROR, once the fetch has finished."
+  (if error
+      (message "%s" error)
+    (codewars--create-project kata)))
+
+(defun codewars--create-project (kata)
+  "Ask for the language of KATA, then create its project and open the solution."
+  (let* ((languages (alist-get 'languages kata))
          (default (if (member codewars/default-language languages)
                       codewars/default-language
                     (car languages)))
@@ -175,11 +240,12 @@ Use it for Attempt and Submit, which need your logged-in session."
   (interactive)
   (browse-url (codewars/trainer-url (codewars/read-metadata))))
 
-(use-package codewars
+;; This file is loaded by `mod/import', not installed as a package on
+;; `load-path'.  Define the menu eagerly through Hydra; deferring it under
+;; `codewars' would autoload a library Emacs cannot locate.
+(use-package hydra
   :ensure nil
-  :no-require t
-  :after hydra
-  :bind (("C-x C-h K" . hydra-codewars/body))
+  :demand t
   :hydra (hydra-codewars
           (:color blue)
           "
@@ -189,5 +255,6 @@ Codewars: _p_ pull  _t_ test  _d_ description  _o_ open trainer (attempt, submit
           ("d" codewars/open-description)
           ("o" codewars/open-trainer)
           ("q" nil)))
+(keymap-global-set "C-x C-h K" #'hydra-codewars/body)
 
 ;;; codewars.el ends here

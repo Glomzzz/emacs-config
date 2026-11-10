@@ -17,10 +17,15 @@ pulls the kata with the public API, which needs no login, and
 
 | Key | Command | Does |
 | --- | --- | --- |
-| `p` | `codewars/pull` | Prompts for a slug, id, or URL and a language, then creates the project |
+| `p` | `codewars/pull` | Prompts for a slug, id, or URL, fetches the kata in the background, then asks for a language and creates the project |
 | `t` | `codewars/test` | Runs the test command for the language in the project |
 | `d` | `codewars/open-description` | Opens the project's `README.md` |
 | `o` | `codewars/open-trainer` | Opens the trainer in the browser for Attempt and Submit |
+
+The kata request runs asynchronously, so Emacs stays responsive while it is in
+flight.  A request that gets no answer within 20 seconds fails, and so does one
+that returns an HTTP error or unreadable data.  Failures are reported in the
+echo area and create no project.
 
 ## Project layout
 
@@ -45,10 +50,26 @@ directory is trusted the same way `~/git/` is.
 
 ## Testing
 
-`codewars/test-commands` maps a language to the command that runs in the
-project directory, for example `("rust" . "cargo test")`.  Languages without
-an entry prompt for a command.  The command runs through `compile`, so
-`C-x `` and the `C-x C-h c` menu work on its errors.
+Save your solution and test file, then press `C-x C-h K t` (or run
+`M-x codewars/test`).  Haskell has this default test command:
+
+```sh
+ghc -ignore-dot-ghci solution.hs Test.hs -e Main.main
+```
+
+Create `Test.hs` beside `solution.hs`, with `module Main` and a `main :: IO ()`
+that runs your assertions.  Import the module declared in `solution.hs`.
+Both files are loaded explicitly, so a solution declaring `module Sums`
+does not have to be renamed to `Sums.hs`.  No extra testing package is
+needed; assertions can use `fail` or `System.Exit.exitFailure` to report a
+failing exit status.  This command tests local assertions, not the hidden
+Codewars suite.
+
+`codewars/test-commands` maps languages to commands run in the project
+directory.  Override it for projects using Cabal, Stack, or another runner;
+languages without an entry prompt for a command.  Commands run through
+`compile`, so `C-x `` and the `C-x C-h c` menu work on their errors.
+Use `g` in the compilation buffer or `M-x recompile` to rerun after saving.
 
 Sample tests are not pulled.  Codewars loads the starter code and sample
 tests with client-side JavaScript, and that source is not documented.  Write
