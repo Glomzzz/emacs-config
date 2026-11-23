@@ -187,6 +187,11 @@ advertise whole-buffer formatting."
   (remove-hook 'prog-mode-hook #'eglot-ensure)
   (remove-hook 'before-save-hook #'eglot-format)
   :config
+  ;; Eglot's default symbol highlight is bold only, which is hard to see in
+  ;; terminal frames.  Underline the occurrences; the spec follows theme changes.
+  (face-spec-set 'eglot-highlight-symbol-face
+                 '((t (:inherit bold :underline t)))
+                 'face-defface-spec)
   (when (fboundp 'eglot--signal-textDocument/didChange)
     (advice-add 'eglot--signal-textDocument/didChange :around
                 #'lsp/sync-without-raw-bytes))
