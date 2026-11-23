@@ -55,6 +55,22 @@
     (should (equal (alist-get mode eglot-server-programs)
                    '(rust/eglot-server "rust-analyzer")))))
 
+(ert-deftest config-test/rust-checks-only-the-current-package ()
+  (require 'jsonrpc)
+  (should (equal (rust/eglot-workspace-configuration nil)
+                 '(:rust-analyzer (:check (:workspace :json-false)))))
+  ;; The wire form must be JSON false, not null or a string.
+  (should (string-match-p
+           "\"workspace\":false"
+           (jsonrpc--json-encode (rust/eglot-workspace-configuration nil))))
+  (dolist (mode (append '(rust-mode)
+                        (when (treesit-ready-p 'rust t) '(rust-ts-mode))))
+    (with-temp-buffer
+      (cl-letf (((symbol-function 'eglot-ensure) #'ignore))
+        (funcall mode))
+      (should (equal (lsp/workspace-configuration nil)
+                     '(:rust-analyzer (:check (:workspace :json-false))))))))
+
 (defmacro config-test/with-eglot-pipe-server (class &rest body)
   "Run BODY with SERVER of CLASS on a pipe, without an external process."
   (declare (indent 1) (debug (form body)))

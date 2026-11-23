@@ -47,6 +47,13 @@ can otherwise clear compiler warnings until the next save."
 ;; rust-ts-mode is built into Emacs, so no package is declared.
 (add-hook 'rust-ts-mode-hook #'rust/eglot-ensure)
 
+(defun rust/eglot-workspace-configuration (_server)
+  "Limit rust-analyzer's `check' to the crate being edited.
+Whole-workspace checks rebuild every member on each save.  With
+`check.workspace' disabled, saved diagnostics cover only the current
+package."
+  '(:rust-analyzer (:check (:workspace :json-false))))
+
 (with-eval-after-load 'eglot
   (defclass rust/eglot-server (eglot-lsp-server) ()
     :documentation "Rust Analyzer using a single push diagnostic stream.")
@@ -60,7 +67,9 @@ can otherwise clear compiler warnings until the next save."
   ;; Keep the server choice and diagnostic negotiation scoped to both Rust modes.
   (dolist (mode '(rust-mode rust-ts-mode))
     (setf (alist-get mode eglot-server-programs)
-          '(rust/eglot-server "rust-analyzer"))))
+          '(rust/eglot-server "rust-analyzer")))
+  (lsp/register-workspace-configuration '(rust-mode rust-ts-mode)
+                                        #'rust/eglot-workspace-configuration))
 
 (defun rust/configure-apheleia ()
   "Use rustfmt for Rust buffers when Eglot is not formatting them."
