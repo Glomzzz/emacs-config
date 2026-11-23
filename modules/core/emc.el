@@ -51,9 +51,10 @@ that it is safe to restart."
   (if (or (emc/client-frames)
           (seq-some (lambda (buffer)
                       (with-current-buffer buffer
-                        (and buffer-file-name (buffer-modified-p))))
+                        (or (and buffer-file-name (buffer-modified-p))
+                            ;; mail-async--job is buffer-local to its draft.
+                            (bound-and-true-p mail-async--job))))
                     (buffer-list))
-          (bound-and-true-p mail-async--jobs)
           (not (emc/config-stale-p)))
       'ok
     'stale))
