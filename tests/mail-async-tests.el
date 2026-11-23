@@ -6,7 +6,7 @@
 (require 'mail-async)
 
 (defconst config-test/mail-async-fixture
-  (expand-file-name "fixtures/msmtp-send.py"
+  (expand-file-name "fixtures/msmtp-send.sh"
                     (file-name-directory (or load-file-name buffer-file-name))))
 
 (defun config-test/mail-await (predicate)
