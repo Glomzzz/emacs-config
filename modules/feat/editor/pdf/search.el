@@ -1,7 +1,7 @@
 ;;; search.el --- Search PDF text with on-page highlights -*- lexical-binding: t; -*-
 
 ;; Matches come from the text layer of `pdf-text'.  Jumping to a match turns
-;; to its page with `reader-goto-page'; every match on the page is highlighted,
+;; to its page with `emureader-goto-page'; every match on the page is highlighted,
 ;; and the current one is highlighted more strongly.
 
 (require 'cl-lib)
@@ -9,9 +9,9 @@
 (require 'pdf-text)
 (require 'pdf-image)
 
-(declare-function reader-current-doc-pagenumber "ext:reader" (&optional window))
-(declare-function reader-goto-page "ext:reader" (n))
-(defvar reader-current-doc-pagecount)
+(declare-function emureader-current-doc-pagenumber "ext:emureader" (&optional window))
+(declare-function emureader-goto-page "ext:emureader" (n))
+(defvar emureader-current-doc-pagecount)
 
 (defcustom pdf/search-color "#ffcc80"
   "Colour of the other matches on a PDF page."
@@ -58,8 +58,8 @@ With BACKWARD, search the other way."
 (defun pdf--search-show (match)
   "Turn to MATCH, a list (PAGE START END), and repaint the highlights."
   (pcase-let ((`(,page ,start ,end) match))
-    (unless (eql page (reader-current-doc-pagenumber))
-      (reader-goto-page page))
+    (unless (eql page (emureader-current-doc-pagenumber))
+      (emureader-goto-page page))
     (setq pdf--match (list page start end))
     (pdf/image-refresh (current-buffer))))
 
@@ -67,12 +67,12 @@ With BACKWARD, search the other way."
   "Move to the next match of the current query, or the previous one if BACKWARD."
   (unless pdf--query
     (user-error "No PDF search yet; press / to search"))
-  (let* ((page (reader-current-doc-pagenumber))
+  (let* ((page (emureader-current-doc-pagenumber))
          (after (cond ((and pdf--match (= (nth 0 pdf--match) page))
                        (nth 1 pdf--match))
                       (backward most-positive-fixnum)
                       (t -1)))
-         (hit (pdf--search-find buffer-file-name reader-current-doc-pagecount
+         (hit (pdf--search-find buffer-file-name emureader-current-doc-pagecount
                                 pdf--query page after backward)))
     (if hit
         (pdf--search-show (list (car hit) (cadr hit) (cddr hit)))

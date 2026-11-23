@@ -3,7 +3,7 @@
 (require 'ert)
 (require 'cl-lib)
 
-(defconst config-test/pdf-reader-loaded-on-startup (featurep 'reader)
+(defconst config-test/pdf-reader-loaded-on-startup (featurep 'emureader)
   "Whether Emacs Reader was loaded before any test ran.")
 
 (ert-deftest config-test/pdf-reader-stays-lazy ()
@@ -17,8 +17,8 @@
     (unwind-protect
         (progn
           (kill-buffer (find-file-noselect file))
-          (should-not (featurep 'reader))
-          (should-not (memq #'reader--saveplace-find-file
+          (should-not (featurep 'emureader))
+          (should-not (memq #'emureader--saveplace-find-file
                             (and (boundp 'save-place-after-find-file-hook)
                                  save-place-after-find-file-hook))))
       (delete-file file))))
@@ -26,7 +26,7 @@
 (ert-deftest config-test/pdf-routes-only-pdf-to-dispatcher ()
   (should (eq (assoc-default "/tmp/paper.pdf" auto-mode-alist #'string-match)
               #'pdf/mode-maybe))
-  (should-not (rassq 'reader-mode auto-mode-alist))
+  (should-not (rassq 'emureader-mode auto-mode-alist))
   (should (eq (assoc-default "/tmp/book.epub" auto-mode-alist #'string-match)
               'nov-mode)))
 
@@ -35,7 +35,7 @@
     (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) nil))
               ((symbol-function 'doc-view-mode-maybe)
                (lambda () (setq chosen 'doc-view)))
-              ((symbol-function 'reader-mode)
+              ((symbol-function 'emureader-mode)
                (lambda () (setq chosen 'reader))))
       (with-temp-buffer
         (pdf/mode-maybe)))
@@ -44,7 +44,7 @@
 (ert-deftest config-test/pdf-graphical-frames-open-reader-without-file-bytes ()
   (let (chosen contents)
     (cl-letf (((symbol-function 'pdf--reader-ready-p) (lambda () t))
-              ((symbol-function 'reader-mode)
+              ((symbol-function 'emureader-mode)
                (lambda ()
                  (setq chosen 'reader
                        contents (buffer-string))))
@@ -187,9 +187,9 @@
 
 (ert-deftest config-test/pdf-history-goes-back-and-forward ()
   (cl-letf (((symbol-function 'derived-mode-p) (lambda (&rest _) t))
-            ((symbol-function 'reader-current-doc-pagenumber)
+            ((symbol-function 'emureader-current-doc-pagenumber)
              (lambda (&rest _) config-test/pdf-page))
-            ((symbol-function 'reader-goto-page)
+            ((symbol-function 'emureader-goto-page)
              (lambda (page) (setq config-test/pdf-page page))))
     (with-temp-buffer
       (setq config-test/pdf-page 1)
@@ -211,7 +211,7 @@
         (width-calls 0))
     (unwind-protect
         (cl-letf (((symbol-function 'pdf--views-file) (lambda () views))
-                  ((symbol-function 'reader-fit-to-width)
+                  ((symbol-function 'emureader-fit-to-width)
                    (lambda (&rest _) (cl-incf width-calls))))
           (with-temp-buffer
             (setq buffer-file-name config-test/pdf-fixture
@@ -229,13 +229,13 @@
   (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) t))
             ((symbol-function 'imenu-add-menubar-index) (lambda (&rest _) nil))
             ((symbol-function 'image-flush) (lambda (&rest _) nil))
-            ((symbol-function 'reader-fit-to-height) (lambda (&rest _) nil))
-            ((symbol-function 'reader--center-page) (lambda (&rest _) nil)))
+            ((symbol-function 'emureader-fit-to-height) (lambda (&rest _) nil))
+            ((symbol-function 'emureader--center-page) (lambda (&rest _) nil)))
     (let ((buffer (find-file-noselect config-test/pdf-fixture)))
       (unwind-protect
           (with-current-buffer buffer
             (switch-to-buffer buffer)
-            (let* ((overlay (reader-current-doc-overlay))
+            (let* ((overlay (emureader-current-doc-overlay))
                    (base (overlay-get overlay 'display)))
               (should (overlayp overlay))
               (pdf--select-set buffer 1 0 4)

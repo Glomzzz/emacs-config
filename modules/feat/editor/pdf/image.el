@@ -9,8 +9,8 @@
 (require 'cl-lib)
 (require 'pdf-text)
 
-(declare-function reader-current-doc-overlay "ext:reader" (&optional window))
-(declare-function reader-current-doc-pagenumber "ext:reader" (&optional window))
+(declare-function emureader-current-doc-overlay "ext:emureader" (&optional window))
+(declare-function emureader-current-doc-pagenumber "ext:emureader" (&optional window))
 (declare-function pdf/select-groups "select" (page))
 (declare-function pdf/search-groups "search" (page))
 
@@ -130,9 +130,9 @@ Each group is (RECTS COLOR ALPHA), where RECTS are pixel rects."
 
 (defun pdf--refresh-window (window buffer)
   "Repaint the highlights of WINDOW's page of BUFFER into its overlay."
-  (let ((overlay (reader-current-doc-overlay window)))
+  (let ((overlay (emureader-current-doc-overlay window)))
     (when (and (overlayp overlay) (eq (overlay-buffer overlay) buffer))
-      (let* ((page (reader-current-doc-pagenumber window))
+      (let* ((page (emureader-current-doc-pagenumber window))
              (current (overlay-get overlay 'display))
              (composite (overlay-get overlay 'pdf-composite))
              (base (if (and composite (eq current composite))
@@ -182,13 +182,13 @@ Each group is (RECTS COLOR ALPHA), where RECTS are pixel rects."
   "Repaint BUFFER's highlights into each window that shows it."
   (let ((buffer (or buffer (current-buffer))))
     (when (and (buffer-live-p buffer)
-               (eq (buffer-local-value 'major-mode buffer) 'reader-mode))
+               (eq (buffer-local-value 'major-mode buffer) 'emureader-mode))
       (dolist (window (get-buffer-window-list buffer nil t))
         (pdf--refresh-window window buffer)))))
 
 (defun pdf--turn (delta)
   "Turn the current page's rotation by DELTA quarter turns and repaint."
-  (when (derived-mode-p 'reader-mode)
+  (when (derived-mode-p 'emureader-mode)
     (setq pdf--rotation (mod (+ pdf--rotation delta) 4))))
 
 (provide 'pdf-image)

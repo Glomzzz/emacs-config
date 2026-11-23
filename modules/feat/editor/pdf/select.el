@@ -7,8 +7,8 @@
 (require 'pdf-text)
 (require 'pdf-image)
 
-(declare-function reader-current-doc-pagenumber "ext:reader" (&optional window))
-(declare-function reader-current-doc-overlay "ext:reader" (&optional window))
+(declare-function emureader-current-doc-pagenumber "ext:emureader" (&optional window))
+(declare-function emureader-current-doc-overlay "ext:emureader" (&optional window))
 
 (defcustom pdf/select-color "#ffe066"
   "Colour of selected PDF text."
@@ -56,9 +56,9 @@
     (when (and (windowp window) (consp xy) (consp image)
                (eq (car image) 'image))
       (with-current-buffer (window-buffer window)
-        (when (and (derived-mode-p 'reader-mode)
-                   (reader-current-doc-overlay window))
-          (let* ((page (reader-current-doc-pagenumber window))
+        (when (and (derived-mode-p 'emureader-mode)
+                   (emureader-current-doc-overlay window))
+          (let* ((page (emureader-current-doc-pagenumber window))
                  (layer (pdf/text-page buffer-file-name page)))
             (when (> (length (pdf-text-chars layer)) 0)
               (let ((point (pdf-pixel-to-page
@@ -196,14 +196,14 @@
 (defun pdf/select-start ()
   "Start a selection at the keyboard cursor."
   (interactive)
-  (let* ((page (reader-current-doc-pagenumber))
+  (let* ((page (emureader-current-doc-pagenumber))
          (index (pdf--cursor-index page)))
     (pdf--select-set (current-buffer) page index index)))
 
 (defun pdf--move (step)
   "Move the keyboard cursor, and any selection's point, using STEP.
 STEP receives the characters of the page and the current index."
-  (let* ((page (reader-current-doc-pagenumber))
+  (let* ((page (emureader-current-doc-pagenumber))
          (layer (pdf/text-page buffer-file-name page))
          (chars (pdf-text-chars layer)))
     (if (zerop (length chars))

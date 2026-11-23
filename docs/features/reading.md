@@ -89,7 +89,7 @@ Makefile sets no optimization level.  Deleting the cache root removes the
 out-links; run `M-x pdf/build` again to restore them.
 
 Only PDF is registered for Reader.  EPUB stays with nov, and other formats keep
-their modes.  `M-x reader-open-doc` still opens any format Reader supports.  If
+their modes.  `M-x emureader-open-doc` still opens any format Reader supports.  If
 the module is missing or fails to load, a graphical PDF falls back to DocView
 with a message.  Large PDFs open in Reader without Emacs' size prompt
 (`large-file-warning-threshold`); DocView and other files keep the prompt.

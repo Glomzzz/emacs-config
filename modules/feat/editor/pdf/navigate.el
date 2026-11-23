@@ -10,13 +10,13 @@
 (require 'pdf-select)
 (require 'pdf-search)
 
-(declare-function reader-current-doc-pagenumber "ext:reader" (&optional window))
-(declare-function reader-goto-page "ext:reader" (n))
-(declare-function reader-fit-to-height "ext:reader" ())
-(declare-function reader-fit-to-width "ext:reader" ())
-(declare-function reader-enlarge-size "ext:reader" (&optional scaling-factor))
-(declare-function reader-shrink-size "ext:reader" (&optional scaling-factor))
-(declare-function reader-reset-size "ext:reader" ())
+(declare-function emureader-current-doc-pagenumber "ext:emureader" (&optional window))
+(declare-function emureader-goto-page "ext:emureader" (n))
+(declare-function emureader-fit-to-height "ext:emureader" ())
+(declare-function emureader-fit-to-width "ext:emureader" ())
+(declare-function emureader-enlarge-size "ext:emureader" (&optional scaling-factor))
+(declare-function emureader-shrink-size "ext:emureader" (&optional scaling-factor))
+(declare-function emureader-reset-size "ext:emureader" ())
 
 (defvar-local pdf--page nil
   "The page this buffer last showed, for the history.")
@@ -35,8 +35,8 @@
 
 (defun pdf/navigate-note-page ()
   "Record a page change made by a Reader command in the history."
-  (when (derived-mode-p 'reader-mode)
-    (let ((page (reader-current-doc-pagenumber)))
+  (when (derived-mode-p 'emureader-mode)
+    (let ((page (emureader-current-doc-pagenumber)))
       (cond ((null pdf--page)
              (setq pdf--page page))
             ((eql page pdf--page))
@@ -49,7 +49,7 @@
 
 (defun pdf--history-goto (page)
   "Show PAGE as the current page, keeping the history bookkeeping in step."
-  (reader-goto-page page)
+  (emureader-goto-page page)
   (setq pdf--page page)
   (pdf/select-page-changed page)
   (pdf/image-refresh (current-buffer)))
@@ -59,7 +59,7 @@
   (interactive)
   (if (null pdf--back)
       (message "No earlier PDF page")
-    (push (reader-current-doc-pagenumber) pdf--forward)
+    (push (emureader-current-doc-pagenumber) pdf--forward)
     (pdf--history-goto (pop pdf--back))))
 
 (defun pdf/history-forward ()
@@ -67,7 +67,7 @@
   (interactive)
   (if (null pdf--forward)
       (message "No later PDF page")
-    (push (reader-current-doc-pagenumber) pdf--back)
+    (push (emureader-current-doc-pagenumber) pdf--back)
     (pdf--history-goto (pop pdf--forward))))
 
 (defun pdf--views-file ()
@@ -101,37 +101,37 @@
   (let ((fit (cdr (assoc (file-truename buffer-file-name) (pdf--views-read)))))
     (setq pdf--fit fit)
     (pcase fit
-      ('height (reader-fit-to-height))
-      ('width (reader-fit-to-width)))))
+      ('height (emureader-fit-to-height))
+      ('width (emureader-fit-to-width)))))
 
 (defun pdf/fit-height ()
   "Fit the page to the window height, and remember that fit."
   (interactive)
-  (reader-fit-to-height)
+  (emureader-fit-to-height)
   (setq pdf--fit 'height))
 
 (defun pdf/fit-width ()
   "Fit the page to the window width, and remember that fit."
   (interactive)
-  (reader-fit-to-width)
+  (emureader-fit-to-width)
   (setq pdf--fit 'width))
 
 (defun pdf/zoom-in ()
   "Enlarge the page; a manual zoom replaces the remembered fit."
   (interactive)
-  (call-interactively #'reader-enlarge-size)
+  (call-interactively #'emureader-enlarge-size)
   (setq pdf--fit nil))
 
 (defun pdf/zoom-out ()
   "Shrink the page; a manual zoom replaces the remembered fit."
   (interactive)
-  (call-interactively #'reader-shrink-size)
+  (call-interactively #'emureader-shrink-size)
   (setq pdf--fit nil))
 
 (defun pdf/zoom-reset ()
   "Reset the page to its natural size; a manual zoom replaces the fit."
   (interactive)
-  (call-interactively #'reader-reset-size)
+  (call-interactively #'emureader-reset-size)
   (setq pdf--fit nil))
 
 (defun pdf/clear ()
