@@ -75,6 +75,35 @@ and waits for a reply that never arrives."
 (with-eval-after-load 'cns
   (advice-add 'cns-stop-process :after #'chinese-words/discard-stopped-process))
 
+;; `cns' finds word starts with `re-search-backward', which signals
+;; `search-failed' when only punctuation or nothing precedes point, so M-b
+;; at the start of a buffer errored.  At that boundary, stop at `point-min'
+;; as the built-in `backward-word' does.
+(defun chinese-words/word-start-before-point ()
+  "Return the start of the nearest word before point, or `point-min'."
+  (save-excursion
+    (if (re-search-backward "\\<" nil t) (point) (point-min))))
+
+(defun chinese-words/get-word-position (direction)
+  "Return the position after word movement towards DIRECTION.
+Replaces `cns-get-word-position'; see `chinese-words/word-start-before-point'."
+  (save-excursion
+    (if (eq direction 'forward)
+        (progn (forward-word) (point))
+      (chinese-words/word-start-before-point))))
+
+(defun chinese-words/backward-word-safe-1 ()
+  "Move to the nearer word start found by regexp or by `backward-word'.
+Replaces `cns-backward-word-safe-1'; see `chinese-words/word-start-before-point'."
+  (let ((pos-by-regex (chinese-words/word-start-before-point))
+        (pos-by-word (save-excursion (backward-word) (point))))
+    (goto-char (max pos-by-regex pos-by-word))))
+
+(with-eval-after-load 'cns
+  (advice-add 'cns-get-word-position :override #'chinese-words/get-word-position)
+  (advice-add 'cns-backward-word-safe-1 :override
+              #'chinese-words/backward-word-safe-1))
+
 (provide 'chinese-words)
 
 ;;; chinese-words.el ends here

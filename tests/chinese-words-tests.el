@@ -71,4 +71,34 @@ The stopped helper must not be reused: it no longer reads its input."
             (should (equal (cns-segmentation-handler "中文分词") '(2 2))))
         (cns-mode -1)))))
 
+(ert-deftest config-test/chinese-words-backward-stops-at-buffer-start ()
+  "M-b at the start of a Chinese buffer stays at `point-min' without an error."
+  (skip-unless (and (chinese-words/program)
+                    (require 'cns nil t)))
+  (chinese-words/configure)
+  (with-temp-buffer
+    (insert "中文分词")
+    (cns-mode 1)
+    (unwind-protect
+        (progn
+          (goto-char (point-min))
+          (should (null (condition-case err (cns-backward-word) (error err))))
+          (should (= (point) (point-min))))
+      (cns-mode -1))))
+
+(ert-deftest config-test/chinese-words-backward-stops-after-punctuation ()
+  "M-b with only punctuation before point moves to `point-min'."
+  (skip-unless (and (chinese-words/program)
+                    (require 'cns nil t)))
+  (chinese-words/configure)
+  (with-temp-buffer
+    (insert "，中文分词")
+    (cns-mode 1)
+    (unwind-protect
+        (progn
+          (goto-char 2)
+          (should (null (condition-case err (cns-backward-word) (error err))))
+          (should (= (point) (point-min))))
+      (cns-mode -1))))
+
 ;;; chinese-words-tests.el ends here
