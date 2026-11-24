@@ -55,6 +55,32 @@ Chinese text on a machine without them behaves as usual."
 
 (add-hook 'find-file-hook #'chinese-words/enable-maybe)
 
+(defvar-local chinese-words--enable-scheduled nil
+  "Non-nil while `chinese-words/enable-pending' is queued for this buffer.")
+
+(defun chinese-words/enable-pending (buffer)
+  "Run `chinese-words/enable-maybe' in BUFFER if it is still live."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (setq chinese-words--enable-scheduled nil)
+      (chinese-words/enable-maybe))))
+
+(defun chinese-words/note-insertion (beg end _length)
+  "Schedule Chinese word motion when inserted text contains Han characters.
+A file that opened as Latin text would otherwise keep Emacs' word motion for
+Chinese typed into it, which moves across the whole run at once.  The timer
+keeps the segmenter start out of the change hook."
+  (when (and (< beg end)
+             (not chinese-words--enable-scheduled)
+             (not (bound-and-true-p cns-mode))
+             (buffers/small-p)
+             (string-match-p "\\cC" (buffer-substring-no-properties beg end))
+             (chinese-words/program))
+    (setq chinese-words--enable-scheduled t)
+    (run-at-time 0 nil #'chinese-words/enable-pending (current-buffer))))
+
+(add-hook 'after-change-functions #'chinese-words/note-insertion)
+
 (defun chinese-words/discard-stopped-process (&rest _)
   "Delete the segmenter process once `cns-stop-process' has asked it to exit.
 Emacs reports a process as live until it has processed the exit.  Without
