@@ -160,8 +160,9 @@ When a small file opens and contains Han characters, `cns-mode` turns on.  Its
 commands replace the word keys in that buffer: `M-f` / `M-b` move by Chinese
 words, `M-d` / `M-DEL` / `C-<delete>` / `C-<backspace>` kill them, and `M-t`
 transposes them.  Buffers without Han text keep the usual Emacs word commands.
-Enabling is decided when the file opens, so a buffer whose Chinese text is typed
-later stays on the ordinary commands until reopened.  Without `cnws` on
+Han text inserted later, by typing, pasting, or an input method, enables it too in
+small buffers.  The check runs after each change, and the mode turns on from a
+timer once the command finishes, so the segmenter never starts inside a change hook.  Without `cnws` on
 `exec-path`, or without the `cns` package, Chinese files open normally.
 
 The segmenter runs as one process per Emacs session (`cns-process-type` is
