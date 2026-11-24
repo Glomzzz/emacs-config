@@ -15,6 +15,7 @@
 (declare-function cns-mode "cns" (&optional arg))
 (defvar cns-prog)
 (defvar cns-dict-directory)
+(defvar cns-process)
 
 (defconst chinese-words/program-name "cnws"
   "Executable installed by the `chinese-word-segmentation' Nix package.")
@@ -54,6 +55,14 @@ Chinese text on a machine without them behaves as usual."
 
 (add-hook 'find-file-hook #'chinese-words/enable-maybe)
 
+(defun chinese-words/discard-stopped-process (&rest _)
+  "Delete the segmenter process once `cns-stop-process' has asked it to exit.
+Emacs reports a process as live until it has processed the exit.  Without
+this, the next Chinese buffer reuses a helper that no longer reads its input
+and waits for a reply that never arrives."
+  (when (process-live-p cns-process)
+    (delete-process cns-process)))
+
 (use-package cns
   :ensure nil
   :commands (cns-mode)
@@ -62,6 +71,9 @@ Chinese text on a machine without them behaves as usual."
   (cns-process-type 'shell)
   ;; Debug output would otherwise accumulate in the process buffer.
   (cns-debug nil))
+
+(with-eval-after-load 'cns
+  (advice-add 'cns-stop-process :after #'chinese-words/discard-stopped-process))
 
 (provide 'chinese-words)
 

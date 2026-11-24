@@ -49,4 +49,26 @@
         (should (equal (cns-segmentation-handler "中文分词") '(2 2)))
       (cns-mode -1))))
 
+(ert-deftest config-test/chinese-words-restarts-segmenter-after-last-buffer ()
+  "A Chinese buffer opened after the last one closes gets a fresh segmenter.
+The stopped helper must not be reused: it no longer reads its input."
+  (skip-unless (and (chinese-words/program)
+                    (require 'cns nil t)))
+  (chinese-words/configure)
+  (let ((cns-recent-segmentation nil)
+        stopped)
+    (with-temp-buffer
+      (cns-mode 1)
+      (setq stopped cns-process)
+      (cns-mode -1))
+    (should-not (process-live-p stopped))
+    (with-temp-buffer
+      (cns-mode 1)
+      (unwind-protect
+          (progn
+            (should (process-live-p cns-process))
+            (should-not (eq cns-process stopped))
+            (should (equal (cns-segmentation-handler "中文分词") '(2 2))))
+        (cns-mode -1)))))
+
 ;;; chinese-words-tests.el ends here
