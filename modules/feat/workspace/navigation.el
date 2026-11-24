@@ -18,7 +18,8 @@
   ;; Keep the stock commands available through familiar keys while replacing
   ;; their UI with Consult's richer candidates and live previews.
   :bind (;; C-c bindings in `mode-specific-map'
-         ("C-c s" . consult-ripgrep)
+         ;; C-c s is fff (see fff.el); ripgrep stays one key away.
+         ("C-c S" . consult-ripgrep)
          ("C-c R" . consult-recent-file)
          ("C-c M-x" . consult-mode-command)
          ("C-c h" . consult-history)

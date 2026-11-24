@@ -4,6 +4,7 @@
  '("git.el"
    "jujutsu.el"
    "navigation.el"
+   "fff-search.el"
    "projects.el"
    "workspaces.el"
    "environment.el"))
