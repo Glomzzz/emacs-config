@@ -69,6 +69,27 @@ preview advice is installed.  Customize the public `consult-preview-key`
 and `consult-customize` settings in `modules/feat/workspace/navigation.el`
 if you prefer another trade-off.
 
+## Project Search with fff
+
+`modules/feat/workspace/fff-search.el` puts [fff](https://github.com/dmtrKovalenko/fff)
+behind the project search keys.  The helper keeps one warm index per project root,
+so repeated searches do not spawn a process each time.  Frecency and query history
+are cached under `$XDG_CACHE_HOME/fff-emacs`.
+
+| Key | Command | Scope |
+| --- | --- | --- |
+| `C-c s` | `fff/grep` | fff grep in the current project; ripgrep outside a project |
+| `C-c F` | `fff-find-file` | fuzzy project file finder |
+| `C-c S` | `consult-ripgrep` | ripgrep, always |
+
+- The helper binary is `fff-emacs-helper`, built from `pkgs/fff-emacs-helper.nix`
+  in the system flake and installed on the session PATH.  The Elisp client is
+  upstream `Cbeck527/fff-emacs`, declared with `packages/declare-vc`.  Both are
+  pinned to the same commit, because the JSON Lines protocol connects them.
+- fff searches only the project root.  It has no glob or file-type filters and
+  no directory argument, so use `C-c S` for those.
+- `M-x fff-diagnostics` shows the helper state; `M-x fff-restart` restarts it.
+
 ## Visible Text Jumps
 
 **`C-'`** (`avy-goto-char-timer`) jumps to visible text in any ordinary
