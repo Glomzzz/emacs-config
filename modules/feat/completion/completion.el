@@ -87,14 +87,20 @@ Corfu installs timer hooks; preserve explicit buffer-local opt-outs."
 
 (defvar eldoc--doc-buffer)
 (defun completion/eldoc-show-at-point ()
-  "Show documentation with Eldoc Box, or normal Eldoc in terminals.
-Eldoc Box reads ElDoc's documentation buffer, which stays nil until ElDoc
-has produced docs once in this session.  Until then, use the echo area."
+  "Show documentation for the symbol at point with Eldoc Box or the echo area.
+In a GUI, request documentation for point first, then show Eldoc Box; the
+popup is updated when the server replies.  Eldoc Box reads ElDoc's
+documentation buffer, which stays nil until ElDoc has produced docs once in
+this session.  Until then, and in terminals, use an explicit Eldoc request."
   (interactive)
   (if (and (display-graphic-p)
            (require 'eldoc-box nil t)
            (buffer-live-p (bound-and-true-p eldoc--doc-buffer)))
-      (call-interactively #'eldoc-box-help-at-point)
+      (progn
+        ;; The doc buffer may hold the docs of an earlier call; refresh it
+        ;; for the current point, which is a no-op when point is unchanged.
+        (eldoc-print-current-symbol-info)
+        (call-interactively #'eldoc-box-help-at-point))
     (eldoc-print-current-symbol-info t)))
 
 (defun completion/eldoc-scroll-forward (&optional lines)

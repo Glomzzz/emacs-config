@@ -341,22 +341,24 @@
   (require 'eldoc-box)
   (with-temp-buffer
     (emacs-lisp-mode)
-    (let ((box-calls 0) (echo-requests 0))
+    (let ((box-calls 0) (requests nil))
       (cl-letf (((symbol-function 'display-graphic-p) (lambda (&optional _display) t))
                 ((symbol-function 'eldoc-box-help-at-point)
                  (lambda () (interactive) (cl-incf box-calls)))
                 ((symbol-function 'eldoc-print-current-symbol-info)
-                 (lambda (&optional _interactive) (cl-incf echo-requests))))
+                 (lambda (&optional interactive) (push interactive requests))))
         (let ((eldoc--doc-buffer nil))
           (completion/eldoc-show-at-point))
         (should (= box-calls 0))
-        (should (= echo-requests 1))
+        (should (equal requests '(t)))
+        (setq requests nil)
         (let ((eldoc--doc-buffer (generate-new-buffer " *eldoc-doc-test*")))
           (unwind-protect
               (completion/eldoc-show-at-point)
             (kill-buffer eldoc--doc-buffer)))
         (should (= box-calls 1))
-        (should (= echo-requests 1))))))
+        ;; The doc buffer is refreshed for point before Eldoc Box shows it.
+        (should (equal requests '(nil)))))))
 
 (ert-deftest config-test/completion-balanced-performance-defaults ()
   (require 'corfu-auto)

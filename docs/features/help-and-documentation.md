@@ -33,15 +33,18 @@ at 300 ms could deliver documentation while suppressed, with no retry until
 the cursor moved again.  The completion module now owns the longer delay;
 Eglot does not reset it.  Server response latency is additional, and a
 language backend must provide documentation for the symbol at point.
-`C-M-d` calls `eldoc-box-help-at-point` in a GUI and requests normal Eldoc in
-terminals.  Eldoc Box needs ElDoc's documentation buffer, which exists only
+`C-M-d` in a GUI requests documentation for the symbol at the current point and
+shows it with `eldoc-box-help-at-point`; the popup updates when the server
+replies.  In terminals it requests normal Eldoc.  Eldoc Box needs ElDoc's
+documentation buffer, which exists only
 after ElDoc has produced docs once in the session; until then a GUI `C-M-d`
 uses the echo area.  Explicit Eldoc documentation buffers open in a top pane in both
 GUI and terminal frames.  `C-x C-h l h` requests fresh documentation;
 `C-x C-h l H` opens the last documentation buffer.  The pane updates when an
-asynchronous server response arrives.  The package owns its display hooks and cursor-following behavior;
-this configuration does not advise private Eldoc update functions, suppress
-comments globally, or install a private Eldoc Box renderer.
+asynchronous server response arrives.  The package owns its display hooks and
+cursor-following behavior; this configuration does not advise private Eldoc
+update functions, suppress comments globally, or install a private Eldoc Box
+renderer.
 
 Eglot code-action suggestions do not contribute text to Eldoc: the public
 `eglot-code-action-indications` option keeps only fringe/margin indicators,
