@@ -4,6 +4,7 @@
 
 (declare-function eglot-rename "eglot" ())
 (defvar eglot-server-programs)
+(declare-function flymake-diagnostic-code "flymake" (diagnostic))
 (defvar eglot-ignored-server-capabilities)
 (defvar apheleia-formatters)
 (defvar apheleia-mode-alist)
@@ -70,6 +71,37 @@ package."
           '(rust/eglot-server "rust-analyzer")))
   (lsp/register-workspace-configuration '(rust-mode rust-ts-mode)
                                         #'rust/eglot-workspace-configuration))
+
+;; Flymake's end-of-line summary shows the most severe diagnostic, which for
+;; unused code is the rustc or rust-analyzer `unused_*' warning.  Hide only
+;; those summaries in Rust buffers; fringe markers and diagnostic lists keep
+;; reporting them.
+(defun rust/unused-overlay-p (overlay)
+  "Return non-nil when OVERLAY holds an unused-code diagnostic in a Rust buffer.
+Rustc and rust-analyzer use codes such as `unused_variables'; any code
+starting with \"unused\" matches."
+  (when-let* ((buffer (overlay-buffer overlay))
+              (diagnostic (overlay-get overlay 'flymake-diagnostic)))
+    (with-current-buffer buffer
+      (and (derived-mode-p 'rust-mode 'rust-ts-mode)
+           (let ((code (flymake-diagnostic-code diagnostic)))
+             (and (stringp code) (string-prefix-p "unused" code)))))))
+
+(defun rust/eol-summary-without-unused (original source-overlays)
+  "Hide unused-code diagnostics from Rust end-of-line summaries.
+Around advice for the private `flymake--eol-overlay-summary', whose ORIGINAL
+implementation receives SOURCE-OVERLAYS, the diagnostic overlays sharing one
+line end.  When every such diagnostic is unused code, return a bare newline
+so the line break stays intact."
+  (let* ((kept (seq-remove #'rust/unused-overlay-p source-overlays))
+         (hidden (- (length source-overlays) (length kept))))
+    (cond ((zerop hidden) (funcall original source-overlays))
+          (kept (funcall original kept))
+          (t (propertize "\n" 'cursor t)))))
+
+(with-eval-after-load 'flymake
+  (advice-add 'flymake--eol-overlay-summary :around
+              #'rust/eol-summary-without-unused))
 
 (defun rust/configure-apheleia ()
   "Use rustfmt for Rust buffers when Eglot is not formatting them."

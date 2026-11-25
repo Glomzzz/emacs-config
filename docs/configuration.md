@@ -406,7 +406,10 @@ existing Rust server after changing this policy.  Native diagnostics still
 update on edits; compiler warnings remain visible but may be stale until the
 next save runs `cargo check`.  No automatic saves or extra compiler runs are
 added.  Actual type/parameter inlay hints remain disabled; end-of-line warning
-text is Flymake's diagnostic display, not an inlay hint.  An isolated real-server
+text is Flymake's diagnostic display, not an inlay hint.  Rust buffers omit
+end-of-line summaries for `unused*` codes (`rust/eol-summary-without-unused`
+advises the private `flymake--eol-overlay-summary`); fringe markers, echo text,
+and `M-g f` still show them.  An isolated real-server
 smoke test verified warning retention after unsaved edits, live native syntax
 diagnostics, removal after saving a fix, and absence of pull requests.
 
@@ -594,7 +597,8 @@ takes precedence over the defaults.  Untrusted files do not get these
 backends until explicitly trusted.  `flymake-show-diagnostics-at-end-of-line`
 is set to `short` so the most severe diagnostic is summarized at the end of
 its line, alongside the fringe indicators, `M-g f` (`consult-flymake`), and
-`M-x flymake-show-buffer-diagnostics`.
+`M-x flymake-show-buffer-diagnostics`.  Rust hides `unused*` codes from these
+summaries; see the Rust section.
 
 Eglot enables LSP snippet completions only when Yasnippet is available.
 `completion/snippets.el` bridges that capability to Tempel with

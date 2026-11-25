@@ -139,5 +139,47 @@
                 (should-not (flymake-diagnostics)))
             (flymake-mode -1)))))))
 
+(ert-deftest config-test/rust-eol-summary-hides-only-unused-diagnostics ()
+  (dolist (mode (append '(rust-mode)
+                        (when (treesit-ready-p 'rust t) '(rust-ts-mode))))
+    (with-temp-buffer
+      (cl-letf (((symbol-function 'eglot-ensure) #'ignore))
+        (funcall mode))
+      (insert "let unused = 1; let x = y;\n")
+      (let ((unused-ov (make-overlay 5 11))
+            (error-ov (make-overlay 5 11)))
+        (overlay-put unused-ov 'flymake-diagnostic
+                     (flymake-make-diagnostic
+                      (current-buffer) 5 11 :warning
+                      '("rustc" "unused_variables" "unused variable: `unused`")))
+        (overlay-put error-ov 'flymake-diagnostic
+                     (flymake-make-diagnostic
+                      (current-buffer) 5 11 :error
+                      '("rustc" "E0425" "cannot find value `y`")))
+        ;; Mixed line: the error stays and no "and N more" counts the hidden warning.
+        (let ((summary (rust/eol-summary-without-unused
+                        #'flymake--eol-overlay-summary
+                        (list unused-ov error-ov))))
+          (should (string-match-p "cannot find" summary))
+          (should-not (string-match-p "more" summary))
+          (should-not (string-match-p "unused" summary)))
+        ;; Unused-only line: keep the line break and show no text.
+        (should (equal (rust/eol-summary-without-unused
+                        #'flymake--eol-overlay-summary (list unused-ov))
+                       "\n"))))))
+
+(ert-deftest config-test/rust-eol-summary-keeps-unused-outside-rust ()
+  (with-temp-buffer
+    (emacs-lisp-mode)
+    (insert "(let ((unused 1)) nil)\n")
+    (let ((ov (make-overlay 9 15)))
+      (overlay-put ov 'flymake-diagnostic
+                   (flymake-make-diagnostic
+                    (current-buffer) 9 15 :warning
+                    '("elisp" "unused_variables" "unused variable")))
+      (should (string-match-p "unused"
+                              (rust/eol-summary-without-unused
+                               #'flymake--eol-overlay-summary (list ov)))))))
+
 (provide 'rust-tests)
 ;;; rust-tests.el ends here
