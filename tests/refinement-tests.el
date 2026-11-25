@@ -360,6 +360,41 @@
         ;; The doc buffer is refreshed for point before Eldoc Box shows it.
         (should (equal requests '(nil)))))))
 
+(ert-deftest config-test/eldoc-reply-is-delivered-only-at-request-point ()
+  "A late Eglot reply for an earlier point never replaces the current docs."
+  (require 'eglot)
+  (should (advice-member-p #'lsp/eldoc-reply-for-point 'eglot-signature-eldoc-function))
+  (should (advice-member-p #'lsp/eldoc-reply-for-point 'eglot-hover-eldoc-function))
+  (with-temp-buffer
+    (insert "outer(1, inner(2, 3))")
+    (let* ((delivered nil)
+           (refreshes 0)
+           (record (lambda (doc &rest _) (push doc delivered)))
+           (outer nil)
+           (inner nil))
+      (cl-letf (((symbol-function 'eldoc-print-current-symbol-info)
+                 (lambda (&optional _interactive) (cl-incf refreshes))))
+        ;; Point 7 is the argument of `outer'; point 16 is inside `inner'.
+        (goto-char 7)
+        (lsp/eldoc-reply-for-point (lambda (cb &rest _) (setq outer cb) t) record)
+        (goto-char 16)
+        (lsp/eldoc-reply-for-point (lambda (cb &rest _) (setq inner cb) t) record)
+        ;; The reply for `outer' arrives after the cursor reached `inner'.
+        (funcall outer "outer")
+        (should-not delivered)
+        (should (= refreshes 1))
+        (funcall inner "inner")
+        (should (equal delivered '("inner")))
+        (should (= refreshes 1))
+        ;; An edit that leaves point on the same call also makes a reply stale.
+        (setq delivered nil)
+        (lsp/eldoc-reply-for-point (lambda (cb &rest _) (setq inner cb) t) record)
+        (insert "x")
+        (backward-char)
+        (funcall inner "edited")
+        (should-not delivered)
+        (should (= refreshes 2))))))
+
 (ert-deftest config-test/completion-balanced-performance-defaults ()
   (require 'corfu-auto)
   (require 'cape)

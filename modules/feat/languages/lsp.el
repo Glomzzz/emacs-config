@@ -149,6 +149,32 @@ stale server text.  Eglot has no public resync, hence its change queue."
                 (line-number-at-pos position t) (buffer-name)))
   (apply original arguments))
 
+;;; eldoc replies
+(defun lsp/eldoc-reply-for-point (function callback &rest arguments)
+  "Call Eldoc FUNCTION with ARGUMENTS, delivering its reply only at its point.
+FUNCTION is an Eglot documentation provider such as
+`eglot-signature-eldoc-function'; CALLBACK is the Eldoc callback it receives.
+Eglot answers signature and hover requests asynchronously.  A reply for a
+call the cursor has since left can arrive after the reply for the call under
+the cursor, and Eglot's cancellation of superseded requests does not discard
+it, so the stale text would replace the current documentation.  Deliver a
+reply only while point and the buffer text are still those of its request.
+When a reply is dropped, ask for the current point: Eldoc does not repeat a
+request for a state it has already seen, so it would otherwise never answer
+the point the cursor returns to."
+  (let ((buffer (current-buffer))
+        (request-point (point))
+        (request-tick (buffer-chars-modified-tick)))
+    (apply function
+           (lambda (doc &rest properties)
+             (when (buffer-live-p buffer)
+               (with-current-buffer buffer
+                 (if (and (= (point) request-point)
+                          (= (buffer-chars-modified-tick) request-tick))
+                     (apply callback doc properties)
+                   (eldoc-print-current-symbol-info)))))
+           arguments)))
+
 ;;; eglot
 (defun lsp/format-on-save ()
   "Enable save formatting with the language's supported formatter.
@@ -195,6 +221,8 @@ advertise whole-buffer formatting."
   (when (fboundp 'eglot--signal-textDocument/didChange)
     (advice-add 'eglot--signal-textDocument/didChange :around
                 #'lsp/sync-without-raw-bytes))
+  (dolist (function '(eglot-signature-eldoc-function eglot-hover-eldoc-function))
+    (advice-add function :around #'lsp/eldoc-reply-for-point))
   (lsp/configure-completion-commands))
 
 ;;; lsp.el ends here

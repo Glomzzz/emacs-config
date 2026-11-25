@@ -46,6 +46,15 @@ cursor-following behavior; this configuration does not advise private Eldoc
 update functions, suppress comments globally, or install a private Eldoc Box
 renderer.
 
+Eglot's signature and hover providers, `eglot-signature-eldoc-function` and
+`eglot-hover-eldoc-function`, are advised by `lsp/eldoc-reply-for-point` in
+`modules/feat/languages/lsp.el`.  A server reply is shown only while point and
+the buffer text are unchanged since its request.  A reply for a call the cursor
+has left, such as the outer call after the cursor moved into an inner call, is
+dropped and documentation is requested again for the current point: Eglot's
+cancellation of superseded requests does not discard late replies in this Emacs
+version.
+
 Eglot code-action suggestions do not contribute text to Eldoc: the public
 `eglot-code-action-indications` option keeps only fringe/margin indicators,
 not `eldoc-hint`.  Undocumented symbols and empty space therefore do not show
