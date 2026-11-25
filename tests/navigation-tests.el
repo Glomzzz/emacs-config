@@ -73,6 +73,11 @@
   (should (eq (key-binding (kbd "M-g f")) #'consult-flymake))
   (should-not (eq (lookup-key isearch-mode-map (kbd "C-'")) #'avy-isearch)))
 
+(ert-deftest config-test/avy-declares-upstream-vc-source ()
+  (let ((source (alist-get 'avy packages/vc-sources)))
+    (should (equal (plist-get source :url) "https://github.com/abo-abo/avy"))
+    (should (eq (plist-get source :vc-backend) 'Git))))
+
 (defmacro config-test/with-avy-buffer (text &rest body)
   "Run BODY in a displayed isolated buffer containing TEXT."
   (declare (indent 1) (debug (form body)))

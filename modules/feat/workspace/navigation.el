@@ -111,7 +111,11 @@
 
 ;; Jump to visible text without opening a completion prompt.  Keep Avy's
 ;; optional default-key setup off so Embark, Consult, and Isearch retain keys.
-(packages/declare 'avy)
+;; Upstream master declares its `linum-mode' dependency; the 0.5.0 archive
+;; release does not, so native compilation warns about it.
+(packages/declare-vc 'avy
+                     '(:url "https://github.com/abo-abo/avy"
+                       :vc-backend Git))
 (use-package avy
   :ensure nil
   :after hydra
