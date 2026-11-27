@@ -60,3 +60,8 @@ optimize repeatable tail pauses and validate results, not just average CPU.
 Its compiled-regexp, loader-cache, and incremental-GC experiments require a
 patched Emacs binary and are not emulated by this configuration.  Keep runtime
 GC limits bounded; raising them indefinitely is not incremental collection.
+
+Runtime garbage collection is owned by `modules/core/gc.el`, which runs gcmh.
+gcmh raises the threshold to 128 MiB while a command runs and collects during
+idle time, restoring the 16 MiB low threshold afterwards.  Its 1 GiB default is
+deliberately replaced so the heap cannot grow without bound.

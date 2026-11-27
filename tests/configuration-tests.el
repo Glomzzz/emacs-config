@@ -732,5 +732,13 @@ Return `not-sent' when the guard refuses to call Eglot's sender."
             buffer-file-truename file)
       (should (trusted-content-p)))))
 
+(ert-deftest config-test/gc-idle-policy-stays-bounded ()
+  (should (featurep 'gcmh))
+  (should gcmh-mode)
+  (should (= gcmh-low-cons-threshold (* 16 1024 1024)))
+  (should (<= gcmh-high-cons-threshold (* 128 1024 1024)))
+  (should (memq #'gcmh-set-high-threshold pre-command-hook))
+  (should (memq #'gcmh-register-idle-gc post-command-hook)))
+
 (provide 'configuration-tests)
 ;;; configuration-tests.el ends here

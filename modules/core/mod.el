@@ -5,6 +5,7 @@
    "hydra.el"
    "buffers.el"
    "locations.el"
+   "gc.el"
    "emc.el"))
 
 ;;; mod.el ends here
